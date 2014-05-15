@@ -183,6 +183,15 @@ proc ediuInit {} {
     ##  Supported units
     set ::units [list um mm cm inch mil]
 
+    ##  Initialize the AIF data structures
+    ediuAIFFileInit
+}
+
+##
+##  ediuAIFFileInit
+##
+proc ediuAIFFileInit { } {
+
     ##  Database Details
     array set ::database {
         type ""
@@ -198,13 +207,13 @@ proc ediuInit {} {
     }
 
     ##  Store pads in a Tcl list
-    list ::pads
+    list ::pads { }
 
     ##  Store pads parameters in a Tcl dictionary
     set ::padParams [dict create]
 
     ##  Store net names in a Tcl list
-    list ::netnames
+    list ::netnames { }
 
     ##  Store netlist in a Tcl list
     set ::netlist [dict create]
@@ -657,6 +666,18 @@ proc ediuGraphicViewZoom {scale} {
 #
 proc ediuAIFFileOpen { { f "" } } {
     ediuUpdateStatus $::ediu(busy)
+    puts ""
+    puts "================================================"
+    puts ""
+
+    puts "11"
+    puts [dict keys $::padParams]
+    puts [dict values $::padParams]
+    ediuAIFFileInit
+    puts "22"
+    puts [dict keys $::padParams]
+    puts [dict values $::padParams]
+    puts "33"
 
     ##  Set up the sections so they can be highlighted in the AIF source
     set sections {}
@@ -707,14 +728,14 @@ proc ediuAIFFileOpen { { f "" } } {
         aif::parse $::ediu(filename)
         Transcript $::ediu(MsgNote) [format "Parsed AIF file \"%s\"." $::ediu(filename)]
 
-        foreach i $aif::sections {
-            #Transcript $::ediu(MsgNote) [format "Section \"%s\" found." $i]
-            puts [format "Section:  %s" $i]
-            foreach j [aif::variables $i] {
-                puts [format "  Variable:  %s" $j]
-                puts [format "     Value:  %s" [aif::getvar $j $i]]
-            }
-        }
+        #foreach i $aif::sections {
+        #    #Transcript $::ediu(MsgNote) [format "Section \"%s\" found." $i]
+        #    puts [format "Section:  %s" $i]
+        #    foreach j [aif::variables $i] {
+        #        puts [format "  Variable:  %s" $j]
+        #        puts [format "     Value:  %s" [aif::getvar $j $i]]
+        #    }
+        #}
 
         ##  Load the DATABASE section ...
 
@@ -1751,7 +1772,8 @@ proc ediuAIFPadsSection {} {
         Transcript $::ediu(MsgNote) [format "AIF file contains %d %s." [llength ::pads] [ediuPlural [llength ::pads] "pad"]]
 
         #for {set i 1} {$i <= [llength ::pads]} {incr i}
-        foreach i $::pads {
+        #foreach i $::pads 
+        foreach i [dict keys $::padParams] {
             
             puts ">>> $i"
             puts [dict get $::padParams $i]
@@ -2470,9 +2492,29 @@ proc aif::getvar {varname {section DEFAULT}} {
 }
 
 
+##
+##  aif::init
+##
+##  Reset the parsing data structures for subsequent file loads
+##
+proc aif::init { } {
+    variable sections
+    variable cursection
+
+    foreach section $sections {
+        if { $section == "DEFAULT" } continue
+        unset ::aif::${section}
+    }
+    set sections { }
+}
+
 proc aif::parse {filename} {
     variable sections
     variable cursection
+
+    #  Reset data structure
+    aif::init
+
     set line_no 0
     set fd [open $filename r]
     while {![eof $fd]} {
