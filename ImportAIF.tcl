@@ -183,6 +183,9 @@ proc ediuInit {} {
     ##  Supported units
     set ::units [list um mm cm inch mil]
 
+    ##  Supported pad shapes
+    set ::padshapes [list circle round oblong obround rectangle rect square sq poly]
+
     ##  Initialize the AIF data structures
     ediuAIFFileInit
 }
@@ -197,6 +200,7 @@ proc ediuAIFFileInit { } {
         type ""
         version ""
         units "um"
+        mcm "FALSE"
     }
     ##  Die Details
     array set ::die {
@@ -206,11 +210,8 @@ proc ediuAIFFileInit { } {
         center { 0 0 }
     }
 
-    ##  Store pads in a Tcl list
-    list ::pads { }
-
-    ##  Store pads parameters in a Tcl dictionary
-    set ::padParams [dict create]
+    ##  Store pads in a Tcl dictionary
+    set ::pads [dict create]
 
     ##  Store net names in a Tcl list
     list ::netnames { }
@@ -584,6 +585,7 @@ proc ediuGraphicViewBuild {} {
     set cnvs $::widgets(graphicview)
     $cnvs delete all
 
+    if { 0 } {
     for {set i 1} {$i <= $::diePads(count)} {incr i} {
         set dpltf [split $::diePads($i)]
         set AIFPadFields(pinnum) [lindex $dpltf 0]
@@ -594,6 +596,7 @@ proc ediuGraphicViewBuild {} {
 
         ediuGraphicViewAddPin $AIFPadFields(padx) \
             $AIFPadFields(pady) $AIFPadFields(pinnum) $AIFPadFields(net)
+    }
     }
 
     ediuGraphicViewAddOutline
@@ -666,20 +669,9 @@ proc ediuGraphicViewZoom {scale} {
 #
 proc ediuAIFFileOpen { { f "" } } {
     ediuUpdateStatus $::ediu(busy)
-    puts ""
-    puts "================================================"
-    puts ""
-
-    puts "11"
-    puts [dict keys $::padParams]
-    puts [dict values $::padParams]
-    ediuAIFFileInit
-    puts "22"
-    puts [dict keys $::padParams]
-    puts [dict values $::padParams]
-    puts "33"
 
     ##  Set up the sections so they can be highlighted in the AIF source
+
     set sections {}
     set sectionRegExp ""
     foreach i [array names ::sections] {
@@ -758,8 +750,12 @@ proc ediuAIFFileOpen { { f "" } } {
             return -1
         }
 
-            ##  Process the netlist section
-            #ediuAIFNetlistSection
+        ##  Load the NETLIST section ...
+
+        if { [ ediuAIFNetlistSection ] == -1 } {
+            ediuUpdateStatus $::ediu(ready)
+            return -1
+        }
 
             ##  Extract die pad details from AIF file
 #        ediuAIFPad
@@ -772,7 +768,7 @@ proc ediuAIFFileOpen { { f "" } } {
 
         ##  Draw the Graphic View
 
-            #ediuGraphicViewBuild
+        ediuGraphicViewBuild
     } else {
         Transcript $::ediu(MsgWarning) "No AIF file selected."
     }
@@ -1690,7 +1686,10 @@ proc ediuAIFName {} {
 #  Scan the AIF source file for the "DATABASE" section
 #
 proc ediuAIFDatabaseSection {} {
+    set rv 0
+
     ##  Make sure we have a DATABASE section!
+
     if { [lsearch -exact $aif::sections DATABASE] != -1 } {
         ##  Load the DATABASE section
         set vars [aif::variables DATABASE]
@@ -1704,14 +1703,14 @@ proc ediuAIFDatabaseSection {} {
 
         if { $::database(type) != "AIF" } {
             Transcript $::ediu(MsgError) [format "File \"%s\" is not an AIF file." $::ediu(filename)]
-            return -1
+            set rv -1
         }
 
         ##  Check units for legal option - AIF supports UM, MM, CM, INCH, MIL
 
         if { [lsearch -exact $::units [string tolower $::database(units)]] == -1 } {
             Transcript $::ediu(MsgError) [format "Units \"%s\" are not supported AIF syntax." $::database(units)]
-            return -1
+            set rv -1
         }
 
         foreach i [array names ::database] {
@@ -1719,8 +1718,10 @@ proc ediuAIFDatabaseSection {} {
         }
     } else {
         Transcript $::ediu(MsgError) [format "AIF file \"%s\" does not contain a DATABASE section." $::ediu(filename)]
-        return -1
+        set rv -1
     }
+
+    return $rv
 }
 
 #
@@ -1742,6 +1743,11 @@ proc ediuAIFDieSection {} {
         foreach i [array names ::die] {
             Transcript $::ediu(MsgNote) [format "Die \"%s\":  %s" [string toupper $i] $::die($i)]
         }
+
+        ##  Store the die size for building the graphic view
+        set ::dieSize(width) $::die(width)
+        set ::dieSize(height) $::die(height)
+
     } else {
         Transcript $::ediu(MsgError) [format "AIF file \"%s\" does not contain a DIE section." $::ediu(filename)]
         return -1
@@ -1754,38 +1760,46 @@ proc ediuAIFDieSection {} {
 #  Scan the AIF source file for the "PADS" section
 #
 proc ediuAIFPadsSection {} {
+
+    set rv 0
+
     ##  Make sure we have a PADS section!
     if { [lsearch -exact $aif::sections PADS] != -1 } {
         ##  Load the PADS section
         set vars [aif::variables PADS]
 
+        ##  Flush the pads dictionary
+
+        set ::pads [dict create]
+
+        ##  Populate the pads dictionary
+
         foreach v $vars {
-            puts [format "-->  %s" $v]
-            puts [format "-->  %s" [aif::getvar $v PADS]]
-            #set pad(name) $v
-            #set pad(params) [aif::getvar $v PADS]
-            ##set ::die([string tolower $v]) [aif::getvar $v PADS]
-            lappend ::pads $v
-            dict lappend ::padParams $v [aif::getvar $v PADS]
+            dict lappend ::pads $v [aif::getvar $v PADS]
         }
 
-        Transcript $::ediu(MsgNote) [format "AIF file contains %d %s." [llength ::pads] [ediuPlural [llength ::pads] "pad"]]
-
-        #for {set i 1} {$i <= [llength ::pads]} {incr i}
-        #foreach i $::pads 
-        foreach i [dict keys $::padParams] {
+        foreach i [dict keys $::pads] {
             
-            puts ">>> $i"
-            puts [dict get $::padParams $i]
-            #puts [format "Pad:  \"%s\" with params \"%s\"." $i [dict get ::pads $i]]
+            set padshape [lindex [regexp -inline -all -- {\S+} [lindex [dict get $::pads $i] 0]] 0]
 
-            Transcript $::ediu(MsgNote) [format "Pad \"%s\"" [string toupper $i]]
+            ##  Check units for legal option - AIF supports UM, MM, CM, INCH, MIL
+
+            if { [lsearch -exact $::padshapes [string tolower $padshape]] == -1 } {
+                Transcript $::ediu(MsgError) [format "Pad shape \"%s\" is not supported AIF syntax." $padshape]
+                set rv -1
+            } else {
+                Transcript $::ediu(MsgNote) [format "Found pad \"%s\" with shape \"%s\"." [string toupper $i] $padshape]
+            }
             ##Transcript $::ediu(MsgNote) [format "Pad \"%s\":  %s" [string toupper $i] [lindex $::pads $i]]
         }
+
+        Transcript $::ediu(MsgNote) [format "AIF source file contains %d %s." [llength [dict keys $::pads]] [ediuPlural [llength [dict keys $::pads]] "pad"]]
     } else {
         Transcript $::ediu(MsgError) [format "AIF file \"%s\" does not contain a PADS section." $::ediu(filename)]
-        return -1
+        set rv -1
     }
+
+    return rv
 }
 
 #
@@ -1794,37 +1808,45 @@ proc ediuAIFPadsSection {} {
 #  Scan the AIF source file for the "NETLIST" section
 #
 proc ediuAIFNetlistSection {} {
-    ##  Make sure we have a database section!
+
+    set rv 0
+
+    ##  Make sure we have a NETLIST section!
     if { [lsearch -exact $aif::sections NETLIST] != -1 } {
         ##  Load the NETLIST section
-        set section [aif::variables NETLIST]
+        set vars [aif::variables NETLIST]
 
-        foreach i $section {
-            puts [format "-->  %s" $i]
-            set ::die([string tolower $i]) [aif::getvar $i NETLIST]
+        ##  Flush the netlist dictionary
+
+        set ::netlist [dict create]
+
+        ##  Populate the netlist dictionary
+
+        foreach v $vars {
+            dict lappend ::netlist $v [aif::getvar $v NETLIST]
         }
 
-        ##  Make sure file format is AIF!
+        foreach i [dict keys $::netlist] {
+            
+            set netname [lindex [regexp -inline -all -- {\S+} [lindex [dict get $::netlist $i] 0]] 0]
 
-        if { $::die(type) != "AIF" } {
-            Transcript $::ediu(MsgError) [format "File \"%s\" is not an AIF file." $::ediu(filename)]
-            return -1
+            ##  Check net name for legal syntax
+
+            if { [ regexp {^[[:alpha:][:alnum:]_]*\w} $i ] == 0 } {
+                Transcript $::ediu(MsgError) [format "Net name \"%s\" is not supported AIF syntax." $netname]
+                set rv -1
+            } else {
+                Transcript $::ediu(MsgNote) [format "Found net name \"%s\"." $netname]
+            }
         }
 
-        ##  Load the DIE section
-        set section [aif::variables DIE]
-
-        foreach i $section {
-            set ::die([string tolower $i]) [aif::getvar $i DIE]
-        }
-
-        foreach i [array names ::die] {
-            Transcript $::ediu(MsgNote) [format "Die \"%s\":  %s" [string toupper $i] $::die($i)]
-        }
+        Transcript $::ediu(MsgNote) [format "AIF source file contains %d %s." [llength [dict keys $::netlist]] [ediuPlural [llength [dict keys $::netlist]] "net"]]
     } else {
-        Transcript $::ediu(MsgError) [format "AIF file \"%s\" does not contain a NETLIST section." $::ediu(filename)]
-        return -1
+        Transcript $::ediu(MsgError) [format "AIF file \"%s\" does not contain a NetlistPADS section." $::ediu(filename)]
+        set rv -1
     }
+
+    return rv
 }
 
 #
@@ -2443,7 +2465,6 @@ proc ediuBuildAIFPDB {} {
     set ::ediu(cTime) [clock format [clock seconds] -format "%m/%d/%Y %T"]
     Transcript $::ediu(MsgNote) [format "Start Time:  %s" $::ediu(sTime)]
     Transcript $::ediu(MsgNote) [format "Completion Time:  %s" $::ediu(cTime)]
-http://www.apexcougarclub.org/2014/04/24/order-state-championship-spirit-wear/
     ediuUpdateStatus $::ediu(ready)
 }
 
