@@ -79,10 +79,10 @@ package require inifile
 package require Tk 8.4
 
 ##  Load the Mentor DLLs.
-#::tcom::import "$env(SDD_HOME)/wg/$env(SDD_PLATFORM)/bin/ExpeditionPCB.exe"
-#::tcom::import "$env(SDD_HOME)/wg/$env(SDD_PLATFORM)/lib/CellEditorAddin.dll"
-#::tcom::import "$env(SDD_HOME)/common/$env(SDD_PLATFORM)/lib/PDBEditor.dll"
-#::tcom::import "$env(SDD_HOME)/common/$env(SDD_PLATFORM)/lib/PadstackEditor.dll"
+::tcom::import "$env(SDD_HOME)/wg/$env(SDD_PLATFORM)/bin/ExpeditionPCB.exe"
+::tcom::import "$env(SDD_HOME)/wg/$env(SDD_PLATFORM)/lib/CellEditorAddin.dll"
+::tcom::import "$env(SDD_HOME)/common/$env(SDD_PLATFORM)/lib/PDBEditor.dll"
+::tcom::import "$env(SDD_HOME)/common/$env(SDD_PLATFORM)/lib/PadstackEditor.dll"
 
 #
 #  Initialize the ediu namespace
@@ -145,7 +145,7 @@ proc ediuInit {} {
     ##  Keywords to scan for in AIF file
     array unset ::sections
     #array set ::sections {
-    #    dieName "die_name"
+    #    die "die_name"
     #    padGeomName "pad_geom_name"
     #    padGeomShape "pad_geom_shape"
     #    dieActiveSize "die_active_size"
@@ -156,7 +156,7 @@ proc ediuInit {} {
     ##  Sections within the AIF file
     array set ::sections {
         database "DATABASE"
-        dieName "DIE"
+        die "DIE"
         diePads "PADS"
         netlist "NETLIST"
     }
@@ -211,8 +211,12 @@ proc ediuAIFFileInit { } {
         width 0
         height 0
         name ""
-        center { 0 0 }
+        center [list 0 0]
+        partition ""
     }
+
+    ##  Store mcm die in a Tcl dictionary
+    set ::mcmdie [dict create]
 
     ##  Store pads in a Tcl dictionary
     set ::pads [dict create]
@@ -321,16 +325,19 @@ proc BuildGUI {} {
     #  Define the Build menu
     set bm [menu $mb.build -tearoff 0]
     $mb add cascade -label "Build" -menu $mb.build -underline 0
-    $bm add command -label "AIF Pad ..." \
+    #$bm add command -label "Pad ..." \
+         #-underline 0 \
+         #-command ediuBuildAIFPad
+    $bm add command -label "Pads ..." \
          -underline 0 \
-         -command ediuBuildAIFPad
-    $bm add command -label "AIF Padstack ..." \
+         -command ediuBuildAIFPads
+    $bm add command -label "Padstacks ..." \
          -underline 0 \
-         -command ediuBuildAIFPadstack
-    $bm add command -label "AIF Cell ..." \
+         -command ediuBuildAIFPadstacks
+    $bm add command -label "Cell ..." \
          -underline 0 \
          -command ediuBuildAIFCell
-    $bm add command -label "AIF PDB ..." \
+    $bm add command -label "PDB ..." \
          -underline 1 \
          -command ediuBuildAIFPDB
 
@@ -611,12 +618,11 @@ proc ediuGraphicViewBuild {} {
     
     $cnvs delete all
 
-    #puts [format "Nets:  %s" [ expr {[lindex [split [$txt index end] .] 0] - 1}]]
-            ##  Load the NETLIST section
+    ##  Load the NETLIST section
 
     set nl [$txt get 1.0 end]
 
-    ##  Populate the netlist
+    ##  Process the netlist looking for the pads
 
     foreach n [split $nl '\n'] {
         ##  Skip blank or empty lines
@@ -656,8 +662,8 @@ proc ediuGraphicViewBuild {} {
     ##  This is an estimate based on trying a couple of
     ##  die files.
 
-    set scaleX [expr $::widgets(windowSizeX) / (2*$::dieSize(width))]
-    puts [format "A:  %s  B:  %s  C:  %s" $scaleX $::widgets(windowSizeX) $::dieSize(width)]
+    set scaleX [expr $::widgets(windowSizeX) / (2*$::die(width))]
+    puts [format "A:  %s  B:  %s  C:  %s" $scaleX $::widgets(windowSizeX) $::die(width)]
     if { $scaleX > 0 } {
         ediuGraphicViewZoom $scaleX
     }
@@ -670,27 +676,20 @@ proc ediuGraphicViewAddPin {x y pin net pad} {
     set cnvs $::widgets(graphicview)
     ##  Figure out the pad shape
 
-    set p [dict get $::pads $pad]
-    set shape [lindex [regexp -inline -all -- {\S+} [lindex $p 0]] 0]
+    set shape [pad::getShape $pad]
 
     switch -regexp -- $shape {
         "SQ" -
         "SQUARE" {
-            set pw [lindex [regexp -inline -all -- {\S+} [lindex $p 0]] 1]
+            set pw [pad::getWidth $pad]
             $cnvs create rectangle [expr {$x-($pw/2)}] [expr {$y-($pw/2)}] \
                 [expr {$x + ($pw/2)}] [expr {$y + ($pw/2)}] -outline red \
                 -fill yellow -tags $pin
         }
         "RECT" -
         "RECTANGLE" {
-            set pw [lindex [regexp -inline -all -- {\S+} [lindex $p 0]] 1]
-            set ph [lindex [regexp -inline -all -- {\S+} [lindex $p 0]] 2]
-            puts "Width $pw"
-            puts "Height $ph"
-            puts [format "X1: %s" [expr {$x-($pw/2)}]]
-            puts [format "Y1: %s" [expr {$y-($ph/2)}]]
-            puts [format "X2: %s" [expr {$x+($pw/2)}]]
-            puts [format "Y2: %s" [expr {$y+($ph/2)}]]
+            set pw [pad::getWidth $pad]
+            set ph [pad::getHeight $pad]
             $cnvs create rectangle [expr {$x-($pw/2)}] [expr {$y-($ph/2)}] \
                 [expr {$x + ($pw/2)}] [expr {$y + ($ph/2)}] -outline red \
                 -fill yellow -tags $pin
@@ -709,9 +708,9 @@ proc ediuGraphicViewAddPin {x y pin net pad} {
 #  ediuGraphicViewAddOutline
 #
 proc ediuGraphicViewAddOutline {} {
-    set x2 [expr $::dieSize(width) / 2]
+    set x2 [expr $::die(width) / 2]
     set x1 [expr -1 * $x2]
-    set y2 [expr $::dieSize(height) / 2]
+    set y2 [expr $::die(height) / 2]
     set y1 [expr -1 * $y2]
 
     set cnvs $::widgets(graphicview)
@@ -769,19 +768,13 @@ proc ediuAIFFileOpen { { f "" } } {
 
     set sectionRegExp [format "%s)" $sectionRegExp]
 
-    ##  Prompt the user for a file
+    ##  Prompt the user for a file if not supplied
 
-    puts "--> 1"
     if { $f != $::ediu(Nothing) } {
-        puts "--> 2"
         set ::ediu(filename) $f
     } else {
-        puts "--> 3"
         set ::ediu(filename) [tk_getOpenFile -filetypes {{AIF .aif} {Txt .txt} {All *}}]
     }
-    puts "--> 4"
-    puts $f
-    puts $::ediu(filename)
 
     ##  Process the user supplied file
     if {$::ediu(filename) != $::ediu(Nothing) } {
@@ -996,17 +989,21 @@ proc ediuSetupOpenPCB {} {
 #
 #  ediuSetupOpenLMC
 #
-proc ediuSetupOpenLMC {} {
+proc ediuSetupOpenLMC { { f "" } } {
     ediuUpdateStatus $::ediu(busy)
-    ##  Prompt the user for a Central Library database
-    set ::ediu(targetPath) [tk_getOpenFile -filetypes {{LMC .lmc}}]
+
+    ##  Prompt the user for a Central Library database if not supplied
+
+    if { $f != $::ediu(Nothing) } {
+        set ::ediu(targetPath) $f
+    } else {
+        set ::ediu(targetPath) [tk_getOpenFile -filetypes {{LMC .lmc}}]
+    }
 
     if {$::ediu(targetPath) == "" } {
         Transcript $::ediu(MsgWarning) "No Central Library selected."
     } else {
-
         Transcript $::ediu(MsgNote) [format "Central Library \"%s\" set as library target." $::ediu(targetPath)]
-
     }
 
     ##  Invoke the Cell Editor and open the LMC
@@ -1288,26 +1285,52 @@ proc ediuPadGeomShape {} {
 #  ediuMapShapeToEnum
 #
 proc ediuMapShapeToEnum { shape } {
-    if { $shape == "round" } {
-        return $::PadstackEditorLib::EPsDBPadShape(epsdbPadShapeRound)
-    } elseif { $shape == "rectangle" } {
-        return $::PadstackEditorLib::EPsDBPadShape(epsdbPadShapeRectangle)
-    }
-    else {
-        return $::ediu(Nothing)
+    switch -exact -- [string toupper $shape] {
+        "CIRCLE" -
+        "ROUND" {
+            return $::PadstackEditorLib::EPsDBPadShape(epsdbPadShapeRound)
+        }
+        "SQ" -
+        "SQUARE" {
+            return $::PadstackEditorLib::EPsDBPadShape(epsdbPadShapeSquare)
+        }
+        "RECT" -
+        "RECTANGLE" {
+            return $::PadstackEditorLib::EPsDBPadShape(epsdbPadShapeRectangle)
+        }
+        default {
+            return $::ediu(Nothing)
+        }
     }
 }
 
 #
 #  ediuBuildAIFPad
 #
-#  This subroutine will create a die pad based on the "pad_geom_shape"
-#  section found in the AIF file.  It can optionally replace an existing
-#  pad based on the second argument.
+#  This subroutine will create die pads based on the "PADS" section
+#  found in the AIF file.  It can optionally replace an existing pad
+#  based on the second argument.
+#
+
+proc ediuBuildAIFPads { } {
+    foreach p [padgetAllPads] {
+        set ::padGeom(name) $p
+        set ::padGeom(shape) [pad::getShape $p]
+        set ::padGeom(width) [pad::getWidth $p]
+        set ::padGeom(height) [pad::getHeight $p]
+        set ::padGeom(offsetx) 0.0
+        set ::padGeom(offsety) 0.0
+
+        ediuBuildAIFPad
+    }
+}
+
+#
+#  ediuBuildAIFPad
 #
 #  Pads are interesting in that can't simply be updated.  To change a pad
 #  it must be deleted and then replaced.  A pad can't be deleted if it is
-#  referenced by a padstack to that scenario must be handled.
+#  referenced by a padstack so that scenario must be handled.
 #
 proc ediuBuildAIFPad { { mode "-replace" } } {
     ediuUpdateStatus $::ediu(busy)
@@ -1411,6 +1434,27 @@ puts "------>$padName<----------"
 }
 
 #
+#  ediuBuildAIFPadstacks
+#
+#  This subroutine will create die pads based on the "PADS" section
+#  found in the AIF file.  It can optionally replace an existing pad
+#  based on the second argument.
+#
+
+proc ediuBuildAIFPadstacks { } {
+    foreach p [padgetAllPads] {
+        set ::padGeom(name) $p
+        set ::padGeom(shape) [pad::getShape $p]
+        set ::padGeom(width) [pad::getWidth $p]
+        set ::padGeom(height) [pad::getHeight $p]
+        set ::padGeom(offsetx) 0.0
+        set ::padGeom(offsety) 0.0
+
+        ediuBuildAIFPadstack
+    }
+}
+
+#
 #  ediuBuildAIFPadstack
 #
 proc ediuBuildAIFPadstack { { mode "-replace" } } {
@@ -1418,8 +1462,8 @@ proc ediuBuildAIFPadstack { { mode "-replace" } } {
     set ::ediu(sTime) [clock format [clock seconds] -format "%m/%d/%Y %T"]
 
     ##  Extract pad details from AIF file
-    ediuPadGeomName
-    ediuPadGeomShape
+    #ediuPadGeomName
+    #ediuPadGeomShape
 
     ##  Make sure a Target library or design has been defined
 
@@ -1742,26 +1786,26 @@ proc ediuOpenExpedition {} {
 #
 proc ediuAIFName {} {
 
-    Transcript $::ediu(MsgNote) [format "Scanning AIF source for \"%s\"." $::sections(dieName)]
+    Transcript $::ediu(MsgNote) [format "Scanning AIF source for \"%s\"." $::sections(die)]
 
     set txt $::widgets(sourceview)
-    set dn [$txt search $::sections(dieName) 1.0 end]
+    set dn [$txt search $::sections(die) 1.0 end]
 
-    ##  Was the dieName found?
+    ##  Was the die found?
 
     if { $dn != $::ediu(Nothing)} {
         set dnl [lindex [split $dn .] 0]
-        Transcript $::ediu(MsgNote) [format "Found section \"%s\" in AIF on line %s." $::sections(dieName) $dnl]
+        Transcript $::ediu(MsgNote) [format "Found section \"%s\" in AIF on line %s." $::sections(die) $dnl]
 
-        ##  Need the text from the dieName line, drop the terminating semicolon
+        ##  Need the text from the die line, drop the terminating semicolon
         set dnlt [$txt get $dnl.0 "$dnl.end - 1 chars"]
 
-        ##  Extract the shape, height, and width from the dieNameShape
-        set ::dieName(name) [lindex [split $dnlt] 1]
-        set ::dieName(partition) [format "%s_die" $::dieName(name)]
-        Transcript $::ediu(MsgNote) [format "Extracted die name (%s)." $::dieName(name)]
+        ##  Extract the shape, height, and width from the dieShape
+        set ::die(name) [lindex [split $dnlt] 1]
+        set ::die(partition) [format "%s_die" $::die(name)]
+        Transcript $::ediu(MsgNote) [format "Extracted die name (%s)." $::die(name)]
     } else {
-        Transcript $::ediu(MsgError) [format "AIF does not contain section \"%s\"." $::sections(dieName)]
+        Transcript $::ediu(MsgError) [format "AIF does not contain section \"%s\"." $::sections(die)]
     }
 }
 
@@ -1829,9 +1873,8 @@ proc ediuAIFDieSection {} {
             Transcript $::ediu(MsgNote) [format "Die \"%s\":  %s" [string toupper $i] $::die($i)]
         }
 
-        ##  Store the die size for building the graphic view
-        set ::dieSize(width) $::die(width)
-        set ::dieSize(height) $::die(height)
+        ##  Need a partition for Cell and PDB generaton when  in CL mode
+        set ::die(partition) [format "%s_die" $::die(name)]
 
     } else {
         Transcript $::ediu(MsgError) [format "AIF file \"%s\" does not contain a DIE section." $::ediu(filename)]
@@ -1875,7 +1918,6 @@ proc ediuAIFPadsSection {} {
             } else {
                 Transcript $::ediu(MsgNote) [format "Found pad \"%s\" with shape \"%s\"." [string toupper $i] $padshape]
             }
-            ##Transcript $::ediu(MsgNote) [format "Pad \"%s\":  %s" [string toupper $i] [lindex $::pads $i]]
         }
 
         Transcript $::ediu(MsgNote) [format "AIF source file contains %d %s." [llength [dict keys $::pads]] [ediuPlural [llength [dict keys $::pads]] "pad"]]
@@ -1898,8 +1940,11 @@ proc ediuAIFNetlistSection {} {
 
     ##  Make sure we have a NETLIST section!
     if { [lsearch -exact $aif::sections NETLIST] != -1 } {
-        ##  Load the NETLIST section
+        ##  Load the NETLIST section which was previously stored in the netlist text widget
 
+        netlist::load
+
+        if { 0 } {
         set nl [$txt get 1.0 end]
 
         ##  Flush the netlist dictionary
@@ -1912,9 +1957,12 @@ proc ediuAIFNetlistSection {} {
             ##  Skip blank or empty lines
             if { [string length $n] == 0 } { continue }
 
+            ##  Extract the net name from the first field (col 1)
             set netname [lindex [regexp -inline -all -- {\S+} $n] 0]
 
-            ##  Check net name for legal syntax
+            ##  Check net name for legal syntax, add it to the list
+            ##  of nets if it is valid.  The list contains just unique
+            ##  netnames.  The netlist text widget contains the netlist.
 
             if { [ regexp {^[[:alpha:][:alnum:]_]*\w} $netname ] == 0 } {
                 Transcript $::ediu(MsgError) [format "Net name \"%s\" is not supported AIF syntax." $netname]
@@ -1929,6 +1977,10 @@ proc ediuAIFNetlistSection {} {
 
         Transcript $::ediu(MsgNote) [format "AIF source file contains %d %s." [ expr {[lindex [split [$txt index end] .] 0] - 1} - 1] [ediuPlural [llength $::netlist] "net"]]
         Transcript $::ediu(MsgNote) [format "AIF source file contains %d unique %s." [llength $::netlist] [ediuPlural [llength $::netlist] "net"]]
+        }
+
+        Transcript $::ediu(MsgNote) [format "AIF source file contains %d net %s." [ netlist::getConnectionCount ] [ediuPlural [netlist::getConnectionCount] "connection"]]
+        Transcript $::ediu(MsgNote) [format "AIF source file contains %d unique %s." [netlist::getNetCount] [ediuPlural [netlist::getNetCount] "net"]]
         
     } else {
         Transcript $::ediu(MsgError) [format "AIF file \"%s\" does not contain a NETLIST section." $::ediu(filename)]
@@ -1970,7 +2022,7 @@ proc ediuAIFSize {} {
         #Transcript $::ediu(MsgNote) [format "Extracted die size (height:  %s  width:  %s)." \
             #$::dieSize(height) $::dieSize(width)]
     #} else {
-        #Transcript $::ediu(MsgError) [format "AIF does not contain section \"%s\"." $::sections(dieName)]
+        #Transcript $::ediu(MsgError) [format "AIF does not contain section \"%s\"." $::sections(die)]
     #}
 }
 
@@ -2077,7 +2129,7 @@ proc ediuBuildAIFCell {} {
 
         #  Prompt for the Partition
 
-        set ::ediu(cellEdtrPrtnName) $::dieName(partition)
+        set ::ediu(cellEdtrPrtnName) $::die(partition)
         ediuChooseCellPartitionDialog
         #return
 
@@ -2105,15 +2157,15 @@ proc ediuBuildAIFCell {} {
 
         #  Does the partition exist?
 
-        if { [lsearch $pNames $::dieName(partition)] == -1 } {
+        if { [lsearch $pNames $::die(partition)] == -1 } {
             Transcript $::ediu(MsgNote) [format "Creating partition \"%s\" for cell \"%s\"." \
-                $::dieName(partition) $::dieName(name)]
+                $::die(partition) $::die(name)]
 
-            set partition [$::ediu(cellEdtrDb) NewPartition $::dieName(partition)]
+            set partition [$::ediu(cellEdtrDb) NewPartition $::die(partition)]
         } else {
             Transcript $::ediu(MsgNote) [format "Using existing partition \"%s\" for cell \"%s\"." \
-                $::dieName(partition) $::dieName(name)]
-            set partition [$partitions Item [expr [lsearch $pNames $::dieName(partition)] +1]]
+                $::die(partition) $::die(name)]
+            set partition [$partitions Item [expr [lsearch $pNames $::die(partition)] +1]]
         }
 
         #  Now that the partition work is doene, does the cell exist?
@@ -2135,12 +2187,12 @@ proc ediuBuildAIFCell {} {
 
     #  Does the cell exist?
 
-    if { [lsearch $cNames $::dieName(name)] == -1 } {
-        Transcript $::ediu(MsgNote) [format "Creating new cell \"%s\"." $::dieName(name)]
+    if { [lsearch $cNames $::die(name)] == -1 } {
+        Transcript $::ediu(MsgNote) [format "Creating new cell \"%s\"." $::die(name)]
 
     } else {
-        Transcript $::ediu(MsgNote) [format "Replacing existing cell \"%s.\"" $::dieName(name)]
-        set cell [$cells Item [expr [lsearch $cNames $::dieName(name)] +1]]
+        Transcript $::ediu(MsgNote) [format "Replacing existing cell \"%s.\"" $::die(name)]
+        set cell [$cells Item [expr [lsearch $cNames $::die(name)] +1]]
 
         ##  Delete the cell and save the database.  The delete
         ##  isn't committed until the database is actually saved.
@@ -2155,10 +2207,13 @@ proc ediuBuildAIFCell {} {
     ##  The graphics and pins are then added using the Cell Editor
     ##  AddIn which sort of looks like a mini version of Expediiton.
 
+    set txt $::widgets(netlistview)
+    set ::diePads(count) [expr {[lindex [split [$txt index end] .] 0] - 1} - 1]
+
     set newCell [$partition NewCell [expr $::CellEditorAddinLib::ECellDBCellType(ecelldbCellTypePackage)]]
 
-    $newCell -set Name $::dieName(name)
-    $newCell -set Description $::dieName(name)
+    $newCell -set Name $::die(name)
+    $newCell -set Description $::die(name)
     $newCell -set MountType [expr $::CellEditorAddinLib::ECellDBMountType(ecelldbMountTypeSurface)]
     #$newCell -set LayerCount [expr 2]
     $newCell -set PinCount [expr $::diePads(count)]
@@ -2289,9 +2344,9 @@ proc ediuBuildAIFCell {} {
 
     ## Define the placement outline
     
-    set x2 [expr $::dieSize(width) / 2]
+    set x2 [expr $::die(width) / 2]
     set x1 [expr -1 * $x2]
-    set y2 [expr $::dieSize(height) / 2]
+    set y2 [expr $::die(height) / 2]
     set y1 [expr -1 * $y2]
 
     ##  PutPlacementOutline expects a Points Array which isn't easily
@@ -2310,10 +2365,10 @@ proc ediuBuildAIFCell {} {
 
     ##  Save edits and close the Cell Editor
     set time [clock format [clock seconds] -format "%m/%d/%Y %T"]
-    Transcript $::ediu(MsgNote) [format "Saving new cell \"%s\" (%s)." $::dieName(name) $time]
+    Transcript $::ediu(MsgNote) [format "Saving new cell \"%s\" (%s)." $::die(name) $time]
     $cellEditor Save
     set time [clock format [clock seconds] -format "%m/%d/%Y %T"]
-    Transcript $::ediu(MsgNote) [format "New cell \"%s\" (%s) saved." $::dieName(name) $time]
+    Transcript $::ediu(MsgNote) [format "New cell \"%s\" (%s) saved." $::die(name) $time]
     $cellEditor Close False
 
 ##    if { $::ediu(mode) == $::ediu(designMode) } {
@@ -2385,15 +2440,15 @@ proc ediuBuildAIFPDB {} {
 
         #  Does the partition exist?
 
-        if { [lsearch $pNames $::dieName(partition)] == -1 } {
+        if { [lsearch $pNames $::die(partition)] == -1 } {
             Transcript $::ediu(MsgNote) [format "Creating partition \"%s\" for part \"%s\"." \
-                $::dieName(partition) $::dieName(name)]
+                $::die(partition) $::die(name)]
 
-            set partition [$::ediu(partEdtrDb) NewPartition $::dieName(partition)]
+            set partition [$::ediu(partEdtrDb) NewPartition $::die(partition)]
         } else {
             Transcript $::ediu(MsgNote) [format "Using existing partition \"%s\" for part \"%s\"." \
-                $::dieName(partition) $::dieName(name)]
-            set partition [$partitions Item [expr [lsearch $pNames $::dieName(partition)] +1]]
+                $::die(partition) $::die(name)]
+            set partition [$partitions Item [expr [lsearch $pNames $::die(partition)] +1]]
         }
 
         #  Now that the partition work is doene, does the part exist?
@@ -2415,12 +2470,12 @@ proc ediuBuildAIFPDB {} {
 
     #  Does the part exist?
 
-    if { [lsearch $cNames $::dieName(name)] == -1 } {
-        Transcript $::ediu(MsgNote) [format "Creating new part \"%s\"." $::dieName(name)]
+    if { [lsearch $cNames $::die(name)] == -1 } {
+        Transcript $::ediu(MsgNote) [format "Creating new part \"%s\"." $::die(name)]
 
     } else {
-        Transcript $::ediu(MsgNote) [format "Replacing existing part \"%s.\"" $::dieName(name)]
-        set part [$parts Item [expr [lsearch $cNames $::dieName(name)] +1]]
+        Transcript $::ediu(MsgNote) [format "Replacing existing part \"%s.\"" $::die(name)]
+        set part [$parts Item [expr [lsearch $cNames $::die(name)] +1]]
 
         ##  Delete the part and save the database.  The delete
         ##  isn't committed until the database is actually saved.
@@ -2448,8 +2503,8 @@ proc ediuBuildAIFPDB {} {
 
     set newPart [$partition NewPart]
 
-    $newPart -set Name $::dieName(name)
-    $newPart -set Number $::dieName(name)
+    $newPart -set Name $::die(name)
+    $newPart -set Number $::die(name)
     $newPart -set Type [expr $::MGCPCBPartsEditor::EPDBPartType(epdbPartIC)]
     $newPart -set RefDesPrefix "U"
     $newPart -set Description "IC"
@@ -2465,7 +2520,7 @@ proc ediuBuildAIFPDB {} {
     puts "----> Mapping Sym Refs:  [[$mapping SymbolReferences] Count]"
 
     #  Need to add a symbol reference
-    set symRef [$mapping PutSymbolReference $::dieName(name)]
+    set symRef [$mapping PutSymbolReference $::die(name)]
 
     puts "----> Mapping Sym Refs:  [[$mapping SymbolReferences] Count]"
 
@@ -2482,8 +2537,8 @@ proc ediuBuildAIFPDB {} {
     }
 
     #  Need to add a cell reference
-    set cellRef [$mapping PutCellReference $::dieName(name) \
-        $::MGCPCBPartsEditor::EPDBCellReferenceType(epdbCellRefTop) $::dieName(name)]
+    set cellRef [$mapping PutCellReference $::die(name) \
+        $::MGCPCBPartsEditor::EPDBCellReferenceType(epdbCellRefTop) $::die(name)]
 
     ##  Define the gate - what to do about swap code?
     set gate [$mapping PutGate "gate_1" $::diePads(count) \
@@ -2505,7 +2560,7 @@ proc ediuBuildAIFPDB {} {
 
     if { [[$mapping SymbolReferences] Count] != 0 } {
         Transcript $::ediu(MsgWarning) \
-            [format "Symbol Reference \"%s\" is already defined." $::dieName(name)]
+            [format "Symbol Reference \"%s\" is already defined." $::die(name)]
 
         set i 1
         set pinNames [$symRef PinNames]
@@ -2544,9 +2599,9 @@ proc ediuBuildAIFPDB {} {
 
     ##  Commit mapping and close the PDB editor
 
-    Transcript $::ediu(MsgNote) [format "Saving PDB \"%s\"." $::dieName(name)]
+    Transcript $::ediu(MsgNote) [format "Saving PDB \"%s\"." $::die(name)]
     $mapping Commit
-    Transcript $::ediu(MsgNote) [format "New PDB \"%s\" saved." $::dieName(name)]
+    Transcript $::ediu(MsgNote) [format "New PDB \"%s\" saved." $::die(name)]
     ediuClosePDBEditor
 
     ##  Report some time statistics
@@ -2556,6 +2611,143 @@ proc ediuBuildAIFPDB {} {
     ediuUpdateStatus $::ediu(ready)
 }
 
+##
+##  Define the pad namespace and procedure supporting pad operations
+##
+namespace eval pad {
+}
+
+proc padgetAllPads {} {
+    return [dict keys $::pads]
+}
+
+#  Return all of the parameters for a pad
+proc pad::getParams { pad } {
+    return [regexp -inline -all -- {\S+} [lindex [dict get $::pads $pad] 0]]
+}
+
+#  Return a specific parameter for a pad (default to first parameter)
+proc pad::getParam { pad { param  0 } } {
+    return [lindex [pad::getParams $pad] $param]
+}
+
+#  Return the shape of the pad
+proc pad::getShape { pad } {
+    return [pad::getParam $pad]
+}
+
+#  Return the width of the pad
+proc pad::getWidth { pad } {
+    return [pad::getParam $pad 1]
+}
+
+#  Return the height of the pad
+proc pad::getHeight { pad } {
+    switch -exact -- [pad::getShape $pad] {
+        "SQ" -
+        "SQUARE" {
+            return [pad::getParam $pad 1]
+        }
+        "RECT" -
+        "RECTANGLE" {
+            return [pad::getParam $pad 2]
+        }
+        default {
+            return 0
+        }
+    }
+}
+
+##
+##  Define the die namespace and procedure supporting die operations
+##
+namespace eval die {
+}
+
+proc die::getAllDie {} {
+    return [dict keys $::mcmdie]
+}
+
+##
+##  Define the netlist namespace and procedure supporting netlist operations
+##  Because net names in the netlist are not guaranteed to be unique (e.g. VSS,
+##  GND, etc.), nets are looked up by index.  The netlist can be traversed with
+##  a traditional FOR loop.
+##
+namespace eval netlist {
+    variable nl [list]
+    variable connections 0
+}
+
+#  Load the netlist from the text widget
+proc netlist::load { } {
+    variable nl
+    variable connections
+
+    set txt $::widgets(netlistview)
+    
+    ##  Clean  up list, the text widget may
+    ##  returns empty stuff we don't want
+
+    foreach n [split [$txt get 1.0 end] '\n'] {
+        if { $n == "" } { continue }
+            ##  Extract the net name from the first field (col 1)
+            set netname [lindex [regexp -inline -all -- {\S+} $n] 0]
+
+            ##  Check net name for legal syntax, add it to the list
+            ##  of nets if it is valid.  The list contains just unique
+            ##  netnames.  The netlist text widget contains the netlist.
+
+            if { [ regexp {^[[:alpha:][:alnum:]_]*\w} $netname ] == 0 } {
+                Transcript $::ediu(MsgError) [format "Net name \"%s\" is not supported AIF syntax." $netname]
+                set rv -1
+            } else {
+                incr connections
+                if { [lsearch -exact $nl $netname ] == -1 } {
+                    lappend nl $netname
+                    Transcript $::ediu(MsgNote) [format "Found net name \"%s\"." $netname]
+                }
+            }
+    }
+}
+
+#  Return all of the parameters for a net
+proc netlist::getParams { index } {
+    variable nl
+    return [regexp -inline -all -- {\S+} [lindex $nl $index]]
+}
+
+#  Return a specific parameter for a pad (default to first parameter)
+proc netlist::getParam { index { param  0 } } {
+    return [lindex [netlist::getParams $index] $param]
+}
+
+#  Return the shape of the pad
+proc netlist::getNetName { index } {
+    return [netlist::getParam $index]
+}
+
+proc netlist::getNetCount {} {
+    variable nl
+    return [llength $netlist::nl]
+}
+
+proc netlist::getConnectionCount {} {
+    variable connections
+    return $netlist::connections
+}
+
+proc netlist::netParams {} {
+}
+
+proc netlist::getAllNetNames {} {
+    variable nl
+    return $netlist::nl
+}
+
+##
+##  Define the AIF namespace and procedure supporting parsing operations
+##
 namespace eval aif {
     variable version 1.0
 
@@ -2720,6 +2912,8 @@ BuildGUI
 ediuUpdateStatus $::ediu(ready)
 Transcript $::ediu(MsgNote) "$::ediu(EDIU) ready."
 #ediuChooseCellPartitionDialog
-#catch { ediuAIFFileOpen "c:/users/mike/desktop/ImportAIF/data/Demo1.aif" } retString
 #puts $retString
-ediuAIFFileOpen
+set ::ediu(mode) $::ediu(libraryMode)
+#ediuSetupOpenLMC "C:/Users/mike/Documents/Sandbox/Sandbox.lmc"
+catch { ediuAIFFileOpen "c:/users/mike/desktop/ImportAIF/data/Demo1.aif" } retString
+#ediuAIFFileOpen
