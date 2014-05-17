@@ -67,6 +67,8 @@
 #                 Cell and PDB.  A sparse Cell and PDB allow Expedition
 #                 to run more efficiently with extremely large devices.
 #    04/10/2014 - Adapted ImportDie.tcl to support AIF
+#    05/16/2014 - Basic AIF import working with support for square and
+#                 rectangular pads.
 #
 
 package require tile
@@ -109,6 +111,7 @@ proc ediuInit {} {
         transcript ""
         sourceview ""
         graphicview ""
+        netlistview ""
         sparsepinsview ""
         EDIU "Expedition AIF Import Utility"
         MsgNote 0
@@ -164,6 +167,7 @@ proc ediuInit {} {
         transcript ""
         sourceview ""
         graphicview ""
+        netlistview ""
         sparsepinsview ""
         statuslight ""
         design ""
@@ -214,10 +218,11 @@ proc ediuAIFFileInit { } {
     set ::pads [dict create]
 
     ##  Store net names in a Tcl list
-    list ::netnames { }
+    set ::netnames [list]
 
     ##  Store netlist in a Tcl list
-    set ::netlist [dict create]
+    #set ::netlist [dict create]
+    set ::netlist [list]
 }
 
 #
@@ -377,12 +382,15 @@ proc BuildGUI {} {
     set ::ediu(sourceview) $sf
     set gf [ttk::frame $nb.graphicview]
     set ::ediu(graphicview) $gf
+    set nf [ttk::frame $nb.netlistview]
+    set ::ediu(netlistview) $nf
     set ssf [ttk::frame $nb.sparsepinsview]
     set ::ediu(sparsepinsview) $ssf
 
     $nb add $nb.transcript -text "Transcript" -padding 4
-    $nb add $nb.sourceview -text "Source View" -padding 4
+    $nb add $nb.sourceview -text "AIF Source" -padding 4
     $nb add $nb.graphicview -text "Graphic View" -padding 4
+    $nb add $nb.netlistview -text "Netlist" -padding 4
     $nb add $nb.sparsepinsview -text "Sparse Pins View" -padding 4
 
     #  Text frame for Transcript
@@ -432,6 +440,22 @@ proc BuildGUI {} {
     grid .gfcanvasscrollx x -row 1 -column 0 -in $gf -sticky ew
     grid columnconfigure $gf 0 -weight 1
     grid    rowconfigure $gf 0 -weight 1
+
+    #  Text frame for Netlist View
+    set nftext [ctext $nf.text -wrap none]
+    set ::widgets(netlistview) $nftext
+    $nftext configure -font courier-bold -state disabled
+    scrollbar .nftextscrolly -orient vertical \
+        -command { .notebook.netlistview.text yview }
+        #-command { $::widgets(netlistview) yview }
+    scrollbar .nftextscrollx -orient horizontal \
+        -command { .notebook.netlistview.text xview }
+        #-command { $::widgets(netlistview) xview }
+    grid $nftext -row 0 -column 0 -in $nf -sticky nsew
+    grid .nftextscrolly -row 0 -column 1 -in $nf -sticky ns
+    grid .nftextscrollx x -row 1 -column 0 -in $nf -sticky ew
+    grid columnconfigure $nf 0 -weight 1
+    grid    rowconfigure $nf 0 -weight 1
 
     #  Text frame for Sparse Pins View
     set ssftext [ctext $ssf.text -wrap none]
@@ -583,20 +607,47 @@ proc ediuChooseCellPartitionDialog {} {
 #
 proc ediuGraphicViewBuild {} {
     set cnvs $::widgets(graphicview)
+    set txt $::widgets(netlistview)
+    
     $cnvs delete all
 
-    if { 0 } {
-    for {set i 1} {$i <= $::diePads(count)} {incr i} {
-        set dpltf [split $::diePads($i)]
-        set AIFPadFields(pinnum) [lindex $dpltf 0]
-        set AIFPadFields(padname) [lindex $dpltf 1]
-        set AIFPadFields(padx) [expr -1 * [lindex $dpltf 2]]
-        set AIFPadFields(pady) [lindex $dpltf 3]
-        set AIFPadFields(net) [lindex [split [lindex $dpltf 6] ,] 0]
+    #puts [format "Nets:  %s" [ expr {[lindex [split [$txt index end] .] 0] - 1}]]
+            ##  Load the NETLIST section
+
+    set nl [$txt get 1.0 end]
+
+    ##  Populate the netlist
+
+    foreach n [split $nl '\n'] {
+        ##  Skip blank or empty lines
+        if { [string length $n] == 0 } { continue }
+
+        set net [regexp -inline -all -- {\S+} $n]
+        set netname [lindex [regexp -inline -all -- {\S+} $n] 0]
+
+        set AIFPadFields(pinnum) [lindex $net 1]
+        set AIFPadFields(padname) [lindex $net 2]
+        set AIFPadFields(padx) [expr -1 * [lindex $net 3]]
+        set AIFPadFields(pady) [lindex $net 4]
+        set AIFPadFields(net) [lindex $net 0]
+
+        ##  Can the  pad be placed?
+
+        if { 0 } {
+        if { [ regexp {^[[:alpha:][:alnum:]_]*\w} $netname ] == 0 } {
+            Transcript $::ediu(MsgError) [format "Net name \"%s\" is not supported AIF syntax." $netname]
+    set txt $::widgets(netlistview)
+            set rv -1
+        } else {
+            if { [lsearch -exact $::netlist $netname ] == -1 } {
+                lappend ::netlist $netname
+                Transcript $::ediu(MsgNote) [format "Found net name \"%s\"." $netname]
+            }
+        }
+        }
 
         ediuGraphicViewAddPin $AIFPadFields(padx) \
-            $AIFPadFields(pady) $AIFPadFields(pinnum) $AIFPadFields(net)
-    }
+            $AIFPadFields(pady) $AIFPadFields(pinnum) $AIFPadFields(net) $AIFPadFields(padname)
     }
 
     ediuGraphicViewAddOutline
@@ -606,17 +657,51 @@ proc ediuGraphicViewBuild {} {
     ##  die files.
 
     set scaleX [expr $::widgets(windowSizeX) / (2*$::dieSize(width))]
-    ediuGraphicViewZoom $scaleX
+    puts [format "A:  %s  B:  %s  C:  %s" $scaleX $::widgets(windowSizeX) $::dieSize(width)]
+    if { $scaleX > 0 } {
+        ediuGraphicViewZoom $scaleX
+    }
 }
 
 #
 #  ediuGraphicViewAddPin
 #
-proc ediuGraphicViewAddPin {x y pin net} {
+proc ediuGraphicViewAddPin {x y pin net pad} {
     set cnvs $::widgets(graphicview)
-    $cnvs create rectangle [expr {$x-10}] [expr {$y-10}] \
-        [expr {$x + 10}] [expr {$y + 10}] -outline red \
-        -fill yellow -tags $pin
+    ##  Figure out the pad shape
+
+    set p [dict get $::pads $pad]
+    set shape [lindex [regexp -inline -all -- {\S+} [lindex $p 0]] 0]
+
+    switch -regexp -- $shape {
+        "SQ" -
+        "SQUARE" {
+            set pw [lindex [regexp -inline -all -- {\S+} [lindex $p 0]] 1]
+            $cnvs create rectangle [expr {$x-($pw/2)}] [expr {$y-($pw/2)}] \
+                [expr {$x + ($pw/2)}] [expr {$y + ($pw/2)}] -outline red \
+                -fill yellow -tags $pin
+        }
+        "RECT" -
+        "RECTANGLE" {
+            set pw [lindex [regexp -inline -all -- {\S+} [lindex $p 0]] 1]
+            set ph [lindex [regexp -inline -all -- {\S+} [lindex $p 0]] 2]
+            puts "Width $pw"
+            puts "Height $ph"
+            puts [format "X1: %s" [expr {$x-($pw/2)}]]
+            puts [format "Y1: %s" [expr {$y-($ph/2)}]]
+            puts [format "X2: %s" [expr {$x+($pw/2)}]]
+            puts [format "Y2: %s" [expr {$y+($ph/2)}]]
+            $cnvs create rectangle [expr {$x-($pw/2)}] [expr {$y-($ph/2)}] \
+                [expr {$x + ($pw/2)}] [expr {$y + ($ph/2)}] -outline red \
+                -fill yellow -tags $pin
+        }
+        default {
+            #error "Error parsing $filename (line: $line_no): $line"
+            Transcript $::ediu(MsgWarning) [format "Skipping line %d in AIF file \"%s\"." $line_no $::ediu(filename)]
+            puts $line
+        }
+    }
+
     $cnvs configure -scrollregion [$cnvs bbox all]
 }
 
@@ -1808,41 +1893,45 @@ proc ediuAIFPadsSection {} {
 #  Scan the AIF source file for the "NETLIST" section
 #
 proc ediuAIFNetlistSection {} {
-
     set rv 0
+    set txt $::widgets(netlistview)
 
     ##  Make sure we have a NETLIST section!
     if { [lsearch -exact $aif::sections NETLIST] != -1 } {
         ##  Load the NETLIST section
-        set vars [aif::variables NETLIST]
+
+        set nl [$txt get 1.0 end]
 
         ##  Flush the netlist dictionary
 
-        set ::netlist [dict create]
+        set ::netlist [list]
 
-        ##  Populate the netlist dictionary
+        ##  Populate the netlist
 
-        foreach v $vars {
-            dict lappend ::netlist $v [aif::getvar $v NETLIST]
-        }
+        foreach n [split $nl '\n'] {
+            ##  Skip blank or empty lines
+            if { [string length $n] == 0 } { continue }
 
-        foreach i [dict keys $::netlist] {
-            
-            set netname [lindex [regexp -inline -all -- {\S+} [lindex [dict get $::netlist $i] 0]] 0]
+            set netname [lindex [regexp -inline -all -- {\S+} $n] 0]
 
             ##  Check net name for legal syntax
 
-            if { [ regexp {^[[:alpha:][:alnum:]_]*\w} $i ] == 0 } {
+            if { [ regexp {^[[:alpha:][:alnum:]_]*\w} $netname ] == 0 } {
                 Transcript $::ediu(MsgError) [format "Net name \"%s\" is not supported AIF syntax." $netname]
                 set rv -1
             } else {
-                Transcript $::ediu(MsgNote) [format "Found net name \"%s\"." $netname]
+                if { [lsearch -exact $::netlist $netname ] == -1 } {
+                    lappend ::netlist $netname
+                    Transcript $::ediu(MsgNote) [format "Found net name \"%s\"." $netname]
+                }
             }
         }
 
-        Transcript $::ediu(MsgNote) [format "AIF source file contains %d %s." [llength [dict keys $::netlist]] [ediuPlural [llength [dict keys $::netlist]] "net"]]
+        Transcript $::ediu(MsgNote) [format "AIF source file contains %d %s." [ expr {[lindex [split [$txt index end] .] 0] - 1} - 1] [ediuPlural [llength $::netlist] "net"]]
+        Transcript $::ediu(MsgNote) [format "AIF source file contains %d unique %s." [llength $::netlist] [ediuPlural [llength $::netlist] "net"]]
+        
     } else {
-        Transcript $::ediu(MsgError) [format "AIF file \"%s\" does not contain a NetlistPADS section." $::ediu(filename)]
+        Transcript $::ediu(MsgError) [format "AIF file \"%s\" does not contain a NETLIST section." $::ediu(filename)]
         set rv -1
     }
 
@@ -2324,7 +2413,6 @@ proc ediuBuildAIFPDB {} {
         lappend cNames [$part Name]
     }
 
-
     #  Does the part exist?
 
     if { [lsearch $cNames $::dieName(name)] == -1 } {
@@ -2524,7 +2612,10 @@ proc aif::init { } {
 
     foreach section $sections {
         if { $section == "DEFAULT" } continue
-        unset ::aif::${section}
+
+        if { [info exists ::aif::${section}] } {
+            unset ::aif::${section}
+        }
     }
     set sections { }
 }
@@ -2535,6 +2626,11 @@ proc aif::parse {filename} {
 
     #  Reset data structure
     aif::init
+
+    #  Reset Netlist tab
+    set txt $::widgets(netlistview)
+    $txt configure -state normal
+    $txt delete 1.0 end
 
     set line_no 0
     set fd [open $filename r]
@@ -2552,8 +2648,10 @@ proc aif::parse {filename} {
         if { $cursection == "NETLIST" && [ regexp {^[[:alpha:][:alnum:]_]*\w} $line net ] } {
             #puts [format "Net?  %s" $net]
 
-            set line [format "%s=%s" [string trim $net] [string trimleft $line [string length $net]]]
-
+            #set line [format "%s=%s" [string trim $net] [string trimleft $line [string length $net]]]
+            $txt insert end "$line\n"
+            $txt see end
+            continue
         }
 
         ##  Look at each line and process sections versus section variables
@@ -2576,6 +2674,8 @@ proc aif::parse {filename} {
             }
         }
     }
+
+    $txt configure -state disabled
     close $fd
 }
 
