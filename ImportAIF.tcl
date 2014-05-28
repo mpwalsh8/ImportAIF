@@ -140,6 +140,15 @@ proc ediuInit {} {
         LeftBracket "\["
         RightBracket "\]"
         BackSlash "\\"
+        ScaleFactor 1
+    }
+
+    array set ::layers {
+        pads 1
+        bondpads 1
+        padnumbers 1
+        rings 1
+        outline 1
     }
 
     ##  Keywords to scan for in AIF file
@@ -159,6 +168,16 @@ proc ediuInit {} {
         die "DIE"
         diePads "PADS"
         netlist "NETLIST"
+    }
+
+    array set ::ignored {
+        bga "BGA"
+        rings "RINGS"
+        bondable_ring_area "BONDABLE_RING_AREA"
+        wire "WIRE"
+        fiducials "FIDUCIALS"
+        die_logo "DIE_LOGO"
+        mcm_die "MCM_DIE"
     }
 
     ##  Namespace array to store widgets
@@ -341,33 +360,47 @@ proc BuildGUI {} {
          -underline 1 \
          -command ediuBuildAIFPDB
 
-    #  Define the Zoom menu
-    set zm [menu $mb.zoom -tearoff 0]
-    $mb add cascade -label "Zoom" -menu $zm -underline 0
-    $zm add cascade -label "In" \
-         -underline 0 -menu $zm.in
-    menu $zm.in -tearoff 0
-    $zm.in add cascade -label "2x" \
+    #  Define the View menu
+    set vm [menu $mb.zoom -tearoff 0]
+    $mb add cascade -label "View" -menu $vm -underline 0
+    $vm add cascade -label "Zoom In" \
+         -underline 0 -menu $vm.in
+    menu $vm.in -tearoff 0
+    $vm.in add cascade -label "2x" \
          -underline 0 \
          -command {ediuGraphicViewZoom 2.0}
-    $zm.in add command -label "5x" \
+    $vm.in add command -label "5x" \
          -underline 0 \
          -command {ediuGraphicViewZoom 5.0}
-    $zm.in add command -label "10x" \
+    $vm.in add command -label "10x" \
          -underline 0 \
          -command {ediuGraphicViewZoom 10.0}
-    $zm add cascade -label "Out" \
-         -underline 0 -menu $zm.out
-    menu $zm.out -tearoff 0
-    $zm.out add cascade -label "2x" \
+    $vm add cascade -label "Zoom Out" \
+         -underline 0 -menu $vm.out
+    menu $vm.out -tearoff 0
+    $vm.out add cascade -label "2x" \
          -underline 0 \
          -command {ediuGraphicViewZoom 0.5}
-    $zm.out add command -label "5x" \
+    $vm.out add command -label "5x" \
          -underline 0 \
          -command {ediuGraphicViewZoom 0.2}
-    $zm.out add command -label "10x" \
+    $vm.out add command -label "10x" \
          -underline 0 \
          -command {ediuGraphicViewZoom 0.1}
+    $vm add separator
+    $vm add cascade -label "Layer" \
+         -underline 0 -menu $vm.layer
+    menu $vm.layer -tearoff 0
+    $vm.layer add checkbutton -label "Pads" -underline 0 \
+        -variable ::layers(pads) -onvalue 1 -offvalue 0 -command ediuVisibleLayers
+    $vm.layer add checkbutton -label "Pad Numbers" -underline 0 \
+        -variable ::layers(padnumbers) -onvalue 1 -offvalue 0 -command ediuVisibleLayers
+    $vm.layer add checkbutton -label "Bond Pads" -underline 0 \
+        -variable ::layers(bondpads) -onvalue 1 -offvalue 0 -command ediuVisibleLayers
+    $vm.layer add checkbutton -label "Rings" -underline 0 \
+        -variable ::layers(rings) -onvalue 1 -offvalue 0 -command ediuVisibleLayers
+    $vm.layer add checkbutton -label "Outline" -underline 0 \
+        -variable ::layers(outline) -onvalue 1 -offvalue 0 -command ediuVisibleLayers
 
     # Define the Help menu
     set hm [menu .menubar.help -tearoff 0]
@@ -610,6 +643,31 @@ proc ediuChooseCellPartitionDialog {} {
 }
 
 #
+#  ediuVisibleLayers
+#
+proc ediuVisibleLayers { } {
+    set cnvs $::widgets(graphicview)
+    puts [array names ::layers]
+    printArray ::layers
+    foreach l [array names ::layers] {
+        set id [$cnvs find withtag $l]
+        if { $::layers($l) == 0 } {
+            puts "found by tag"
+            puts $l
+            puts $id
+            foreach i $id {
+                $cnvs itemconfigure $i -state hidden
+            }
+        } else {
+            puts "nothing found by tag"
+            foreach i $id {
+                $cnvs itemconfigure $i -state normal
+            }
+        }
+    }
+}
+
+#
 #  ediuGraphicViewBuild
 #
 proc ediuGraphicViewBuild {} {
@@ -684,7 +742,8 @@ proc ediuGraphicViewAddPin {x y pin net pad} {
             set pw [pad::getWidth $pad]
             $cnvs create rectangle [expr {$x-($pw/2)}] [expr {$y-($pw/2)}] \
                 [expr {$x + ($pw/2)}] [expr {$y + ($pw/2)}] -outline red \
-                -fill yellow -tags $pin
+                -fill yellow -tags "pads" 
+                #-fill yellow -tags "pads $pin" 
         }
         "RECT" -
         "RECTANGLE" {
@@ -692,7 +751,11 @@ proc ediuGraphicViewAddPin {x y pin net pad} {
             set ph [pad::getHeight $pad]
             $cnvs create rectangle [expr {$x-($pw/2)}] [expr {$y-($ph/2)}] \
                 [expr {$x + ($pw/2)}] [expr {$y + ($ph/2)}] -outline red \
-                -fill yellow -tags $pin
+                -fill yellow -tags "pads"
+                #-fill yellow -tags "pads $pin" 
+            puts "Text Height:  $ph"
+            #$cnvs create text $x $y -text $pin -fill white \
+            #    -anchor n -font [list arial $ph bold] -justify center -tags "padnumbers"
         }
         default {
             #error "Error parsing $filename (line: $line_no): $line"
@@ -700,6 +763,8 @@ proc ediuGraphicViewAddPin {x y pin net pad} {
             puts $line
         }
     }
+
+    #$cnvs scale "pads" 0 0 100 100
 
     $cnvs configure -scrollregion [$cnvs bbox all]
 }
@@ -714,7 +779,9 @@ proc ediuGraphicViewAddOutline {} {
     set y1 [expr -1 * $y2]
 
     set cnvs $::widgets(graphicview)
-    $cnvs create rectangle $x1 $y1 $x2 $y2 -outline blue
+    $cnvs create rectangle $x1 $y1 $x2 $y2 -outline blue -tags "outline"
+
+    #$cnvs scale "outline" 0 0 100 100
 
     $cnvs configure -scrollregion [$cnvs bbox all]
 }
@@ -768,6 +835,18 @@ proc ediuAIFFileOpen { { f "" } } {
 
     set sectionRegExp [format "%s)" $sectionRegExp]
 
+    set ignored {}
+    set ignoreRegExp ""
+    foreach i [array names ::ignored] {
+        lappend ignored $::ignored($i)
+        puts $::ignored($i)
+        set ignoreRegExp [format "%s%s%s%s%s%s%s" $ignoreRegExp \
+            [expr {$ignoreRegExp == "" ? "(" : "|" }] \
+            $::ediu(BackSlash) $::ediu(LeftBracket) $::ignored($i) $::ediu(BackSlash) $::ediu(RightBracket) ]
+    }
+
+    set ignoreRegExp [format "%s)" $ignoreRegExp]
+
     ##  Prompt the user for a file if not supplied
 
     if { $f != $::ediu(Nothing) } {
@@ -788,6 +867,7 @@ proc ediuAIFFileOpen { { f "" } } {
         Transcript $::ediu(MsgNote) [format "Scanning AIF file \"%s\" for sections." $::ediu(filename)]
         #ctext::addHighlightClass $txt diesections blue $sections
         ctext::addHighlightClassForRegexp $txt diesections blue $sectionRegExp
+        ctext::addHighlightClassForRegexp $txt ignoredsections red $ignoreRegExp
         $txt highlight 1.0 end
         $txt configure -state disabled
         close $f
@@ -838,7 +918,6 @@ proc ediuAIFFileOpen { { f "" } } {
             ##  Extract die pad details from AIF file
 #        ediuAIFPad
 #        ediuAIFName
-#        ediuAIFSize
 
         ##  Extract pad details from AIF file
 #        ediuPadGeomName
@@ -971,18 +1050,23 @@ proc ediuSparsePinsFileClose {} {
 #
 #  ediuSetupOpenPCB
 #
-proc ediuSetupOpenPCB {} {
+proc ediuSetupOpenPCB { { f "" } } {
     ediuUpdateStatus $::ediu(busy)
-    ##  Prompt the user for an Expedition database
-    set ::ediu(targetPath) [tk_getOpenFile -filetypes {{PCB .pcb}}]
+
+    ##  Prompt the user for an Xpedition database
+
+    if { $f != $::ediu(Nothing) } {
+        set ::ediu(targetPath) $f
+    } else {
+        set ::ediu(targetPath) [tk_getOpenFile -filetypes {{PCB .pcb}}]
+    }
 
     if {$::ediu(targetPath) == "" } {
         Transcript $::ediu(MsgWarning) "No Design File selected."
     } else {
-
         Transcript $::ediu(MsgNote) [format "Design File \"%s\" set as design target." $::ediu(targetPath)]
-
     }
+
     ediuUpdateStatus $::ediu(ready)
 }
 
@@ -1305,6 +1389,51 @@ proc ediuMapShapeToEnum { shape } {
 }
 
 #
+#  ediuMapUnitsToEnum
+#
+proc ediuMapUnitsToEnum { units { type "pad" } } {
+    if { $type == "pad" } {
+        switch -exact -- [string toupper $units] {
+            "UM" {
+                return $::PadstackEditorLib::EPsDBUnit(epsdbUnitUM)
+            }
+            "MM" {
+                return $::PadstackEditorLib::EPsDBUnit(epsdbUnitMM)
+            }
+            "INCH" {
+                return $::PadstackEditorLib::EPsDBUnit(epsdbUnitInch)
+            }
+            "MIL" {
+                return $::PadstackEditorLib::EPsDBUnit(epsdbUnitMils)
+            }
+            default {
+                return $::ediu(Nothing)
+            }
+        }
+    } elseif { $type == "cell" } {
+        switch -exact -- [string toupper $units] {
+            "UM" {
+                return $::CellEditorAddinLib::ECellDBUnit(ecelldbUnitUM)
+            }
+            "MM" {
+                return $::CellEditorAddinLib::ECellDBUnit(ecelldbUnitMM)
+            }
+            "INCH" {
+                return $::CellEditorAddinLib::ECellDBUnit(ecelldbUnitInch)
+            }
+            "MIL" {
+                return $::CellEditorAddinLib::ECellDBUnit(ecelldbUnitMils)
+            }
+            default {
+                return $::ediu(Nothing)
+            }
+        }
+    } else {
+        return $::ediu(Nothing)
+    }
+}
+
+#
 #  ediuBuildAIFPad
 #
 #  This subroutine will create die pads based on the "PADS" section
@@ -1313,7 +1442,7 @@ proc ediuMapShapeToEnum { shape } {
 #
 
 proc ediuBuildAIFPads { } {
-    foreach p [padgetAllPads] {
+    foreach p [padGetAllPads] {
         set ::padGeom(name) $p
         set ::padGeom(shape) [pad::getShape $p]
         set ::padGeom(width) [pad::getWidth $p]
@@ -1415,10 +1544,10 @@ proc ediuBuildAIFPad { { mode "-replace" } } {
     $newPad -set Name $padName
 puts "------>$padName<----------"
     $newPad -set Shape [expr $shape]
-    $newPad -set Width [expr $::PadstackEditorLib::EPsDBUnit(epsdbUnitUM)] [expr $::padGeom(width)]
-    $newPad -set Height [expr $::PadstackEditorLib::EPsDBUnit(epsdbUnitUM)] [expr $::padGeom(height)]
-    $newPad -set OriginOffsetX [expr $::PadstackEditorLib::EPsDBUnit(epsdbUnitUM)] [expr $::padGeom(offsetx)]
-    $newPad -set OriginOffsetY [expr $::PadstackEditorLib::EPsDBUnit(epsdbUnitUM)] [expr $::padGeom(offsety)]
+    $newPad -set Width [expr [ediuMapUnitsToEnum $::database(units) "pad"]] [expr $::padGeom(width)]
+    $newPad -set Height [expr [ediuMapUnitsToEnum $::database(units) "pad"]] [expr $::padGeom(height)]
+    $newPad -set OriginOffsetX [expr [ediuMapUnitsToEnum $::database(units) "pad"]] [expr $::padGeom(offsetx)]
+    $newPad -set OriginOffsetY [expr [ediuMapUnitsToEnum $::database(units) "pad"]] [expr $::padGeom(offsety)]
 
     Transcript $::ediu(MsgNote) [format "Committing pad:  %s" $padName]
     $newPad Commit
@@ -1442,7 +1571,7 @@ puts "------>$padName<----------"
 #
 
 proc ediuBuildAIFPadstacks { } {
-    foreach p [padgetAllPads] {
+    foreach p [padGetAllPads] {
         set ::padGeom(name) $p
         set ::padGeom(shape) [pad::getShape $p]
         set ::padGeom(width) [pad::getWidth $p]
@@ -1619,7 +1748,12 @@ proc ediuCloseCellEditor {} {
         }
         Transcript $::ediu(MsgNote) "Closing Cell Editor."
         ##  Close Padstack Editor
-        $::ediu(cellEdtr) SaveActiveDatabase
+        set errorCode [catch { $::ediu(cellEdtr) SaveActiveDatabase } errorMessage]
+        if {$errorCode != 0} {
+            Transcript $::ediu(MsgError) [format "API error \"%s\", build aborted." $errorMessage]
+            return -code return 1
+        }
+        #$::ediu(cellEdtr) SaveActiveDatabase
         $::ediu(cellEdtr) Quit
         ##  Close the Expedition Database
         $::ediu(pcbDoc) Save
@@ -1944,41 +2078,6 @@ proc ediuAIFNetlistSection {} {
 
         netlist::load
 
-        if { 0 } {
-        set nl [$txt get 1.0 end]
-
-        ##  Flush the netlist dictionary
-
-        set ::netlist [list]
-
-        ##  Populate the netlist
-
-        foreach n [split $nl '\n'] {
-            ##  Skip blank or empty lines
-            if { [string length $n] == 0 } { continue }
-
-            ##  Extract the net name from the first field (col 1)
-            set netname [lindex [regexp -inline -all -- {\S+} $n] 0]
-
-            ##  Check net name for legal syntax, add it to the list
-            ##  of nets if it is valid.  The list contains just unique
-            ##  netnames.  The netlist text widget contains the netlist.
-
-            if { [ regexp {^[[:alpha:][:alnum:]_]*\w} $netname ] == 0 } {
-                Transcript $::ediu(MsgError) [format "Net name \"%s\" is not supported AIF syntax." $netname]
-                set rv -1
-            } else {
-                if { [lsearch -exact $::netlist $netname ] == -1 } {
-                    lappend ::netlist $netname
-                    Transcript $::ediu(MsgNote) [format "Found net name \"%s\"." $netname]
-                }
-            }
-        }
-
-        Transcript $::ediu(MsgNote) [format "AIF source file contains %d %s." [ expr {[lindex [split [$txt index end] .] 0] - 1} - 1] [ediuPlural [llength $::netlist] "net"]]
-        Transcript $::ediu(MsgNote) [format "AIF source file contains %d unique %s." [llength $::netlist] [ediuPlural [llength $::netlist] "net"]]
-        }
-
         Transcript $::ediu(MsgNote) [format "AIF source file contains %d net %s." [ netlist::getConnectionCount ] [ediuPlural [netlist::getConnectionCount] "connection"]]
         Transcript $::ediu(MsgNote) [format "AIF source file contains %d unique %s." [netlist::getNetCount] [ediuPlural [netlist::getNetCount] "net"]]
         
@@ -1988,42 +2087,6 @@ proc ediuAIFNetlistSection {} {
     }
 
     return rv
-}
-
-#
-#  ediuAIFSize
-#
-#  Scan the AIF source file for the "die_size" section
-#
-proc ediuAIFSize {} {
-
-    set ::dieSize(width) $::die(width)
-    set ::dieSize(height) $::die(height)
-
-    #Transcript $::ediu(MsgNote) [format "Scanning AIF source for \"%s\"." $::sections(dieSize)]
-
-    #set pads [aif::variables PADS]
-
-    #set txt $::widgets(sourceview)
-    #set ds [$txt search $::sections(dieSize) 1.0 end]
-
-    ##  Was the dieSize section found?
-
-    #if { $ds != $::ediu(Nothing)} {
-        #set dsl [lindex [split $ds .] 0]
-        #Transcript $::ediu(MsgNote) [format "Found section \"%s\" in AIF on line %s." $::sections(dieSize) $dsl]
-
-        ##  Need the text from the dieSize line, drop the terminating semicolon
-        #set dslt [$txt get $dsl.0 "$dsl.end - 1 chars"]
-
-        ##  Extract the shape, height, and width from the dieSize
-        #set ::dieSize(width) [lindex [split $dslt] 1]
-        #set ::dieSize(height) [lindex [split $dslt] 2]
-        #Transcript $::ediu(MsgNote) [format "Extracted die size (height:  %s  width:  %s)." \
-            #$::dieSize(height) $::dieSize(width)]
-    #} else {
-        #Transcript $::ediu(MsgError) [format "AIF does not contain section \"%s\"." $::sections(die)]
-    #}
 }
 
 #
@@ -2218,7 +2281,8 @@ proc ediuBuildAIFCell {} {
     #$newCell -set LayerCount [expr 2]
     $newCell -set PinCount [expr $::diePads(count)]
     puts [format "--->  ::diePads(count):  %s" $::diePads(count)]
-    $newCell -set Units [expr $::CellEditorAddinLib::ECellDBUnit(ecelldbUnitUM)]
+    #$newCell -set Units [expr $::CellEditorAddinLib::ECellDBUnit(ecelldbUnitUM)]
+    $newCell -set Units [expr [ediuMapUnitsToEnum $::database(units) "cell"]]
     $newCell -set PackageGroup [expr $::CellEditorAddinLib::ECellDBPackageGroup(ecelldbPackageGeneral)]
     ##  Commit the cell to the database so it can
     ##  be edited using the Cell Editor AddIn.
@@ -2251,26 +2315,30 @@ proc ediuBuildAIFCell {} {
     
     ##  Add the pins
     
-    #  Does the pad exist?
+    #  Doe the pads exist?
     
-    set padstack [$::ediu(pdstkEdtrDb) FindPadstack $::padGeom(name)]
-    
-    #  Echo some information about what will happen.
-    
-    if {$padstack == $::ediu(Nothing)} {
-        Transcript $::ediu(MsgError) \
-            [format "Reference Padstack \"%s\" does not exist, build aborted." $::padGeom(name)]
-        $cellEditor Close False
+    set pads [netlist::getPads]
 
-        if { $::ediu(mode) == $::ediu(designMode) } {
-            ediuClosePadstackEditor -dontclosedatabase
-        } else {
-            ediuClosePadstackEditor
+    foreach pad $pads {
+        set padstack($pad) [$::ediu(pdstkEdtrDb) FindPadstack $pad]
+    
+        #  Echo some information about what will happen.
+    
+        if {$padstack($pad) == $::ediu(Nothing)} {
+            Transcript $::ediu(MsgError) \
+                [format "Reference Padstack \"%s\" does not exist, build aborted." $pad]
+            $cellEditor Close False
+
+            if { $::ediu(mode) == $::ediu(designMode) } {
+                ediuClosePadstackEditor -dontclosedatabase
+            } else {
+                ediuClosePadstackEditor
+            }
+            ediuCloseCellEditor
+
+            ediuUpdateStatus $::ediu(ready)
+            return -1
         }
-        ediuCloseCellEditor
-
-        ediuUpdateStatus $::ediu(ready)
-        return
     }
 
     ##  To fix Tcom bug?
@@ -2283,9 +2351,12 @@ proc ediuBuildAIFCell {} {
     ##  Need to "Put" the padstack so it can be
     ##  referenced by the Cell Editor Add Pin process.
 
-    set padstack [$cellEditor PutPadstack [expr 1] [expr 1] $::padGeom(name)]
+    #foreach pad $pads {
+    #    set padstack($pad) [$cellEditor PutPadstack [expr 1] [expr 1] $pad]
+    #}
         
-    set i 1
+    set i 0
+    unset padstack
 
     set pins [$cellEditor Pins]
     puts [format "-->  Array Size of pins:  %s" [$pins Count]]
@@ -2297,12 +2368,12 @@ proc ediuBuildAIFCell {} {
     ::tcom::foreach pin $pins {
         ##  Split of the fields extracted from the die file
 
-        set dpltf [split $::diePads($i)]
-        set diePadFields(pinnum) [lindex $dpltf 0]
-        set diePadFields(padname) [lindex $dpltf 1]
-        set diePadFields(padx) [expr -1 * [lindex $dpltf 2]]
-        set diePadFields(pady) [lindex $dpltf 3]
-        set diePadFields(net) [lindex [split [lindex $dpltf 6] ,] 0]
+        set diePadFields(pinnum) [netlist::getPinNumber $i]
+        set diePadFields(padname) [netlist::getPadName $i]
+        set diePadFields(padx) [netlist::getDiePadX $i]
+        set diePadFields(pady) [netlist::getDiePadY $i]
+        set diePadFields(net) [netlist::getNetName $i]
+        printArray diePadFields
     
         ## Need to handle sparse mode?
 
@@ -2318,13 +2389,19 @@ proc ediuBuildAIFCell {} {
             Transcript $::ediu(MsgNote) [format "Placing pin \"%s\" using padstack \"%s\"." \
                 $diePadFields(pinnum) $diePadFields(padname)]
 
+            ##  Need to "Put" the padstack so it can be
+            ##  referenced by the Cell Editor Add Pin process.
+
+            set padstack [$cellEditor PutPadstack [expr 1] [expr 1] $diePadFields(padname)]
+        
             $pin CurrentPadstack $padstack
+            $pin SetName $diePadFields(pinnum)
 
             set errorCode [catch {
             $pin Place [expr $diePadFields(padx)] [expr $diePadFields(pady)] [expr 0]
                 } errorMessage]
             if {$errorCode != 0} {
-                puts [format "Error:  %sPin:  %d  Hanldle:  %s" $errorMessage $i $pin]
+                puts [format "Error:  %sPin:  %d  Handle:  %s" $errorMessage $i $pin]
     
                 puts [$pin IsValid]
                 puts [$pin Name]
@@ -2358,7 +2435,7 @@ proc ediuBuildAIFCell {} {
 
     ##  Add the Placment Outline
     $cellEditor PutPlacementOutline [expr $::MGCPCB::EPcbSide(epcbSideMount)] 5 $ptsArray \
-        [expr 0] [expr 0] $component [expr $::CellEditorAddinLib::ECellDBUnit(ecelldbUnitUM)]
+        [expr 0] [expr 0] $component [expr [ediuMapUnitsToEnum $::database(units) "cell"]]
 
     ##  Terminate transactions
     $cellEditor TransactionEnd True
@@ -2617,7 +2694,8 @@ proc ediuBuildAIFPDB {} {
 namespace eval pad {
 }
 
-proc padgetAllPads {} {
+proc padGetAllPads {} {
+    puts [dict key $::pads]
     return [dict keys $::pads]
 }
 
@@ -2676,12 +2754,14 @@ proc die::getAllDie {} {
 ##
 namespace eval netlist {
     variable nl [list]
+    variable pads [list]
     variable connections 0
 }
 
 #  Load the netlist from the text widget
 proc netlist::load { } {
     variable nl
+    variable pads
     variable connections
 
     set txt $::widgets(netlistview)
@@ -2693,6 +2773,7 @@ proc netlist::load { } {
         if { $n == "" } { continue }
             ##  Extract the net name from the first field (col 1)
             set netname [lindex [regexp -inline -all -- {\S+} $n] 0]
+            set padname [lindex [regexp -inline -all -- {\S+} $n] 2]
 
             ##  Check net name for legal syntax, add it to the list
             ##  of nets if it is valid.  The list contains just unique
@@ -2703,9 +2784,15 @@ proc netlist::load { } {
                 set rv -1
             } else {
                 incr connections
+
                 if { [lsearch -exact $nl $netname ] == -1 } {
                     lappend nl $netname
                     Transcript $::ediu(MsgNote) [format "Found net name \"%s\"." $netname]
+                }
+
+                if { [lsearch -exact $pads $padname ] == -1 && $padname != "-" } {
+                    lappend pads $padname
+                    Transcript $::ediu(MsgNote) [format "Found reference to pad \"%s\"." $padname]
                 }
             }
     }
@@ -2713,8 +2800,8 @@ proc netlist::load { } {
 
 #  Return all of the parameters for a net
 proc netlist::getParams { index } {
-    variable nl
-    return [regexp -inline -all -- {\S+} [lindex $nl $index]]
+    set txt $::widgets(netlistview)
+    return [regexp -inline -all -- {\S+} [$txt get [expr $index +1].0 [expr $index +1].end]]
 }
 
 #  Return a specific parameter for a pad (default to first parameter)
@@ -2744,6 +2831,28 @@ proc netlist::getAllNetNames {} {
     variable nl
     return $netlist::nl
 }
+
+proc netlist::getPads { } {
+    variable pads
+    return $netlist::pads
+}
+
+proc netlist::getPinNumber { index } {
+    return [netlist::getParam $index 1]
+}
+
+proc netlist::getPadName { index } {
+    return [netlist::getParam $index 2]
+}
+
+proc netlist::getDiePadX { index } {
+    return [netlist::getParam $index 3]
+}
+
+proc netlist::getDiePadY { index } {
+    return [netlist::getParam $index 4]
+}
+
 
 ##
 ##  Define the AIF namespace and procedure supporting parsing operations
@@ -2915,5 +3024,7 @@ Transcript $::ediu(MsgNote) "$::ediu(EDIU) ready."
 #puts $retString
 set ::ediu(mode) $::ediu(libraryMode)
 #ediuSetupOpenLMC "C:/Users/mike/Documents/Sandbox/Sandbox.lmc"
-catch { ediuAIFFileOpen "c:/users/mike/desktop/ImportAIF/data/Demo1.aif" } retString
+#set ::ediu(mode) $::ediu(designMode)
+#ediuSetupOpenPCB "C:/Users/mike/Documents/a_simple_design_ee794/a_simple_design.pcb"
+catch { ediuAIFFileOpen "c:/users/mike/desktop/ImportAIF/data/Demo4.aif" } retString
 #ediuAIFFileOpen
