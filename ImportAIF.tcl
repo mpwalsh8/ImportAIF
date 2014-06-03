@@ -69,6 +69,8 @@
 #    04/10/2014 - Adapted ImportDie.tcl to support AIF
 #    05/16/2014 - Basic AIF import working with support for square and
 #                 rectangular pads.
+#    05/29/2014 - Added sclable zooming and pin tex handling.  Adapted
+#                 from example found at:  http://wiki.tcl.tk/4844
 #
 
 package require tile
@@ -434,86 +436,96 @@ proc BuildGUI {} {
     $nb add $nb.sparsepinsview -text "Sparse Pins View" -padding 4
 
     #  Text frame for Transcript
-    set tftext [ctext $tf.text]
+
+    set tftext [ctext $tf.text -wrap none \
+        -xscrollcommand [list $tf.tftextscrollx set] \
+        -yscrollcommand [list $tf.tftextscrolly set]]
     $tftext configure -font courier-bold -state disabled
     set ::widgets(transcript) $tftext
-    scrollbar .tftextscrolly -orient vertical \
-        -command { .notebook.transcript.text yview }
-        #-command { $::widgets(transcript) yview }
-    scrollbar .tftextscrollx -orient horizontal \
-        -command { .notebook.transcript.text xview }
-        #-command { $::widgets(transcript) xview }
+    ttk::scrollbar $tf.tftextscrolly -orient vertical -command [list $tftext yview]
+    ttk::scrollbar $tf.tftextscrollx -orient horizontal -command [list $tftext xview]
     grid $tftext -row 0 -column 0 -in $tf -sticky nsew
-    grid .tftextscrolly -row 0 -column 1 -in $tf -sticky ns
-    grid .tftextscrollx x -row 1 -column 0 -in $tf -sticky ew
+    grid $tf.tftextscrolly -row 0 -column 1 -in $tf -sticky ns
+    grid $tf.tftextscrollx x -row 1 -column 0 -in $tf -sticky ew
     grid columnconfigure $tf 0 -weight 1
     grid    rowconfigure $tf 0 -weight 1
 
     #  Text frame for Source View
-    set sftext [ctext $sf.text -wrap none]
-    set ::widgets(sourceview) $sftext
+
+    set sftext [ctext $sf.text -wrap none \
+        -xscrollcommand [list $sf.sftextscrollx set] \
+        -yscrollcommand [list $sf.sftextscrolly set]]
     $sftext configure -font courier-bold -state disabled
-    scrollbar .sftextscrolly -orient vertical \
-        -command { .notebook.sourceview.text yview }
-        #-command { $::widgets(sourceview) yview }
-    scrollbar .sftextscrollx -orient horizontal \
-        -command { .notebook.sourceview.text xview }
-        #-command { $::widgets(sourceview) xview }
+    set ::widgets(sourceview) $sftext
+    ttk::scrollbar $sf.sftextscrolly -orient vertical -command [list $sftext yview]
+    ttk::scrollbar $sf.sftextscrollx -orient horizontal -command [list $sftext xview]
     grid $sftext -row 0 -column 0 -in $sf -sticky nsew
-    grid .sftextscrolly -row 0 -column 1 -in $sf -sticky ns
-    grid .sftextscrollx x -row 1 -column 0 -in $sf -sticky ew
+    grid $sf.sftextscrolly -row 0 -column 1 -in $sf -sticky ns
+    grid $sf.sftextscrollx x -row 1 -column 0 -in $sf -sticky ew
     grid columnconfigure $sf 0 -weight 1
     grid    rowconfigure $sf 0 -weight 1
 
-    #  Canvas frame for Grid View
-    set gfcanvas [canvas $gf.canvas]
+    #  Canvas frame for Graphic View
+    set gfcanvas [canvas $gf.canvas \
+        -xscrollcommand [list $gf.gfcanvasscrollx set] \
+        -yscrollcommand [list $gf.gfcanvasscrolly set]]
     set ::widgets(graphicview) $gfcanvas
     $gfcanvas configure -background black
-    scrollbar .gfcanvasscrolly -orient vertical \
-        -command { .notebook.graphicview.canvas yview }
-        #-command { $::widgets(sourceview) yview }
-    scrollbar .gfcanvasscrollx -orient horizontal \
-        -command { .notebook.graphicview.canvas xview }
-        #-command { $::widgets(sourceview) xview }
+    ttk::scrollbar $gf.gfcanvasscrolly -orient v -command [list $gfcanvas yview]
+    ttk::scrollbar $gf.gfcanvasscrollx -orient h -command [list $gfcanvas xview]
     grid $gfcanvas -row 0 -column 0 -in $gf -sticky nsew
-    grid .gfcanvasscrolly -row 0 -column 1 -in $gf -sticky ns
-    grid .gfcanvasscrollx x -row 1 -column 0 -in $gf -sticky ew
+    grid $gf.gfcanvasscrolly -row 0 -column 1 -in $gf -sticky ns -columnspan 1
+    grid $gf.gfcanvasscrollx -row 1 -column 0 -in $gf -sticky ew -columnspan 1
+
+    #  Add a couple of zooming buttons
+    set bf [frame .buttonframe]
+    button $bf.zoomin  -text "Zoom In"  -command "zoom $gfcanvas 1.25" -relief groove -padx 3
+    button $bf.zoomout -text "Zoom Out" -command "zoom $gfcanvas 0.80" -relief groove -padx 3
+    button $bf.zoomfit -text "Zoom Fit" -command "zoom $gfcanvas 1.00" -relief groove -padx 3
+    #grid $bf.zoomin $bf.zoomout -sticky ew -columnspan 1
+    grid $bf.zoomin $bf.zoomout $bf.zoomfit
+    grid $bf -in $gf -sticky w
+
     grid columnconfigure $gf 0 -weight 1
     grid    rowconfigure $gf 0 -weight 1
 
+    # Set up event bindings for canvas:
+    bind $gfcanvas <3> "zoomMark $gfcanvas %x %y"
+    bind $gfcanvas <B3-Motion> "zoomStroke $gfcanvas %x %y"
+    bind $gfcanvas <ButtonRelease-3> "zoomArea $gfcanvas %x %y"
+
     #  Text frame for Netlist View
-    set nftext [ctext $nf.text -wrap none]
-    set ::widgets(netlistview) $nftext
+
+    set nftext [ctext $nf.text -wrap none \
+        -xscrollcommand [list $nf.nftextscrollx set] \
+        -yscrollcommand [list $nf.nftextscrolly set]]
     $nftext configure -font courier-bold -state disabled
-    scrollbar .nftextscrolly -orient vertical \
-        -command { .notebook.netlistview.text yview }
-        #-command { $::widgets(netlistview) yview }
-    scrollbar .nftextscrollx -orient horizontal \
-        -command { .notebook.netlistview.text xview }
-        #-command { $::widgets(netlistview) xview }
+    set ::widgets(netlistview) $nftext
+    ttk::scrollbar $nf.nftextscrolly -orient vertical -command [list $nftext yview]
+    ttk::scrollbar $nf.nftextscrollx -orient horizontal -command [list $nftext xview]
     grid $nftext -row 0 -column 0 -in $nf -sticky nsew
-    grid .nftextscrolly -row 0 -column 1 -in $nf -sticky ns
-    grid .nftextscrollx x -row 1 -column 0 -in $nf -sticky ew
+    grid $nf.nftextscrolly -row 0 -column 1 -in $nf -sticky ns
+    grid $nf.nftextscrollx x -row 1 -column 0 -in $nf -sticky ew
     grid columnconfigure $nf 0 -weight 1
     grid    rowconfigure $nf 0 -weight 1
 
     #  Text frame for Sparse Pins View
-    set ssftext [ctext $ssf.text -wrap none]
-    set ::widgets(sparsepinsview) $ssftext
+
+    set ssftext [ctext $ssf.text -wrap none \
+        -xscrollcommand [list $ssf.ssftextscrollx set] \
+        -yscrollcommand [list $ssf.ssftextscrolly set]]
     $ssftext configure -font courier-bold -state disabled
-    scrollbar .ssftextscrolly -orient vertical \
-        -command { .notebook.sparsepinsview.text yview }
-        #-command { $::widgets(sparsepinsview) yview }
-    scrollbar .ssftextscrollx -orient horizontal \
-        -command { .notebook.sparsepinsview.text xview }
-        #-command { $::widgets(sparsepinsview) xview }
+    set ::widgets(sparsepinsview) $ssftext
+    ttk::scrollbar $ssf.ssftextscrolly -orient vertical -command [list $ssftext yview]
+    ttk::scrollbar $ssf.ssftextscrollx -orient horizontal -command [list $ssftext xview]
     grid $ssftext -row 0 -column 0 -in $ssf -sticky nsew
-    grid .ssftextscrolly -row 0 -column 1 -in $ssf -sticky ns
-    grid .ssftextscrollx x -row 1 -column 0 -in $ssf -sticky ew
+    grid $ssf.ssftextscrolly -row 0 -column 1 -in $ssf -sticky ns
+    grid $ssf.ssftextscrollx x -row 1 -column 0 -in $ssf -sticky ew
     grid columnconfigure $ssf 0 -weight 1
     grid    rowconfigure $ssf 0 -weight 1
 
     ##  Build the status bar
+
     set sf [ttk::frame .status -borderwidth 5 -relief sunken]
     set slf [ttk::frame .statuslightframe -width 20 -borderwidth 3 -relief raised]
     set sl [frame $slf.statuslight -width 15 -background green]
@@ -585,7 +597,7 @@ proc ediuChooseCellPartitionDialog {} {
     listbox $dlg.f.cellpartition.list -relief raised -borderwidth 2 \
         -yscrollcommand "$dlg.f.cellpartition.scroll set" \
         -listvariable ::ediu(cellEdtrPrtnNames)
-    scrollbar $dlg.f.cellpartition.scroll -command "$dlg.f.cellpartition.list yview"
+    ttk::scrollbar $dlg.f.cellpartition.scroll -command "$dlg.f.cellpartition.list yview"
     pack $dlg.f.cellpartition.list $dlg.f.cellpartition.scroll \
         -side left -fill both -expand 1 -in $dlg.f.cellpartition
     grid rowconfigure $dlg.f.cellpartition 0 -weight 1
@@ -676,6 +688,9 @@ proc ediuGraphicViewBuild {} {
     
     $cnvs delete all
 
+    ##  Add the outline
+    ediuGraphicViewAddOutline
+
     ##  Load the NETLIST section
 
     set nl [$txt get 1.0 end]
@@ -697,7 +712,6 @@ proc ediuGraphicViewBuild {} {
 
         ##  Can the  pad be placed?
 
-        if { 0 } {
         if { [ regexp {^[[:alpha:][:alnum:]_]*\w} $netname ] == 0 } {
             Transcript $::ediu(MsgError) [format "Net name \"%s\" is not supported AIF syntax." $netname]
     set txt $::widgets(netlistview)
@@ -708,22 +722,20 @@ proc ediuGraphicViewBuild {} {
                 Transcript $::ediu(MsgNote) [format "Found net name \"%s\"." $netname]
             }
         }
-        }
 
         ediuGraphicViewAddPin $AIFPadFields(padx) \
             $AIFPadFields(pady) $AIFPadFields(pinnum) $AIFPadFields(net) $AIFPadFields(padname)
     }
 
-    ediuGraphicViewAddOutline
-
     ##  Set an initial scale so the die is visible
     ##  This is an estimate based on trying a couple of
     ##  die files.
 
-    set scaleX [expr $::widgets(windowSizeX) / (2*$::die(width))]
+    set scaleX [expr ($::widgets(windowSizeX) / (2*$::die(width)) * $::ediu(ScaleFactor))]
     puts [format "A:  %s  B:  %s  C:  %s" $scaleX $::widgets(windowSizeX) $::die(width)]
     if { $scaleX > 0 } {
-        ediuGraphicViewZoom $scaleX
+        #ediuGraphicViewZoom $scaleX
+        ediuGraphicViewZoom 1
     }
 }
 
@@ -734,28 +746,50 @@ proc ediuGraphicViewAddPin {x y pin net pad} {
     set cnvs $::widgets(graphicview)
     ##  Figure out the pad shape
 
+    ##  Scale X and Y
+    puts "1> $x $y"
+    set x [expr $x * $::ediu(ScaleFactor)]
+    set y [expr $y * $::ediu(ScaleFactor)]
+    puts "2> $x $y"
+
     set shape [pad::getShape $pad]
 
     switch -regexp -- $shape {
         "SQ" -
         "SQUARE" {
-            set pw [pad::getWidth $pad]
+            set pw [expr [pad::getWidth $pad] * $::ediu(ScaleFactor)]
             $cnvs create rectangle [expr {$x-($pw/2)}] [expr {$y-($pw/2)}] \
                 [expr {$x + ($pw/2)}] [expr {$y + ($pw/2)}] -outline red \
                 -fill yellow -tags "pads" 
                 #-fill yellow -tags "pads $pin" 
+            $cnvs create text $x $y -text $pin -fill red \
+                -anchor n -font [list arial] -justify center -tags "padnumbers"
         }
         "RECT" -
         "RECTANGLE" {
-            set pw [pad::getWidth $pad]
-            set ph [pad::getHeight $pad]
-            $cnvs create rectangle [expr {$x-($pw/2)}] [expr {$y-($ph/2)}] \
-                [expr {$x + ($pw/2)}] [expr {$y + ($ph/2)}] -outline red \
-                -fill yellow -tags "pads"
+            set pw [expr [pad::getWidth $pad]]
+            set ph [expr [pad::getHeight $pad]]
+            puts "W:  $pw  H:  $ph"
+            set pw [expr [pad::getWidth $pad] * $::ediu(ScaleFactor)]
+            set ph [expr [pad::getHeight $pad] * $::ediu(ScaleFactor)]
+            puts "W:  $pw  H:  $ph"
+
+            set x1 [expr $x-($pw/2)]
+            set y1 [expr $y-($ph/2)]
+            set x2 [expr $x+($pw/2)]
+            set y2 [expr $y+($ph/2)]
+
+            puts [format "Pad extents:  X1:  %s  Y1:  %s  X2:  %s  Y2:  %s" $x1 $y1 $x2 $y2]
+
+            $cnvs create rectangle $x1 $y1 $x2 $y2 -outline green -fill white -tags "padnumbers"
+            $cnvs create rectangle [expr $x-($pw/2)] [expr $y-($ph/2)] \
+                [expr $x+($pw/2)] [expr $y+($ph/2)] -outline red -fill yellow -tags "pads"
                 #-fill yellow -tags "pads $pin" 
             puts "Text Height:  $ph"
-            #$cnvs create text $x $y -text $pin -fill white \
-            #    -anchor n -font [list arial $ph bold] -justify center -tags "padnumbers"
+            $cnvs create text $x $y -text $pin -fill white \
+                -anchor n -font [list arial $ph bold] -justify center -tags "padnumbers"
+            #$cnvs create text $x $y -text $pin -fill red \
+            #    -anchor n -font [list arial 200] -justify center -tags "padnumbers"
         }
         default {
             #error "Error parsing $filename (line: $line_no): $line"
@@ -773,13 +807,15 @@ proc ediuGraphicViewAddPin {x y pin net pad} {
 #  ediuGraphicViewAddOutline
 #
 proc ediuGraphicViewAddOutline {} {
-    set x2 [expr $::die(width) / 2]
-    set x1 [expr -1 * $x2]
-    set y2 [expr $::die(height) / 2]
-    set y1 [expr -1 * $y2]
+    set x2 [expr ($::die(width) / 2) * $::ediu(ScaleFactor)]
+    set x1 [expr (-1 * $x2) * $::ediu(ScaleFactor)]
+    set y2 [expr ($::die(height) / 2) * $::ediu(ScaleFactor)]
+    set y1 [expr (-1 * $y2) * $::ediu(ScaleFactor)]
 
     set cnvs $::widgets(graphicview)
     $cnvs create rectangle $x1 $y1 $x2 $y2 -outline blue -tags "outline"
+
+    puts [format "Outline extents:  X1:  %s  Y1:  %s  X2:  %s  Y2:  %s" $x1 $y1 $x2 $y2]:w
 
     #$cnvs scale "outline" 0 0 100 100
 
@@ -948,6 +984,10 @@ proc ediuAIFFileClose {} {
     $txt configure -state normal
     $txt delete 1.0 end
     $txt configure -state disabled
+    set txt $::widgets(netlistview)
+    $txt configure -state normal
+    $txt delete 1.0 end
+    $txt configure -state disabled
     set cnvs $::widgets(graphicview)
     $cnvs delete all
     ediuUpdateStatus $::ediu(ready)
@@ -959,6 +999,10 @@ proc ediuAIFFileClose {} {
 proc ediuAIFInitialState {} {
     set ::ediu(filename) $::ediu(Nothing)
     set txt $::widgets(sourceview)
+    $txt configure -state normal
+    $txt delete 1.0 end
+    $txt configure -state disabled
+    set txt $::widgets(netlistview)
     $txt configure -state normal
     $txt delete 1.0 end
     $txt configure -state disabled
@@ -3007,6 +3051,220 @@ proc ediuToggle {varName} {
     set var [expr {$var ? 0 : 1}]
 }
 
+#--------------------------------------------------------
+#
+#  zoomMark
+#
+#  Mark the first (x,y) coordinate for zooming.
+#
+#--------------------------------------------------------
+proc zoomMark {c x y} {
+    global zoomArea
+    set zoomArea(x0) [$c canvasx $x]
+    set zoomArea(y0) [$c canvasy $y]
+    $c create rectangle $x $y $x $y -outline black -tag zoomArea
+}
+
+#--------------------------------------------------------
+#
+#  zoomStroke
+#
+#  Zoom in to the area selected by itemMark and
+#  itemStroke.
+#
+#--------------------------------------------------------
+proc zoomStroke {c x y} {
+    global zoomArea
+    set zoomArea(x1) [$c canvasx $x]
+    set zoomArea(y1) [$c canvasy $y]
+    $c coords zoomArea $zoomArea(x0) $zoomArea(y0) $zoomArea(x1) $zoomArea(y1)
+}
+
+#--------------------------------------------------------
+#
+#  zoomArea
+#
+#  Zoom in to the area selected by itemMark and
+#  itemStroke.
+#
+#--------------------------------------------------------
+proc zoomArea {c x y} {
+    global zoomArea
+
+    #--------------------------------------------------------
+    #  Get the final coordinates.
+    #  Remove area selection rectangle
+    #--------------------------------------------------------
+    set zoomArea(x1) [$c canvasx $x]
+    set zoomArea(y1) [$c canvasy $y]
+    $c delete zoomArea
+
+    #--------------------------------------------------------
+    #  Check for zero-size area
+    #--------------------------------------------------------
+    if {($zoomArea(x0)==$zoomArea(x1)) || ($zoomArea(y0)==$zoomArea(y1))} {
+        return
+    }
+
+    #--------------------------------------------------------
+    #  Determine size and center of selected area
+    #--------------------------------------------------------
+    set areaxlength [expr {abs($zoomArea(x1)-$zoomArea(x0))}]
+    set areaylength [expr {abs($zoomArea(y1)-$zoomArea(y0))}]
+    set xcenter [expr {($zoomArea(x0)+$zoomArea(x1))/2.0}]
+    set ycenter [expr {($zoomArea(y0)+$zoomArea(y1))/2.0}]
+
+    #--------------------------------------------------------
+    #  Determine size of current window view
+    #  Note that canvas scaling always changes the coordinates
+    #  into pixel coordinates, so the size of the current
+    #  viewport is always the canvas size in pixels.
+    #  Since the canvas may have been resized, ask the
+    #  window manager for the canvas dimensions.
+    #--------------------------------------------------------
+    set winxlength [winfo width $c]
+    set winylength [winfo height $c]
+
+    #--------------------------------------------------------
+    #  Calculate scale factors, and choose smaller
+    #--------------------------------------------------------
+    set xscale [expr {$winxlength/$areaxlength}]
+    set yscale [expr {$winylength/$areaylength}]
+    if { $xscale > $yscale } {
+        set factor $yscale
+    } else {
+        set factor $xscale
+    }
+
+    #--------------------------------------------------------
+    #  Perform zoom operation
+    #--------------------------------------------------------
+    zoom $c $factor $xcenter $ycenter $winxlength $winylength
+}
+
+
+#--------------------------------------------------------
+#
+#  zoom
+#
+#  Zoom the canvas view, based on scale factor 
+#  and centerpoint and size of new viewport.  
+#  If the center point is not provided, zoom 
+#  in/out on the current window center point.
+#
+#  This procedure uses the canvas scale function to
+#  change coordinates of all objects in the canvas.
+#
+#--------------------------------------------------------
+proc zoom { canvas factor \
+        {xcenter ""} {ycenter ""} \
+        {winxlength ""} {winylength ""} } {
+
+    #--------------------------------------------------------
+    #  If (xcenter,ycenter) were not supplied,
+    #  get the canvas coordinates of the center
+    #  of the current view.  Note that canvas
+    #  size may have changed, so ask the window 
+    #  manager for its size
+    #--------------------------------------------------------
+    set winxlength [winfo width $canvas]; # Always calculate [ljl]
+    set winylength [winfo height $canvas]
+    if { [string equal $xcenter ""] } {
+        set xcenter [$canvas canvasx [expr {$winxlength/2.0}]]
+        set ycenter [$canvas canvasy [expr {$winylength/2.0}]]
+    }
+
+    #--------------------------------------------------------
+    #  Scale all objects in the canvas
+    #  Adjust our viewport center point
+    #--------------------------------------------------------
+    $canvas scale all 0 0 $factor $factor
+    set xcenter [expr {$xcenter * $factor}]
+    set ycenter [expr {$ycenter * $factor}]
+
+    #--------------------------------------------------------
+    #  Get the size of all the items on the canvas.
+    #
+    #  This is *really easy* using 
+    #      $canvas bbox all
+    #  but it is also wrong.  Non-scalable canvas
+    #  items like text and windows now have a different
+    #  relative size when compared to all the lines and
+    #  rectangles that were uniformly scaled with the 
+    #  [$canvas scale] command.  
+    #
+    #  It would be better to tag all scalable items,
+    #  and make a single call to [bbox].
+    #  Instead, we iterate through all canvas items and
+    #  their coordinates to compute our own bbox.
+    #--------------------------------------------------------
+    set x0 1.0e30; set x1 -1.0e30 ;
+    set y0 1.0e30; set y1 -1.0e30 ;
+    foreach item [$canvas find all] {
+        switch -exact [$canvas type $item] {
+            "arc" -
+            "line" -
+            "oval" -
+            "polygon" -
+            "rectangle" {
+                set coords [$canvas coords $item]
+                foreach {x y} $coords {
+                    if { $x < $x0 } {set x0 $x}
+                    if { $x > $x1 } {set x1 $x}
+                    if { $y < $y0 } {set y0 $y}
+                    if { $y > $y0 } {set y1 $y}
+                }
+            }
+        }
+    }
+
+    #--------------------------------------------------------
+    #  Now figure the size of the bounding box
+    #--------------------------------------------------------
+    set xlength [expr {$x1-$x0}]
+    set ylength [expr {$y1-$y0}]
+
+    #--------------------------------------------------------
+    #  But ... if we set the scrollregion and xview/yview 
+    #  based on only the scalable items, then it is not 
+    #  possible to zoom in on one of the non-scalable items
+    #  that is outside of the boundary of the scalable items.
+    #
+    #  So expand the [bbox] of scaled items until it is
+    #  larger than [bbox all], but do so uniformly.
+    #--------------------------------------------------------
+    foreach {ax0 ay0 ax1 ay1} [$canvas bbox all] {break}
+
+    while { ($ax0<$x0) || ($ay0<$y0) || ($ax1>$x1) || ($ay1>$y1) } {
+        # triple the scalable area size
+        set x0 [expr {$x0-$xlength}]
+        set x1 [expr {$x1+$xlength}]
+        set y0 [expr {$y0-$ylength}]
+        set y1 [expr {$y1+$ylength}]
+        set xlength [expr {$xlength*3.0}]
+        set ylength [expr {$ylength*3.0}]
+    }
+
+    #--------------------------------------------------------
+    #  Now that we've finally got a region defined with
+    #  the proper aspect ratio (of only the scalable items)
+    #  but large enough to include all items, we can compute
+    #  the xview/yview fractions and set our new viewport
+    #  correctly.
+    #--------------------------------------------------------
+    set newxleft [expr {($xcenter-$x0-($winxlength/2.0))/$xlength}]
+    set newytop  [expr {($ycenter-$y0-($winylength/2.0))/$ylength}]
+    $canvas configure -scrollregion [list $x0 $y0 $x1 $y1]
+    $canvas xview moveto $newxleft 
+    $canvas yview moveto $newytop 
+
+    #--------------------------------------------------------
+    #  Change the scroll region one last time, to fit the
+    #  items on the canvas.
+    #--------------------------------------------------------
+    $canvas configure -scrollregion [$canvas bbox all]
+}
+
 proc printArray { name } {
     upvar $name a
     foreach el [lsort [array names a]] {
@@ -3026,5 +3284,5 @@ set ::ediu(mode) $::ediu(libraryMode)
 #ediuSetupOpenLMC "C:/Users/mike/Documents/Sandbox/Sandbox.lmc"
 #set ::ediu(mode) $::ediu(designMode)
 #ediuSetupOpenPCB "C:/Users/mike/Documents/a_simple_design_ee794/a_simple_design.pcb"
-catch { ediuAIFFileOpen "c:/users/mike/desktop/ImportAIF/data/Demo4.aif" } retString
+#catch { ediuAIFFileOpen "c:/users/mike/desktop/ImportAIF/data/Demo4.aif" } retString
 #ediuAIFFileOpen
