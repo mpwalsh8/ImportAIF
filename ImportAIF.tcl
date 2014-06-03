@@ -71,6 +71,11 @@
 #                 rectangular pads.
 #    05/29/2014 - Added sclable zooming and pin tex handling.  Adapted
 #                 from example found at:  http://wiki.tcl.tk/4844
+#    06/02/2014 - Fixed scroll bars on all ctext widgets and canvas.
+#
+#
+#    Useful links:
+#      Drawing rounded polygons:  http://wiki.tcl.tk/8590
 #
 
 package require tile
@@ -466,11 +471,12 @@ proc BuildGUI {} {
     grid    rowconfigure $sf 0 -weight 1
 
     #  Canvas frame for Graphic View
-    set gfcanvas [canvas $gf.canvas \
+    set gfcanvas [canvas $gf.canvas -bg black \
         -xscrollcommand [list $gf.gfcanvasscrollx set] \
         -yscrollcommand [list $gf.gfcanvasscrolly set]]
     set ::widgets(graphicview) $gfcanvas
-    $gfcanvas configure -background black
+    #$gfcanvas configure -background black
+    #$gfcanvas configure -fg white
     ttk::scrollbar $gf.gfcanvasscrolly -orient v -command [list $gfcanvas yview]
     ttk::scrollbar $gf.gfcanvasscrollx -orient h -command [list $gfcanvas xview]
     grid $gfcanvas -row 0 -column 0 -in $gf -sticky nsew
@@ -683,6 +689,8 @@ proc ediuVisibleLayers { } {
 #  ediuGraphicViewBuild
 #
 proc ediuGraphicViewBuild {} {
+    set rv 0
+
     set cnvs $::widgets(graphicview)
     set txt $::widgets(netlistview)
     
@@ -714,7 +722,6 @@ proc ediuGraphicViewBuild {} {
 
         if { [ regexp {^[[:alpha:][:alnum:]_]*\w} $netname ] == 0 } {
             Transcript $::ediu(MsgError) [format "Net name \"%s\" is not supported AIF syntax." $netname]
-    set txt $::widgets(netlistview)
             set rv -1
         } else {
             if { [lsearch -exact $::netlist $netname ] == -1 } {
@@ -737,6 +744,8 @@ proc ediuGraphicViewBuild {} {
         #ediuGraphicViewZoom $scaleX
         ediuGraphicViewZoom 1
     }
+
+    return $rv
 }
 
 #
@@ -1014,7 +1023,7 @@ proc ediuAIFInitialState {} {
 #
 #  ediuSparsePinsFileOpen
 #
-#  Open a AIF file, read the contents into the
+#  Open a Text file, read the contents into the
 #  Source View and update the appropriate status.
 #
 proc ediuSparsePinsFileOpen {} {
@@ -1069,6 +1078,10 @@ proc ediuSparsePinsFileOpen {} {
             incr lc
         }
     }
+
+    # Force the scroll to the top of the sparse pins view
+    $txt yview moveto 0
+    $txt xview moveto 0
 
     ediuUpdateStatus $::ediu(ready)
 }
@@ -3020,6 +3033,10 @@ proc aif::parse {filename} {
         }
     }
 
+    # Force the scroll to the top of the netlist view
+    $txt yview moveto 0
+    $txt xview moveto 0
+
     $txt configure -state disabled
     close $fd
 }
@@ -3284,5 +3301,5 @@ set ::ediu(mode) $::ediu(libraryMode)
 #ediuSetupOpenLMC "C:/Users/mike/Documents/Sandbox/Sandbox.lmc"
 #set ::ediu(mode) $::ediu(designMode)
 #ediuSetupOpenPCB "C:/Users/mike/Documents/a_simple_design_ee794/a_simple_design.pcb"
-#catch { ediuAIFFileOpen "c:/users/mike/desktop/ImportAIF/data/Demo4.aif" } retString
+catch { ediuAIFFileOpen "c:/users/mike/desktop/ImportAIF/data/Demo1.aif" } retString
 #ediuAIFFileOpen
