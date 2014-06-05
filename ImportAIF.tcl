@@ -148,10 +148,11 @@ proc ediuInit {} {
         RightBracket "\]"
         BackSlash "\\"
         ScaleFactor 1
+        BGA 0
         MCMAIF 0
     }
 
-    array set ::layers {
+    array set ::objects {
         pads 1
         bondpads 1
         padnumbers 1
@@ -160,6 +161,9 @@ proc ediuInit {} {
         partoutline 1
         refdes 1
         rings 1
+    }
+
+    array set ::devices {
     }
 
     ##  Keywords to scan for in AIF file
@@ -179,21 +183,23 @@ proc ediuInit {} {
         die "DIE"
         diePads "PADS"
         netlist "NETLIST"
+        bga "BGA"
+        mcm_die "MCM_DIE"
     }
 
     array set ::ignored {
-        bga "BGA"
         rings "RINGS"
         bondable_ring_area "BONDABLE_RING_AREA"
         wire "WIRE"
         fiducials "FIDUCIALS"
         die_logo "DIE_LOGO"
-        mcm_die "MCM_DIE"
     }
 
     ##  Namespace array to store widgets
     array unset ::widgets
     array set ::widgets {
+        setupmenu ""
+        viewmenu ""
         transcript ""
         sourceview ""
         graphicview ""
@@ -237,13 +243,21 @@ proc ediuAIFFileInit { } {
         units "um"
         mcm "FALSE"
     }
+
     ##  Die Details
     array set ::die {
+        name ""
         width 0
         height 0
-        name ""
-        center [list 0 0]
+        center { 0 0 }
         partition ""
+    }
+
+    ##  BGA Details
+    array set ::bga {
+        name ""
+        width 0
+        height 0
     }
 
     ##  Store mcm die in a Tcl dictionary
@@ -323,18 +337,18 @@ proc BuildGUI {} {
 
     #  Define the Setup menu
     set sm [menu $mb.setup -tearoff 0]
-    set ::widgets(setup) $sm
+    set ::widgets(setupmenu) $sm
     $mb add cascade -label "Setup" -menu $sm -underline 0
     $sm add radiobutton -label "Design Mode" -underline 0 \
         -variable ::ediu(mode) -value $::ediu(designMode) \
-        -command { $::widgets(setup) entryconfigure  3 -state normal ; \
-            $::widgets(setup) entryconfigure 4 -state disabled ; \
+        -command { $::widgets(setupmenu) entryconfigure  3 -state normal ; \
+            $::widgets(setupmenu) entryconfigure 4 -state disabled ; \
             set ::ediu(targetPath) $::ediu(Nothing) ; \
             ediuUpdateStatus $::ediu(ready) }
     $sm add radiobutton -label "Central Library Mode" -underline 0 \
         -variable ::ediu(mode) -value $::ediu(libraryMode) \
-        -command { $::widgets(setup) entryconfigure  3 -state disabled ; \
-            $::widgets(setup) entryconfigure 4 -state normal ; \
+        -command { $::widgets(setupmenu) entryconfigure  3 -state disabled ; \
+            $::widgets(setupmenu) entryconfigure 4 -state normal ; \
             set ::ediu(targetPath) $::ediu(Nothing) ; \
             ediuUpdateStatus $::ediu(ready) }
     $sm add separator
@@ -374,9 +388,11 @@ proc BuildGUI {} {
 
     #  Define the View menu
     set vm [menu $mb.zoom -tearoff 0]
+    set ::widgets(viewmenu) $vm
+
     $mb add cascade -label "View" -menu $vm -underline 0
     $vm add cascade -label "Zoom In" \
-         -underline 0 -menu $vm.in
+         -underline 5 -menu $vm.in
     menu $vm.in -tearoff 0
     $vm.in add cascade -label "2x" \
          -underline 0 \
@@ -388,7 +404,7 @@ proc BuildGUI {} {
          -underline 0 \
          -command {ediuGraphicViewZoom 10.0}
     $vm add cascade -label "Zoom Out" \
-         -underline 0 -menu $vm.out
+         -underline 5 -menu $vm.out
     menu $vm.out -tearoff 0
     $vm.out add cascade -label "2x" \
          -underline 0 \
@@ -399,26 +415,32 @@ proc BuildGUI {} {
     $vm.out add command -label "10x" \
          -underline 0 \
          -command {ediuGraphicViewZoom 0.1}
+
     $vm add separator
-    $vm add cascade -label "Layer" \
-         -underline 0 -menu $vm.layer
-    menu $vm.layer -tearoff 0
-    $vm.layer add checkbutton -label "Pads" -underline 0 \
-        -variable ::layers(pads) -onvalue 1 -offvalue 0 -command ediuVisibleLayers
-    $vm.layer add checkbutton -label "Pad Numbers" -underline 0 \
-        -variable ::layers(padnumbers) -onvalue 1 -offvalue 0 -command ediuVisibleLayers
-    $vm.layer add checkbutton -label "Bond Pads" -underline 0 \
-        -variable ::layers(bondpads) -onvalue 1 -offvalue 0 -command ediuVisibleLayers
-    $vm.layer add checkbutton -label "Die Outline" -underline 0 \
-        -variable ::layers(dieoutline) -onvalue 1 -offvalue 0 -command ediuVisibleLayers
-    $vm.layer add checkbutton -label "BGA Outline" -underline 0 \
-        -variable ::layers(bgaoutline) -onvalue 1 -offvalue 0 -command ediuVisibleLayers
-    $vm.layer add checkbutton -label "Part Outlines" -underline 5 \
-        -variable ::layers(partoutline) -onvalue 1 -offvalue 0 -command ediuVisibleLayers
-    $vm.layer add checkbutton -label "Ref Designators" -underline 5 \
-        -variable ::layers(refdes) -onvalue 1 -offvalue 0 -command ediuVisibleLayers
-    $vm.layer add checkbutton -label "Rings" -underline 0 \
-        -variable ::layers(rings) -onvalue 1 -offvalue 0 -command ediuVisibleLayers
+
+    $vm add cascade -label "Objects" \
+         -underline 1 -menu $vm.objects
+    menu $vm.objects -tearoff 0
+    $vm.objects add checkbutton -label "Pads" -underline 0 \
+        -variable ::objects(pads) -onvalue 1 -offvalue 0 -command ediuVisibleObject
+    $vm.objects add checkbutton -label "Pad Numbers" -underline 0 \
+        -variable ::objects(padnumbers) -onvalue 1 -offvalue 0 -command ediuVisibleObject
+    $vm.objects add checkbutton -label "Bond Pads" -underline 0 \
+        -variable ::objects(bondpads) -onvalue 1 -offvalue 0 -command ediuVisibleObject
+    $vm.objects add checkbutton -label "Die Outline" -underline 0 \
+        -variable ::objects(dieoutline) -onvalue 1 -offvalue 0 -command ediuVisibleObject
+    $vm.objects add checkbutton -label "BGA Outline" -underline 0 \
+        -variable ::objects(bgaoutline) -onvalue 1 -offvalue 0 -command ediuVisibleObject
+    $vm.objects add checkbutton -label "Part Outlines" -underline 5 \
+        -variable ::objects(partoutline) -onvalue 1 -offvalue 0 -command ediuVisibleObject
+    $vm.objects add checkbutton -label "Ref Designators" -underline 5 \
+        -variable ::objects(refdes) -onvalue 1 -offvalue 0 -command ediuVisibleObject
+    $vm.objects add checkbutton -label "Rings" -underline 0 \
+        -variable ::objects(rings) -onvalue 1 -offvalue 0 -command ediuVisibleObject
+
+    $vm add cascade -label "Devices" \
+         -underline 0 -menu $vm.devices
+    menu $vm.devices -tearoff 0
 
     # Define the Help menu
     set hm [menu .menubar.help -tearoff 0]
@@ -677,23 +699,41 @@ proc ediuChooseCellPartitionDialog {} {
 }
 
 #
-#  ediuVisibleLayers
+#  ediuVisibleObject
 #
-proc ediuVisibleLayers { } {
+proc ediuVisibleObject { } {
     set cnvs $::widgets(graphicview)
-    puts [array names ::layers]
-    printArray ::layers
-    foreach l [array names ::layers] {
-        set id [$cnvs find withtag $l]
-        if { $::layers($l) == 0 } {
-            puts "found by tag"
-            puts $l
-            puts $id
+
+    #  Set visibility of objects
+    foreach o [array names ::objects] {
+        set id [$cnvs find withtag $o]
+        if { $::objects($o) == 0 } {
+            #puts "found by tag"
+            #puts $o
+            #puts $id
             foreach i $id {
                 $cnvs itemconfigure $i -state hidden
             }
         } else {
-            puts "nothing found by tag"
+            #puts "nothing found by tag"
+            foreach i $id {
+                $cnvs itemconfigure $i -state normal
+            }
+        }
+    }
+
+    # Set visibility of devices
+    foreach d [array names ::devices] {
+        set id [$cnvs find withtag $d]
+        if { $::devices($d) == 0 } {
+            #puts "found by tag"
+            #puts $d
+            #puts $id
+            foreach i $id {
+                $cnvs itemconfigure $i -state hidden
+            }
+        } else {
+            #puts "nothing found by tag"
             foreach i $id {
                 $cnvs itemconfigure $i -state normal
             }
@@ -707,6 +747,7 @@ proc ediuVisibleLayers { } {
 proc ediuGraphicViewBuild {} {
     set rv 0
     set line_no 0
+    set vm $::widgets(viewmenu)
 
     set cnvs $::widgets(graphicview)
     set txt $::widgets(netlistview)
@@ -726,7 +767,7 @@ proc ediuGraphicViewBuild {} {
                     NAME ""
                     WIDTH 0.0
                     HEIGHT 0.0
-                    CENTER 0.0,0.0
+                    CENTER [list 0.0 0.0]
                     X 0.0
                     Y 0.0
                 }
@@ -739,11 +780,24 @@ proc ediuGraphicViewBuild {} {
                 }
 
                 #  Split the CENTER keyword into X and Y components
-                set part(X) [lindex [split $part(CENTER) ,] 0]
-                set part(Y) [lindex [split $part(CENTER) ,] 1]
+                #
+                #  The AIF specification and sample file have the X and Y separated by
+                #  both a space and comma character so we'll plan to handle either situation.
+                if { [llength [split $part(CENTER) ,]] == 2 } {
+                    set part(X) [lindex [split $part(CENTER) ,] 0]
+                    set part(Y) [lindex [split $part(CENTER) ,] 1]
+                } else {
+                    set part(X) [lindex [split $part(CENTER)] 0]
+                    set part(Y) [lindex [split $part(CENTER)] 1]
+                }
 
                 #  Draw the Part Outline
                 ediuDrawPartOutline $part(NAME) $part(HEIGHT) $part(WIDTH) $part(X) $part(Y)
+
+                #  Add part to the View Devices menu and make it visible
+                set ::devices($part(NAME)) 1
+                $vm.devices add checkbutton -label "$part(NAME)" -underline 0 \
+                    -variable ::devices($part(NAME)) -onvalue 1 -offvalue 0 -command ediuVisibleObject
             }
         }
     }
@@ -898,16 +952,35 @@ proc ediuGraphicViewAddOutline {} {
 #
 #  ediuDrawPartOutline
 #
-proc ediuDrawPartOutline { name height width x y } {
+proc ediuDrawPartOutline { name height width x y { color "green" } } {
     set x1 [expr $x - ($width / 2)]
     set x2 [expr $x + ($width / 2)]
     set y1 [expr $y - ($height / 2)]
     set y2 [expr $y + ($height / 2)]
 
     set cnvs $::widgets(graphicview)
-    $cnvs create rectangle $x1 $y1 $x2 $y2 -outline green -tags "partoutline"
-    $cnvs create text $x $y -text $name -fill green \
-        -anchor center -font [list arial] -justify center -tags "refdes"
+    $cnvs create rectangle $x1 $y1 $x2 $y2 -outline $color -tags "$name partoutline"
+    $cnvs create text $x2 $y2 -text $name -fill $color \
+        -anchor sw -font [list arial] -justify right -tags "$name refdes"
+
+    puts [format "Part Outline extents:  X1:  %s  Y1:  %s  X2:  %s  Y2:  %s" $x1 $y1 $x2 $y2]
+
+    $cnvs configure -scrollregion [$cnvs bbox all]
+}
+
+#
+#  ediuDrawBGAOutline
+#
+proc ediuDrawBGAOutline { name height width x y { color "white" } } {
+    set x1 [expr $x - ($width / 2)]
+    set x2 [expr $x + ($width / 2)]
+    set y1 [expr $y - ($height / 2)]
+    set y2 [expr $y + ($height / 2)]
+
+    set cnvs $::widgets(graphicview)
+    $cnvs create rectangle $x1 $y1 $x2 $y2 -outline $color -tags "$name bgaoutline"
+    $cnvs create text $x2 $y2 -text $name -fill $color \
+        -anchor sw -font [list arial] -justify right -tags "$name refdes"
 
     puts [format "Part Outline extents:  X1:  %s  Y1:  %s  X2:  %s  Y2:  %s" $x1 $y1 $x2 $y2]
 
@@ -1038,6 +1111,15 @@ proc ediuAIFFileOpen { { f "" } } {
             return -1
         }
 
+        ##  Load the optional BGA section ...
+
+        if { $::ediu(BGA) == 1 } {
+            if { [ ediuAIFBGASection ] == -1 } {
+                ediuUpdateStatus $::ediu(ready)
+                return -1
+            }
+        }
+
         ##  Load the PADS section ...
 
         if { [ ediuAIFPadsSection ] == -1 } {
@@ -1109,6 +1191,9 @@ proc ediuAIFInitialState {} {
     $txt configure -state disabled
     set cnvs $::widgets(graphicview)
     $cnvs delete all
+
+    set vm $::widgets(viewmenu)
+    $vm.devices delete 0 end
 }
 
 
@@ -2128,6 +2213,9 @@ proc ediuAIFDatabaseSection {} {
             set ::widgets(AIFType) "File Type:  AIF"
         }
 
+        ##  Does the AIF file contain a BGA section?
+        set ::ediu(BGA) [expr [lsearch [aif::sections] "BGA"] != -1 ? 1 : 0]
+ 
         ##  Check units for legal option - AIF supports UM, MM, CM, INCH, MIL
 
         if { [lsearch -exact $::units [string tolower $::database(units)]] == -1 } {
@@ -2167,15 +2255,10 @@ proc ediuAIFMCMDieSection {} {
         ##  Populate the mcmdie dictionary
 
         foreach v $vars {
-            #set ::parts([string tolower $v]) [aif::getvar $v MCM_DIE]
-            puts [format "::mcmdie-->  %s = %s" $v [aif::getvar $v MCM_DIE]]
             dict lappend ::mcmdie [string tolower $v] [aif::getvar $v MCM_DIE]
         }
 
-        puts "QQQ"
         foreach i [dict keys $::mcmdie] {
-        puts "YYY"
-            #Transcript $::ediu(MsgNote) [format "Part \"%s\":  %s" [string toupper $i] $::parts($i)]
             Transcript $::ediu(MsgNote) [format "Part \"%s\" with reference designator:  %s" \
                 [string toupper $i] [lindex [dict get $::mcmdie $i] 0]]
         }
@@ -2212,6 +2295,31 @@ proc ediuAIFDieSection {} {
 
     } else {
         Transcript $::ediu(MsgError) [format "AIF file \"%s\" does not contain a DIE section." $::ediu(filename)]
+        return -1
+    }
+}
+
+#
+#  ediuAIFBGASection
+#
+#  Scan the AIF source file for the "DIE" section
+#
+proc ediuAIFBGASection {} {
+    ##  Make sure we have a DIE section!
+    if { [lsearch -exact $aif::sections BGA] != -1 } {
+        ##  Load the DIE section
+        set vars [aif::variables BGA]
+
+        foreach v $vars {
+            puts [format "-->  %s" $v]
+            set ::bga([string tolower $v]) [aif::getvar $v BGA]
+        }
+
+        foreach i [array names ::bga] {
+            Transcript $::ediu(MsgNote) [format "BGA \"%s\":  %s" [string toupper $i] $::bga($i)]
+        }
+    } else {
+        Transcript $::ediu(MsgError) [format "AIF file \"%s\" does not contain a BGA section." $::ediu(filename)]
         return -1
     }
 }
