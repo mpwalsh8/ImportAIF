@@ -148,14 +148,18 @@ proc ediuInit {} {
         RightBracket "\]"
         BackSlash "\\"
         ScaleFactor 1
+        MCMAIF 0
     }
 
     array set ::layers {
         pads 1
         bondpads 1
         padnumbers 1
+        dieoutline 1
+        bgaoutline 1
+        partoutline 1
+        refdes 1
         rings 1
-        outline 1
     }
 
     ##  Keywords to scan for in AIF file
@@ -202,6 +206,7 @@ proc ediuInit {} {
         windowSizeY 600
         mode ""
         AIFFile ""
+        AIFType "File Type:"
         targetPath ""
         CellPartnDlg ".chooseCellPartitionDialog"
         PartPartnDlg ".choosePartPartitionDialog"
@@ -404,10 +409,16 @@ proc BuildGUI {} {
         -variable ::layers(padnumbers) -onvalue 1 -offvalue 0 -command ediuVisibleLayers
     $vm.layer add checkbutton -label "Bond Pads" -underline 0 \
         -variable ::layers(bondpads) -onvalue 1 -offvalue 0 -command ediuVisibleLayers
+    $vm.layer add checkbutton -label "Die Outline" -underline 0 \
+        -variable ::layers(dieoutline) -onvalue 1 -offvalue 0 -command ediuVisibleLayers
+    $vm.layer add checkbutton -label "BGA Outline" -underline 0 \
+        -variable ::layers(bgaoutline) -onvalue 1 -offvalue 0 -command ediuVisibleLayers
+    $vm.layer add checkbutton -label "Part Outlines" -underline 5 \
+        -variable ::layers(partoutline) -onvalue 1 -offvalue 0 -command ediuVisibleLayers
+    $vm.layer add checkbutton -label "Ref Designators" -underline 5 \
+        -variable ::layers(refdes) -onvalue 1 -offvalue 0 -command ediuVisibleLayers
     $vm.layer add checkbutton -label "Rings" -underline 0 \
         -variable ::layers(rings) -onvalue 1 -offvalue 0 -command ediuVisibleLayers
-    $vm.layer add checkbutton -label "Outline" -underline 0 \
-        -variable ::layers(outline) -onvalue 1 -offvalue 0 -command ediuVisibleLayers
 
     # Define the Help menu
     set hm [menu .menubar.help -tearoff 0]
@@ -434,11 +445,11 @@ proc BuildGUI {} {
     set ssf [ttk::frame $nb.sparsepinsview]
     set ::ediu(sparsepinsview) $ssf
 
-    $nb add $nb.transcript -text "Transcript" -padding 4
-    $nb add $nb.sourceview -text "AIF Source" -padding 4
     $nb add $nb.graphicview -text "Graphic View" -padding 4
+    $nb add $nb.transcript -text "Transcript" -padding 4
+    $nb add $nb.sourceview -text "AIF" -padding 4
     $nb add $nb.netlistview -text "Netlist" -padding 4
-    $nb add $nb.sparsepinsview -text "Sparse Pins View" -padding 4
+    $nb add $nb.sparsepinsview -text "Sparse Pins" -padding 4
 
     #  Text frame for Transcript
 
@@ -487,9 +498,12 @@ proc BuildGUI {} {
     set bf [frame .buttonframe]
     button $bf.zoomin  -text "Zoom In"  -command "zoom $gfcanvas 1.25" -relief groove -padx 3
     button $bf.zoomout -text "Zoom Out" -command "zoom $gfcanvas 0.80" -relief groove -padx 3
-    button $bf.zoomfit -text "Zoom Fit" -command "zoom $gfcanvas 1.00" -relief groove -padx 3
+    #button $bf.zoomfit -text "Zoom Fit" -command "zoom $gfcanvas 1" -relief groove -padx 3
+    button $bf.zoomin5x  -text "Zoom In 5x"  -command "zoom $gfcanvas 5.00" -relief groove -padx 3
+    button $bf.zoomout5x -text "Zoom Out 5x" -command "zoom $gfcanvas 0.20" -relief groove -padx 3
     #grid $bf.zoomin $bf.zoomout -sticky ew -columnspan 1
-    grid $bf.zoomin $bf.zoomout $bf.zoomfit
+    #grid $bf.zoomin $bf.zoomout $bf.zoomfit
+    grid $bf.zoomin $bf.zoomout $bf.zoomin5x $bf.zoomout5x
     grid $bf -in $gf -sticky w
 
     grid columnconfigure $gf 0 -weight 1
@@ -542,11 +556,13 @@ proc BuildGUI {} {
         -padding 5 -textvariable ::widgets(mode)]
     set AIFfile [ttk::label .aifFile \
         -padding 5 -textvariable ::widgets(AIFFile)]
+    set AIFType [ttk::label .aifType \
+        -padding 5 -textvariable ::widgets(AIFType)]
     set targetpath [ttk::label .targetPath \
         -padding 5 -textvariable ::widgets(targetPath)]
 
     pack $slf -side left -in $sf -fill both
-    pack $mode $AIFfile $targetpath -side left -in $sf -fill both -padx 10
+    pack $mode $AIFfile $AIFType $targetpath -side left -in $sf -fill both -padx 10
 
     grid $nb -sticky nsew -padx 4 -pady 4
     grid $sf -sticky sew -padx 4 -pady 4
@@ -556,7 +572,7 @@ proc BuildGUI {} {
 
     #  Configure the main window
     wm title . $::ediu(EDIU).
-    wm geometry . 800x600
+    wm geometry . 1024x768
     . configure -menu .menubar -width 200 -height 150
 
     #  Bind some function keys
@@ -690,6 +706,7 @@ proc ediuVisibleLayers { } {
 #
 proc ediuGraphicViewBuild {} {
     set rv 0
+    set line_no 0
 
     set cnvs $::widgets(graphicview)
     set txt $::widgets(netlistview)
@@ -699,6 +716,39 @@ proc ediuGraphicViewBuild {} {
     ##  Add the outline
     ediuGraphicViewAddOutline
 
+    ##  Is this an MCM-AIF?
+
+    if { $::ediu(MCMAIF) == 1 } {
+        foreach i [dict keys $::mcmdie] {
+            set section [format "MCM_%s_%s" [string toupper $i] [dict get $::mcmdie $i]]
+            if { [lsearch -exact [aif::sections] $section] != -1 } {
+                array set part {
+                    NAME ""
+                    WIDTH 0.0
+                    HEIGHT 0.0
+                    CENTER 0.0,0.0
+                    X 0.0
+                    Y 0.0
+                }
+
+                #  Extract each of the expected keywords from the section
+                foreach key [array names part] {
+                    if { [lsearch -exact [aif::variables $section] $key] != -1 } {
+                        set part($key) [aif::getvar $key $section]
+                    }
+                }
+
+                #  Split the CENTER keyword into X and Y components
+                set part(X) [lindex [split $part(CENTER) ,] 0]
+                set part(Y) [lindex [split $part(CENTER) ,] 1]
+
+                #  Draw the Part Outline
+                ediuDrawPartOutline $part(NAME) $part(HEIGHT) $part(WIDTH) $part(X) $part(Y)
+            }
+        }
+    }
+
+
     ##  Load the NETLIST section
 
     set nl [$txt get 1.0 end]
@@ -706,6 +756,7 @@ proc ediuGraphicViewBuild {} {
     ##  Process the netlist looking for the pads
 
     foreach n [split $nl '\n'] {
+        incr line_no
         ##  Skip blank or empty lines
         if { [string length $n] == 0 } { continue }
 
@@ -731,7 +782,7 @@ proc ediuGraphicViewBuild {} {
         }
 
         ediuGraphicViewAddPin $AIFPadFields(padx) \
-            $AIFPadFields(pady) $AIFPadFields(pinnum) $AIFPadFields(net) $AIFPadFields(padname)
+            $AIFPadFields(pady) $AIFPadFields(pinnum) $AIFPadFields(net) $AIFPadFields(padname) $line_no
     }
 
     ##  Set an initial scale so the die is visible
@@ -742,7 +793,25 @@ proc ediuGraphicViewBuild {} {
     puts [format "A:  %s  B:  %s  C:  %s" $scaleX $::widgets(windowSizeX) $::die(width)]
     if { $scaleX > 0 } {
         #ediuGraphicViewZoom $scaleX
-        ediuGraphicViewZoom 1
+        #ediuGraphicViewZoom 1
+        #zoom 1 0 0 
+        set extents [$cnvs bbox all]
+        puts $extents
+        #$cnvs create rectangle $extents -outline green
+        #$cnvs create oval \
+        #    [expr [lindex $extents 0]-2] [expr [lindex $extents 1]-2] \
+        #    [expr [lindex $extents 0]+2] [expr [lindex $extents 1]+2] \
+        #    -fill green
+        #$cnvs create oval \
+        #    [expr [lindex $extents 2]-2] [expr [lindex $extents 3]-2] \
+        #    [expr [lindex $extents 2]+2] [expr [lindex $extents 3]+2] \
+        #    -fill green
+        #zoomMark $cnvs [lindex $extents 2] [lindex $extents 3]
+        #zoomStroke $cnvs [lindex $extents 0] [lindex $extents 1]
+        #zoomArea $cnvs [lindex $extents 0] [lindex $extents 1]
+
+        #  Set the initial view
+        zoom $cnvs 25
     }
 
     return $rv
@@ -751,7 +820,7 @@ proc ediuGraphicViewBuild {} {
 #
 #  ediuGraphicViewAddPin
 #
-proc ediuGraphicViewAddPin {x y pin net pad} {
+proc ediuGraphicViewAddPin {x y pin net pad line_no} {
     set cnvs $::widgets(graphicview)
     ##  Figure out the pad shape
 
@@ -770,9 +839,8 @@ proc ediuGraphicViewAddPin {x y pin net pad} {
             $cnvs create rectangle [expr {$x-($pw/2)}] [expr {$y-($pw/2)}] \
                 [expr {$x + ($pw/2)}] [expr {$y + ($pw/2)}] -outline red \
                 -fill yellow -tags "pads" 
-                #-fill yellow -tags "pads $pin" 
             $cnvs create text $x $y -text $pin -fill red \
-                -anchor n -font [list arial] -justify center -tags "padnumbers"
+                -anchor center -font [list arial] -justify center -tags "padnumbers"
         }
         "RECT" -
         "RECTANGLE" {
@@ -795,15 +863,13 @@ proc ediuGraphicViewAddPin {x y pin net pad} {
                 [expr $x+($pw/2)] [expr $y+($ph/2)] -outline red -fill yellow -tags "pads"
                 #-fill yellow -tags "pads $pin" 
             puts "Text Height:  $ph"
-            $cnvs create text $x $y -text $pin -fill white \
-                -anchor n -font [list arial $ph bold] -justify center -tags "padnumbers"
-            #$cnvs create text $x $y -text $pin -fill red \
-            #    -anchor n -font [list arial 200] -justify center -tags "padnumbers"
+            $cnvs create text $x $y -text $pin -fill red \
+                -anchor center -font [list arial] -justify center -tags "padnumbers"
         }
         default {
             #error "Error parsing $filename (line: $line_no): $line"
             Transcript $::ediu(MsgWarning) [format "Skipping line %d in AIF file \"%s\"." $line_no $::ediu(filename)]
-            puts $line
+            #puts $line
         }
     }
 
@@ -826,7 +892,24 @@ proc ediuGraphicViewAddOutline {} {
 
     puts [format "Outline extents:  X1:  %s  Y1:  %s  X2:  %s  Y2:  %s" $x1 $y1 $x2 $y2]:w
 
-    #$cnvs scale "outline" 0 0 100 100
+    $cnvs configure -scrollregion [$cnvs bbox all]
+}
+
+#
+#  ediuDrawPartOutline
+#
+proc ediuDrawPartOutline { name height width x y } {
+    set x1 [expr $x - ($width / 2)]
+    set x2 [expr $x + ($width / 2)]
+    set y1 [expr $y - ($height / 2)]
+    set y2 [expr $y + ($height / 2)]
+
+    set cnvs $::widgets(graphicview)
+    $cnvs create rectangle $x1 $y1 $x2 $y2 -outline green -tags "partoutline"
+    $cnvs create text $x $y -text $name -fill green \
+        -anchor center -font [list arial] -justify center -tags "refdes"
+
+    puts [format "Part Outline extents:  X1:  %s  Y1:  %s  X2:  %s  Y2:  %s" $x1 $y1 $x2 $y2]
 
     $cnvs configure -scrollregion [$cnvs bbox all]
 }
@@ -937,6 +1020,15 @@ proc ediuAIFFileOpen { { f "" } } {
         if { [ ediuAIFDatabaseSection ] == -1 } {
             ediuUpdateStatus $::ediu(ready)
             return -1
+        }
+
+        ##  If the file a MCM-AIF file?
+
+        if { $::ediu(MCMAIF) == 1 } {
+            if { [ ediuAIFMCMDieSection ] == -1 } {
+                ediuUpdateStatus $::ediu(ready)
+                return -1
+            }
         }
 
         ##  Load the DIE section ...
@@ -2026,6 +2118,16 @@ proc ediuAIFDatabaseSection {} {
             set rv -1
         }
 
+        if { ([lsearch [aif::variables "DATABASE"] "MCM"] != -1) && ($::database(mcm) == "TRUE") } {
+            Transcript $::ediu(MsgError) [format "File \"%s\" is an MCM-AIF file." $::ediu(filename)]
+            set ::ediu(MCMAIF) 1
+            set ::widgets(AIFType) "File Type:  MCM-AIF"
+        } else {
+            Transcript $::ediu(MsgError) [format "File \"%s\" is an AIF file." $::ediu(filename)]
+            set ::ediu(MCMAIF) 0
+            set ::widgets(AIFType) "File Type:  AIF"
+        }
+
         ##  Check units for legal option - AIF supports UM, MM, CM, INCH, MIL
 
         if { [lsearch -exact $::units [string tolower $::database(units)]] == -1 } {
@@ -2038,6 +2140,47 @@ proc ediuAIFDatabaseSection {} {
         }
     } else {
         Transcript $::ediu(MsgError) [format "AIF file \"%s\" does not contain a DATABASE section." $::ediu(filename)]
+        set rv -1
+    }
+
+    return $rv
+}
+
+#
+#  ediuAIFMCMDieSection
+#
+#  Scan the AIF source file for the "DATABASE" section
+#
+proc ediuAIFMCMDieSection {} {
+    set rv 0
+
+    ##  Make sure we have a MCM_DIE section!
+
+    if { [lsearch -exact $aif::sections MCM_DIE] != -1 } {
+        ##  Load the DATABASE section
+        set vars [aif::variables MCM_DIE]
+
+        ##  Flush the mcmdie dictionary
+
+        set ::mcmdie [dict create]
+
+        ##  Populate the mcmdie dictionary
+
+        foreach v $vars {
+            #set ::parts([string tolower $v]) [aif::getvar $v MCM_DIE]
+            puts [format "::mcmdie-->  %s = %s" $v [aif::getvar $v MCM_DIE]]
+            dict lappend ::mcmdie [string tolower $v] [aif::getvar $v MCM_DIE]
+        }
+
+        puts "QQQ"
+        foreach i [dict keys $::mcmdie] {
+        puts "YYY"
+            #Transcript $::ediu(MsgNote) [format "Part \"%s\":  %s" [string toupper $i] $::parts($i)]
+            Transcript $::ediu(MsgNote) [format "Part \"%s\" with reference designator:  %s" \
+                [string toupper $i] [lindex [dict get $::mcmdie $i] 0]]
+        }
+    } else {
+        Transcript $::ediu(MsgError) [format "AIF file \"%s\" does not contain a MCM_DIE section." $::ediu(filename)]
         set rv -1
     }
 
@@ -3068,6 +3211,24 @@ proc ediuToggle {varName} {
     set var [expr {$var ? 0 : 1}]
 }
 
+#
+# ediuNamedArgs
+#
+#  Extract named arguments from a command
+#  @see:  http://wiki.tcl.tk/10702
+#
+proc ediuNamedArgs {args defaults} {
+    upvar 1 "" ""
+    array set "" $defaults
+    foreach {key value} $args {
+        if {![info exists ($key)]} {
+            error "bad option '$key', should be one of: [lsort [array names {}]]"
+        }
+        set ($key) $value
+    }
+}
+
+
 #--------------------------------------------------------
 #
 #  zoomMark
@@ -3079,7 +3240,8 @@ proc zoomMark {c x y} {
     global zoomArea
     set zoomArea(x0) [$c canvasx $x]
     set zoomArea(y0) [$c canvasy $y]
-    $c create rectangle $x $y $x $y -outline black -tag zoomArea
+    $c create rectangle $x $y $x $y -outline white -tag zoomArea
+    puts "zoomMark:  $x $y"
 }
 
 #--------------------------------------------------------
@@ -3095,6 +3257,7 @@ proc zoomStroke {c x y} {
     set zoomArea(x1) [$c canvasx $x]
     set zoomArea(y1) [$c canvasy $y]
     $c coords zoomArea $zoomArea(x0) $zoomArea(y0) $zoomArea(x1) $zoomArea(y1)
+    puts "zoomStroke:  $x $y"
 }
 
 #--------------------------------------------------------
@@ -3157,6 +3320,7 @@ proc zoomArea {c x y} {
     #  Perform zoom operation
     #--------------------------------------------------------
     zoom $c $factor $xcenter $ycenter $winxlength $winylength
+    puts "zoomArea:  $x $y"
 }
 
 
@@ -3301,5 +3465,6 @@ set ::ediu(mode) $::ediu(libraryMode)
 #ediuSetupOpenLMC "C:/Users/mike/Documents/Sandbox/Sandbox.lmc"
 #set ::ediu(mode) $::ediu(designMode)
 #ediuSetupOpenPCB "C:/Users/mike/Documents/a_simple_design_ee794/a_simple_design.pcb"
-catch { ediuAIFFileOpen "c:/users/mike/desktop/ImportAIF/data/Demo1.aif" } retString
+#catch { ediuAIFFileOpen "c:/users/mike/desktop/ImportAIF/data/Demo4.aif" } retString
+catch { ediuAIFFileOpen "c:/users/mike/desktop/ImportAIF/data/MCMSampleC.aif" } retString
 #ediuAIFFileOpen
