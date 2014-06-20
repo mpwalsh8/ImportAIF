@@ -154,7 +154,8 @@ proc ediuInit {} {
 
     array set ::objects {
         pads 1
-        bondpads 1
+        balls 1
+        fingers 1
         padnumbers 1
         dieoutline 1
         bgaoutline 1
@@ -423,6 +424,10 @@ proc BuildGUI {} {
     menu $vm.objects -tearoff 0
     $vm.objects add checkbutton -label "Pads" -underline 0 \
         -variable ::objects(pads) -onvalue 1 -offvalue 0 -command ediuVisibleObject
+    $vm.objects add checkbutton -label "Balls" -underline 0 \
+        -variable ::objects(balls) -onvalue 1 -offvalue 0 -command ediuVisibleObject
+    $vm.objects add checkbutton -label "Fingers" -underline 0 \
+        -variable ::objects(fingers) -onvalue 1 -offvalue 0 -command ediuVisibleObject
     $vm.objects add checkbutton -label "Pad Numbers" -underline 0 \
         -variable ::objects(padnumbers) -onvalue 1 -offvalue 0 -command ediuVisibleObject
     $vm.objects add checkbutton -label "Bond Pads" -underline 0 \
@@ -757,6 +762,11 @@ proc ediuGraphicViewBuild {} {
     ##  Add the outline
     ediuGraphicViewAddOutline
 
+    ##  Draw the BGA outline (if it ecists)
+    if { $::ediu(BGA) == 1 } {
+        ediuDrawBGAOutline
+    }
+
     ##  Is this an MCM-AIF?
 
     if { $::ediu(MCMAIF) == 1 } {
@@ -810,6 +820,7 @@ proc ediuGraphicViewBuild {} {
     ##  Process the netlist looking for the pads
 
     foreach n [split $nl '\n'] {
+        puts "==>  $n"
         incr line_no
         ##  Skip blank or empty lines
         if { [string length $n] == 0 } { continue }
@@ -817,14 +828,60 @@ proc ediuGraphicViewBuild {} {
         set net [regexp -inline -all -- {\S+} $n]
         set netname [lindex [regexp -inline -all -- {\S+} $n] 0]
 
-        set AIFPadFields(pinnum) [lindex $net 1]
-        set AIFPadFields(padname) [lindex $net 2]
-        set AIFPadFields(padx) [expr -1 * [lindex $net 3]]
-        set AIFPadFields(pady) [lindex $net 4]
-        set AIFPadFields(net) [lindex $net 0]
+        ##  Initialize array to store netlist fields
 
-        ##  Can the  pad be placed?
+        array set nlr {
+            NETNAME "-"
+            PADNUM "-"
+            PADNAME "-"
+            PAD_X "-"
+            PAD_Y "-"
+            BALLNUM "-"
+            BALLNAME "-"
+            BALL_X "-"
+            BALL_Y "-"
+            FINNUM "-"
+            FINNAME "-"
+            FIN_X "-"
+            FIN_Y "-"
+            ANGLE "-"
+        }
 
+        #set AIFPadFields(pinnum) [lindex $net 1]
+        #set AIFPadFields(padname) [lindex $net 2]
+        #set AIFPadFields(padx) [expr -1 * [lindex $net 3]]
+        #set AIFPadFields(pady) [lindex $net 4]
+        #set AIFPadFields(net) [lindex $net 0]
+
+        #  A simple netlist has 5 fields
+
+        set nlr(NETNAME) [lindex $net 0]
+        set nlr(PADNUM) [lindex $net 1]
+        set nlr(PADNAME) [lindex $net 2]
+        set nlr(PAD_X) [lindex $net 3]
+        set nlr(PAD_Y) [lindex $net 4]
+
+        #  A simple netlist with ball assignment has 6 fields
+        if { [llength [split $net]] > 5 } {
+            set nlr(BALLNUM [lindex $net 5]
+        }
+
+        #  A complex netlist with ball and rings assignments has 14 fields
+        if { [llength [split $net]] > 6 } {
+            set nlr(BALLNAME) [lindex $net 6]
+            set nlr(BALL_X) [lindex $net 7]
+            set nlr(BALL_Y) [lindex $net 8]
+            set nlr(FINNUM [lindex $net 9]
+            set nlr(FINNAME) [lindex $net 10]
+            set nlr(FIN_X) [lindex $net 11]
+            set nlr(FIN_Y) [lindex $net 12]
+            set nlr(ANGLE) [lindex $net 13]
+        }
+
+
+        printArray nlr
+
+        #  Check the netname and store it for later use
         if { [ regexp {^[[:alpha:][:alnum:]_]*\w} $netname ] == 0 } {
             Transcript $::ediu(MsgError) [format "Net name \"%s\" is not supported AIF syntax." $netname]
             set rv -1
@@ -835,8 +892,29 @@ proc ediuGraphicViewBuild {} {
             }
         }
 
-        ediuGraphicViewAddPin $AIFPadFields(padx) \
-            $AIFPadFields(pady) $AIFPadFields(pinnum) $AIFPadFields(net) $AIFPadFields(padname) $line_no
+        ##  Can the die pad be placed?
+
+        if { $nlr(PADNAME) != "-" } {
+            ediuGraphicViewAddPin $nlr(PAD_X) $nlr(PAD_Y) $nlr(PADNUM) $nlr(NETNAME) $nlr(PADNAME) $line_no
+        } else {
+            Transcript $::ediu(MsgWarning) [format "Skipping die pad for net \"%s\" on line %d, no pad assignment." $netname, $line_no]
+        }
+
+        ##  Can the BALL pad be placed?
+
+        if { $nlr(BALLNAME) != "-" } {
+            ediuGraphicViewAddPin $nlr(BALL_X) $nlr(BALL_Y) $nlr(BALLNUM) $nlr(NETNAME) $nlr(BALLNAME) $line_no "white" "balls"
+        } else {
+            Transcript $::ediu(MsgWarning) [format "Skipping ball pad for net \"%s\" on line %d, no ball assignment." $netname, $line_no]
+        }
+
+        ##  Can the Finger pad be placed?
+
+        if { $nlr(FINNAME) != "-" } {
+            ediuGraphicViewAddPin $nlr(FIN_X) $nlr(FIN_Y) $nlr(FINNUM) $nlr(NETNAME) $nlr(FINNAME) $line_no "purple" "fingers"
+        } else {
+            Transcript $::ediu(MsgWarning) [format "Skipping finger for net \"%s\" on line %d, no finger assignment." $netname, $line_no]
+        }
     }
 
     ##  Set an initial scale so the die is visible
@@ -874,7 +952,7 @@ proc ediuGraphicViewBuild {} {
 #
 #  ediuGraphicViewAddPin
 #
-proc ediuGraphicViewAddPin {x y pin net pad line_no} {
+proc ediuGraphicViewAddPin { x y pin net pad line_no { color "yellow" } { tags "diepad" } } {
     set cnvs $::widgets(graphicview)
     ##  Figure out the pad shape
 
@@ -889,21 +967,33 @@ proc ediuGraphicViewAddPin {x y pin net pad line_no} {
     switch -regexp -- $shape {
         "SQ" -
         "SQUARE" {
-            set pw [expr [pad::getWidth $pad] * $::ediu(ScaleFactor)]
+            set pw [pad::getWidth $pad]
+            #set pw [expr [pad::getWidth $pad] * $::ediu(ScaleFactor)]
             $cnvs create rectangle [expr {$x-($pw/2)}] [expr {$y-($pw/2)}] \
                 [expr {$x + ($pw/2)}] [expr {$y + ($pw/2)}] -outline red \
-                -fill yellow -tags "pads" 
+                -fill $color -tags "$tags" 
             $cnvs create text $x $y -text $pin -fill red \
                 -anchor center -font [list arial] -justify center -tags "padnumbers"
         }
-        "RECT" -
-        "RECTANGLE" {
-            set pw [expr [pad::getWidth $pad]]
-            set ph [expr [pad::getHeight $pad]]
+        "CIRCLE" -
+        "ROUND" {
+            set pw [pad::getWidth $pad]
+            #set pw [expr [pad::getWidth $pad] * $::ediu(ScaleFactor)]
+            $cnvs create oval [expr {$x-($pw/2)}] [expr {$y-($pw/2)}] \
+                [expr {$x + ($pw/2)}] [expr {$y + ($pw/2)}] -outline red \
+                -fill $color -tags "$tags" 
+            $cnvs create text $x $y -text $pin -fill red \
+                -anchor center -font [list arial] -justify center -tags "padnumbers"
+        }
+        "OBLONG" -
+        "OBROUND" {
+            puts [format "OBLONG PAD on line:  %d" $line_no]
+            set pw [pad::getWidth $pad]
+            set ph [pad::getHeight $pad]
             puts "W:  $pw  H:  $ph"
-            set pw [expr [pad::getWidth $pad] * $::ediu(ScaleFactor)]
-            set ph [expr [pad::getHeight $pad] * $::ediu(ScaleFactor)]
-            puts "W:  $pw  H:  $ph"
+            #set pw [expr [pad::getWidth $pad] * $::ediu(ScaleFactor)]
+            #set ph [expr [pad::getHeight $pad] * $::ediu(ScaleFactor)]
+            #puts "W:  $pw  H:  $ph"
 
             set x1 [expr $x-($pw/2)]
             set y1 [expr $y-($ph/2)]
@@ -914,8 +1004,30 @@ proc ediuGraphicViewAddPin {x y pin net pad line_no} {
 
             $cnvs create rectangle $x1 $y1 $x2 $y2 -outline green -fill white -tags "padnumbers"
             $cnvs create rectangle [expr $x-($pw/2)] [expr $y-($ph/2)] \
-                [expr $x+($pw/2)] [expr $y+($ph/2)] -outline red -fill yellow -tags "pads"
-                #-fill yellow -tags "pads $pin" 
+                [expr $x+($pw/2)] [expr $y+($ph/2)] -outline red -fill $color -tags "$tags"
+            puts "Text Height:  $ph"
+            $cnvs create text $x $y -text $pin -fill red \
+                -anchor center -font [list arial] -justify center -tags "padnumbers"
+        }
+        "RECT" -
+        "RECTANGLE" {
+            set pw [pad::getWidth $pad]
+            set ph [pad::getHeight $pad]
+            puts "W:  $pw  H:  $ph"
+            #set pw [expr [pad::getWidth $pad] * $::ediu(ScaleFactor)]
+            #set ph [expr [pad::getHeight $pad] * $::ediu(ScaleFactor)]
+            #puts "W:  $pw  H:  $ph"
+
+            set x1 [expr $x-($pw/2)]
+            set y1 [expr $y-($ph/2)]
+            set x2 [expr $x+($pw/2)]
+            set y2 [expr $y+($ph/2)]
+
+            puts [format "Pad extents:  X1:  %s  Y1:  %s  X2:  %s  Y2:  %s" $x1 $y1 $x2 $y2]
+
+            $cnvs create rectangle $x1 $y1 $x2 $y2 -outline green -fill white -tags "padnumbers"
+            $cnvs create rectangle [expr $x-($pw/2)] [expr $y-($ph/2)] \
+                [expr $x+($pw/2)] [expr $y+($ph/2)] -outline red -fill $color -tags "$tags"
             puts "Text Height:  $ph"
             $cnvs create text $x $y -text $pin -fill red \
                 -anchor center -font [list arial] -justify center -tags "padnumbers"
@@ -953,10 +1065,12 @@ proc ediuGraphicViewAddOutline {} {
 #  ediuDrawPartOutline
 #
 proc ediuDrawPartOutline { name height width x y { color "green" } } {
-    set x1 [expr $x - ($width / 2)]
-    set x2 [expr $x + ($width / 2)]
-    set y1 [expr $y - ($height / 2)]
-    set y2 [expr $y + ($height / 2)]
+    puts [format "Part Outline input:  Name:  %s H:  %s  W:  %s  X:  %s  Y:  %s  C:  %s" $name $height $width $x $y $color]
+
+    set x1 [expr $x-($width/2)]
+    set x2 [expr $x+($width/2)]
+    set y1 [expr $y-($height/2)]
+    set y2 [expr $y+($height/2)]
 
     set cnvs $::widgets(graphicview)
     $cnvs create rectangle $x1 $y1 $x2 $y2 -outline $color -tags "$name partoutline"
@@ -971,19 +1085,42 @@ proc ediuDrawPartOutline { name height width x y { color "green" } } {
 #
 #  ediuDrawBGAOutline
 #
-proc ediuDrawBGAOutline { name height width x y { color "white" } } {
-    set x1 [expr $x - ($width / 2)]
-    set x2 [expr $x + ($width / 2)]
-    set y1 [expr $y - ($height / 2)]
-    set y2 [expr $y + ($height / 2)]
-
+proc ediuDrawBGAOutline { { color "white" } } {
     set cnvs $::widgets(graphicview)
-    $cnvs create rectangle $x1 $y1 $x2 $y2 -outline $color -tags "$name bgaoutline"
-    $cnvs create text $x2 $y2 -text $name -fill $color \
-        -anchor sw -font [list arial] -justify right -tags "$name refdes"
 
-    puts [format "Part Outline extents:  X1:  %s  Y1:  %s  X2:  %s  Y2:  %s" $x1 $y1 $x2 $y2]
+    set x1 [expr -($::bga(width) / 2)]
+    set x2 [expr +($::bga(width) / 2)]
+    set y1 [expr -($::bga(height) / 2)]
+    set y2 [expr +($::bga(height) / 2)]
+    puts [format "BGA Outline extents:  X1:  %s  Y1:  %s  X2:  %s  Y2:  %s" $x1 $y1 $x2 $y2]
 
+    #  Does BGA section contain POLYGON outline?  If not, use the height and width
+    if { [lsearch -exact [aif::variables BGA] OUTLINE] != -1 } {
+        set poly [split [aif::getvar OUTLINE BGA]]
+        set pw [lindex $poly 2]
+        puts $poly
+        if { [lindex $poly 1] == 1 } {
+            set points [lreplace $poly  0 3 ]
+            puts $points 
+        } else {
+            Transcript $::ediu(MsgWarning) "Only one polygon supported for BGA outline, reverting to derived outline."
+            set x1 [expr -($::bga(width) / 2)]
+            set x2 [expr +($::bga(width) / 2)]
+            set y1 [expr -($::bga(height) / 2)]
+            set y2 [expr +($::bga(height) / 2)]
+
+            set points { $x1 $y1 $x2 $y2 }
+        }
+
+
+    } else {
+        set points { $x1 $y1 $x2 $y2 }
+    }
+
+    #$cnvs create polygon $points -outline $color -fill "#eee" -tags "$::bga(name) bgaoutline"
+    $cnvs create polygon $points -outline $color -tags "$::bga(name) bgaoutline"
+    $cnvs create text $x2 $y2 -text $::bga(name) -fill $color \
+        -anchor sw -font [list arial] -justify right -tags "$::bga(name) refdes"
     $cnvs configure -scrollregion [$cnvs bbox all]
 }
 
@@ -3030,10 +3167,14 @@ proc pad::getWidth { pad } {
 #  Return the height of the pad
 proc pad::getHeight { pad } {
     switch -exact -- [pad::getShape $pad] {
+        "CIRCLE" -
+        "ROUND" -
         "SQ" -
         "SQUARE" {
             return [pad::getParam $pad 1]
         }
+        "OBLONG" -
+        "OBROUND" -
         "RECT" -
         "RECTANGLE" {
             return [pad::getParam $pad 2]
@@ -3074,8 +3215,8 @@ proc netlist::load { } {
 
     set txt $::widgets(netlistview)
     
-    ##  Clean  up list, the text widget may
-    ##  returns empty stuff we don't want
+    ##  Clean up list, the text widget may
+    ##  return empty stuff we don't want
 
     foreach n [split [$txt get 1.0 end] '\n'] {
         if { $n == "" } { continue }
@@ -3574,5 +3715,7 @@ set ::ediu(mode) $::ediu(libraryMode)
 #set ::ediu(mode) $::ediu(designMode)
 #ediuSetupOpenPCB "C:/Users/mike/Documents/a_simple_design_ee794/a_simple_design.pcb"
 #catch { ediuAIFFileOpen "c:/users/mike/desktop/ImportAIF/data/Demo4.aif" } retString
-catch { ediuAIFFileOpen "c:/users/mike/desktop/ImportAIF/data/MCMSampleC.aif" } retString
+#catch { ediuAIFFileOpen "c:/users/mike/desktop/ImportAIF/data/MCMSampleC.aif" } retString
+#catch { ediuAIFFileOpen "c:/users/mike/desktop/ImportAIF/data/BGA_w2_Dies.aif" } retString
+catch { ediuAIFFileOpen "c:/users/mike/desktop/ImportAIF/data/BGA_w2_Dies-2.aif" } retString
 #ediuAIFFileOpen
