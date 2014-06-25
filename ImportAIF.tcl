@@ -77,6 +77,7 @@
 #
 #    Useful links:
 #      Drawing rounded polygons:  http://wiki.tcl.tk/8590
+#      Drawing rounded rectangles:  http://wiki.tcl.tk/1416
 #
 
 package require tile
@@ -153,16 +154,19 @@ proc ediuInit {} {
         MCMAIF 0
     }
 
-    array set ::objects {
+    array set gui::objects {
         diepads 1
         balls 1
         fingers 1
-        padnumbers 1
         dieoutline 1
         bgaoutline 1
         partoutline 1
-        refdes 1
         rings 1
+    }
+
+    array set gui::text {
+        padnumbers 1
+        refdes 1
     }
 
     array set gui::devices {
@@ -430,23 +434,23 @@ proc BuildGUI {} {
     $vm.objects add cascade -label "All Off" -underline 5 -command { ediuVisibleObject -all off }
     $vm.objects add separator
     $vm.objects add checkbutton -label "Pads" -underline 0 \
-        -variable ::objects(diepads) -onvalue 1 -offvalue 0 -command ediuVisibleObject
+        -variable gui::objects(diepads) -onvalue 1 -offvalue 0 -command ediuVisibleObject
     $vm.objects add checkbutton -label "Balls" -underline 0 \
-        -variable ::objects(balls) -onvalue 1 -offvalue 0 -command ediuVisibleObject
+        -variable gui::objects(balls) -onvalue 1 -offvalue 0 -command ediuVisibleObject
     $vm.objects add checkbutton -label "Fingers" -underline 0 \
-        -variable ::objects(fingers) -onvalue 1 -offvalue 0 -command ediuVisibleObject
+        -variable gui::objects(fingers) -onvalue 1 -offvalue 0 -command ediuVisibleObject
     $vm.objects add checkbutton -label "Pad Numbers" -underline 0 \
-        -variable ::objects(padnumbers) -onvalue 1 -offvalue 0 -command ediuVisibleObject
+        -variable gui::objects(padnumbers) -onvalue 1 -offvalue 0 -command ediuVisibleObject
     $vm.objects add checkbutton -label "Die Outline" -underline 0 \
-        -variable ::objects(dieoutline) -onvalue 1 -offvalue 0 -command ediuVisibleObject
+        -variable gui::objects(dieoutline) -onvalue 1 -offvalue 0 -command ediuVisibleObject
     $vm.objects add checkbutton -label "BGA Outline" -underline 0 \
-        -variable ::objects(bgaoutline) -onvalue 1 -offvalue 0 -command ediuVisibleObject
+        -variable gui::objects(bgaoutline) -onvalue 1 -offvalue 0 -command ediuVisibleObject
     $vm.objects add checkbutton -label "Part Outlines" -underline 5 \
-        -variable ::objects(partoutline) -onvalue 1 -offvalue 0 -command ediuVisibleObject
+        -variable gui::objects(partoutline) -onvalue 1 -offvalue 0 -command ediuVisibleObject
     $vm.objects add checkbutton -label "Ref Designators" -underline 5 \
-        -variable ::objects(refdes) -onvalue 1 -offvalue 0 -command ediuVisibleObject
+        -variable gui::objects(refdes) -onvalue 1 -offvalue 0 -command ediuVisibleObject
     $vm.objects add checkbutton -label "Rings" -underline 0 \
-        -variable ::objects(rings) -onvalue 1 -offvalue 0 -command ediuVisibleObject
+        -variable gui::objects(rings) -onvalue 1 -offvalue 0 -command ediuVisibleObject
 
     $vm add cascade -label "Devices" \
          -underline 0 -menu $vm.devices
@@ -730,22 +734,34 @@ proc ediuVisibleObject { { all "" } { state "" } } {
 
     ##  Handle an "all on" or "all off" request
     if { $all == "-all" } {
-        foreach o [array names ::objects] {
-            set ::objects($o) [expr  { $state == "on" ? 1 : 0 } ]
+        foreach o [array names gui::objects] {
+            set gui::objects($o) [expr  { $state == "on" ? 1 : 0 } ]
+        }
+        foreach d [array names gui::devices] {
+            set gui::devices($d) [expr  { $state == "on" ? 1 : 0 } ]
+        }
+        foreach p [array names gui::pads] {
+            set gui::pads($p) [expr  { $state == "on" ? 1 : 0 } ]
         }
     }
 
     set cnvs $::widgets(graphicview)
 
     #  Set visibility of objects
-    foreach o [array names ::objects] {
+    foreach o [array names gui::objects] {
+        puts "$o"
         set id [$cnvs find withtag $o]
-        if { $::objects($o) == 0 } {
+        if { $gui::objects($o) == 0 } {
             puts "found by tag"
             puts $o
             puts $id
             foreach i $id {
                 $cnvs itemconfigure $i -state hidden
+            }
+        } elseif { $o == "padnumbers" } {
+            puts "Special case tag:  $o"
+            foreach i $id {
+                #$cnvs itemconfigure $i -state normal
             }
         } else {
             puts "nothing found by tag"
@@ -754,7 +770,6 @@ proc ediuVisibleObject { { all "" } { state "" } } {
             }
         }
     }
-
 }
 
 #
@@ -764,8 +779,14 @@ proc ediuVisibleDevice { { all "" } { state "" } } {
 
     ##  Handle an "all on" or "all off" request
     if { $all == "-all" } {
+        foreach o [array names gui::objects] {
+            set gui::objects($o) [expr  { $state == "on" ? 1 : 0 } ]
+        }
         foreach d [array names gui::devices] {
             set gui::devices($d) [expr  { $state == "on" ? 1 : 0 } ]
+        }
+        foreach p [array names gui::pads] {
+            set gui::pads($p) [expr  { $state == "on" ? 1 : 0 } ]
         }
     }
 
@@ -797,6 +818,12 @@ proc ediuVisiblePad { { all "" } { state "" } } {
 
     ##  Handle an "all on" or "all off" request
     if { $all == "-all" } {
+        foreach o [array names gui::objects] {
+            set gui::objects($o) [expr  { $state == "on" ? 1 : 0 } ]
+        }
+        foreach d [array names gui::devices] {
+            set gui::devices($d) [expr  { $state == "on" ? 1 : 0 } ]
+        }
         foreach p [array names gui::pads] {
             set gui::pads($p) [expr  { $state == "on" ? 1 : 0 } ]
         }
@@ -848,9 +875,11 @@ proc ediuGraphicViewBuild {} {
 
     if { $::ediu(MCMAIF) == 1 } {
         foreach i [dict keys $::mcmdie] {
-            set section [format "MCM_%s_%s" [string toupper $i] [dict get $::mcmdie $i]]
+            #set section [format "MCM_%s_%s" [string toupper $i] [dict get $::mcmdie $i]]
+            set section [format "MCM_%s_%s" [dict get $::mcmdie $i] $i]
             if { [lsearch -exact [aif::sections] $section] != -1 } {
                 array set part {
+                    REF ""
                     NAME ""
                     WIDTH 0.0
                     HEIGHT 0.0
@@ -866,6 +895,10 @@ proc ediuGraphicViewBuild {} {
                     }
                 }
 
+                #  Need the REF designator for later
+
+                set part(REF) $i
+
                 #  Split the CENTER keyword into X and Y components
                 #
                 #  The AIF specification and sample file have the X and Y separated by
@@ -879,12 +912,12 @@ proc ediuGraphicViewBuild {} {
                 }
 
                 #  Draw the Part Outline
-                ediuDrawPartOutline $part(NAME) $part(HEIGHT) $part(WIDTH) $part(X) $part(Y)
+                ediuDrawPartOutline $part(REF) $part(HEIGHT) $part(WIDTH) $part(X) $part(Y)
 
                 #  Add part to the View Devices menu and make it visible
-                set gui::devices($part(NAME)) 1
-                $vm.devices add checkbutton -label "$part(NAME)" -underline 0 \
-                    -variable gui::devices($part(NAME)) -onvalue 1 -offvalue 0 -command ediuVisibleDevice
+                set gui::devices($part(REF)) 1
+                $vm.devices add checkbutton -label "$part(REF)" -underline 0 \
+                    -variable gui::devices($part(REF)) -onvalue 1 -offvalue 0 -command ediuVisibleDevice
             }
         }
     }
@@ -966,9 +999,9 @@ proc ediuGraphicViewBuild {} {
         ##  Can the die pad be placed?
 
         if { $nlr(PADNAME) != "-" } {
+            set ref [lindex [split $nlr(PADNUM) "."] 0]
             puts "---------------------> Die Pad"
-            printArray nlr
-            ediuGraphicViewAddPin $nlr(PAD_X) $nlr(PAD_Y) $nlr(PADNUM) $nlr(NETNAME) $nlr(PADNAME) $line_no
+            ediuGraphicViewAddPin $nlr(PAD_X) $nlr(PAD_Y) $nlr(PADNUM) $nlr(NETNAME) $nlr(PADNAME) $line_no "diepads $ref"
         } else {
             Transcript $::ediu(MsgWarning) [format "Skipping die pad for net \"%s\" on line %d, no pad assignment." $netname, $line_no]
         }
@@ -977,8 +1010,7 @@ proc ediuGraphicViewBuild {} {
 
         if { $nlr(BALLNAME) != "-" } {
             puts "---------------------> Ball"
-            printArray nlr
-            ediuGraphicViewAddPin $nlr(BALL_X) $nlr(BALL_Y) $nlr(BALLNUM) $nlr(NETNAME) $nlr(BALLNAME) $line_no "white" "red" "balls"
+            ediuGraphicViewAddPin $nlr(BALL_X) $nlr(BALL_Y) $nlr(BALLNUM) $nlr(NETNAME) $nlr(BALLNAME) $line_no "balls" "white" "red"
         } else {
             Transcript $::ediu(MsgWarning) [format "Skipping ball pad for net \"%s\" on line %d, no ball assignment." $netname, $line_no]
         }
@@ -987,8 +1019,7 @@ proc ediuGraphicViewBuild {} {
 
         if { $nlr(FINNAME) != "-" } {
             puts "---------------------> Finger"
-            printArray nlr
-            ediuGraphicViewAddPin $nlr(FIN_X) $nlr(FIN_Y) $nlr(FINNUM) $nlr(NETNAME) $nlr(FINNAME) $line_no "purple" "white" "fingers"
+            ediuGraphicViewAddPin $nlr(FIN_X) $nlr(FIN_Y) $nlr(FINNUM) $nlr(NETNAME) $nlr(FINNAME) $line_no "fingers" "purple" "white"
         } else {
             Transcript $::ediu(MsgWarning) [format "Skipping finger for net \"%s\" on line %d, no finger assignment." $netname, $line_no]
         }
@@ -1029,85 +1060,72 @@ proc ediuGraphicViewBuild {} {
 #
 #  ediuGraphicViewAddPin
 #
-proc ediuGraphicViewAddPin { x y pin net pad line_no { color "yellow" } { outline "red" } { tags "diepads" } } {
+proc ediuGraphicViewAddPin { x y pin net pad line_no { tags "diepads" } { color "yellow" } { outline "red" } } {
     set cnvs $::widgets(graphicview)
+    set padtxt [expr {$pin == "-" ? $pad : $pin}]
+
     ##  Figure out the pad shape
-
-    ##  Scale X and Y
-    #puts "1> $x $y"
-    #set x [expr $x * $::ediu(ScaleFactor)]
-    #set y [expr $y * $::ediu(ScaleFactor)]
-    #puts "2> $x $y"
-
     set shape [pad::getShape $pad]
 
     switch -regexp -- $shape {
         "SQ" -
         "SQUARE" {
             set pw [pad::getWidth $pad]
-            #set pw [expr [pad::getWidth $pad] * $::ediu(ScaleFactor)]
             $cnvs create rectangle [expr {$x-($pw/2)}] [expr {$y-($pw/2)}] \
                 [expr {$x + ($pw/2)}] [expr {$y + ($pw/2)}] -outline $outline \
                 -fill $color -tags "$tags $pad" 
 
-            #  Only add text if a pin was supplied
-            if { $pin != "-" } {
-                $cnvs create text $x $y -text $pin -fill red \
-                    -anchor center -font [list arial] -justify center -tags "padnumbers"
-            }
+            #  Add text: Use pin number if it was supplied, otherwise pad name
+            $cnvs create text $x $y -text $padtxt -fill $outline \
+                #-anchor center -font [list arial] -justify center -tags "padnumbers"
+                -anchor center -font [list arial] -justify center -tags "padnumbers $tags $pad"
         }
         "CIRCLE" -
         "ROUND" {
             set pw [pad::getWidth $pad]
-            #set pw [expr [pad::getWidth $pad] * $::ediu(ScaleFactor)]
             $cnvs create oval [expr {$x-($pw/2)}] [expr {$y-($pw/2)}] \
                 [expr {$x + ($pw/2)}] [expr {$y + ($pw/2)}] -outline $outline \
                 -fill $color -tags "$tags $pad" 
 
-            #  Only add text if a pin was supplied
-            if { $pin != "-" } {
-                $cnvs create text $x $y -text $pin -fill red \
-                    -anchor center -font [list arial] -justify center -tags "padnumbers"
-            }
+            #  Add text: Use pin number if it was supplied, otherwise pad name
+            $cnvs create text $x $y -text $padtxt -fill $outline \
+                #-anchor center -font [list arial] -justify center -tags "padnumbers"
+                -anchor center -font [list arial] -justify center -tags "padnumbers $tags $pad"
         }
         "OBLONG" -
         "OBROUND" {
             puts [format "OBLONG PAD on line:  %d" $line_no]
             set pw [pad::getWidth $pad]
             set ph [pad::getHeight $pad]
-            puts "W:  $pw  H:  $ph"
-            #set pw [expr [pad::getWidth $pad] * $::ediu(ScaleFactor)]
-            #set ph [expr [pad::getHeight $pad] * $::ediu(ScaleFactor)]
-            #puts "W:  $pw  H:  $ph"
 
             set x1 [expr $x-($pw/2)]
             set y1 [expr $y-($ph/2)]
             set x2 [expr $x+($pw/2)]
             set y2 [expr $y+($ph/2)]
 
+            ##  An "oblong" pad is a rectangular pad with rounded ends.  The rounded
+            ##  end is circular based on the width of the pad.  Ideally we'd draw this
+            ##  as a single polygon but for now the pad is drawn with two round pads
+            ##  connected by a rectangular pad.
+            ##
+            ##  @todo:  Draw it as a single object which will also support rotation.
+
             puts [format "Pad extents:  X1:  %s  Y1:  %s  X2:  %s  Y2:  %s" $x1 $y1 $x2 $y2]
 
-            $cnvs create rectangle $x1 $y1 $x2 $y2 -outline $outline -fill $color -tags "$tags $pad"
-            #$cnvs create rectangle [expr $x-($pw/2)] [expr $y-($ph/2)] \
-            #    [expr $x+($pw/2)] [expr $y+($ph/2)] -outline red -fill $color -tags "$tags"
-            puts "Text Height:  $ph"
+            $cnvs create rectangle $x1 [expr {$y1+($pw/2)}] $x2 [expr {$y2-($pw/2)}] -outline $outline -fill $color -tags "$tags $pad"
+            $cnvs create arc [expr {$x-($pw/2)}] $y1 [expr {$x + ($pw/2)}] [expr {$y1+$pw}] \
+                 -start 0 -extent 180 -outline $outline -fill $color -tags "$tags $pad"
+            $cnvs create arc [expr {$x-($pw/2)}] [expr {$y2-$pw}] [expr {$x + ($pw/2)}] $y2 \
+                 -start 180 -extent 180 -outline $outline -fill $color -tags "$tags $pad"
 
-            #  Only add text if a pin was supplied
-            if { $pin != "-" } {
-                $cnvs create text $x $y -text $pin -fill red \
-                    -anchor center -font [list arial] -justify center -tags "padnumbers"
-            }
-            puts "1111"
+            #  Add text: Use pin number if it was supplied, otherwise pad name
+            $cnvs create text $x $y -text $padtxt -fill $outline \
+                -anchor center -font [list arial] -justify center -tags "padnumbers $tags $pad"
         }
         "RECT" -
         "RECTANGLE" {
-            puts "2222"
             set pw [pad::getWidth $pad]
             set ph [pad::getHeight $pad]
-            puts "W:  $pw  H:  $ph"
-            #set pw [expr [pad::getWidth $pad] * $::ediu(ScaleFactor)]
-            #set ph [expr [pad::getHeight $pad] * $::ediu(ScaleFactor)]
-            #puts "W:  $pw  H:  $ph"
 
             set x1 [expr $x-($pw/2)]
             set y1 [expr $y-($ph/2)]
@@ -1117,15 +1135,10 @@ proc ediuGraphicViewAddPin { x y pin net pad line_no { color "yellow" } { outlin
             puts [format "Pad extents:  X1:  %s  Y1:  %s  X2:  %s  Y2:  %s" $x1 $y1 $x2 $y2]
 
             $cnvs create rectangle $x1 $y1 $x2 $y2 -outline $outline -fill $color -tags "$tags $pad"
-            #$cnvs create rectangle [expr $x-($pw/2)] [expr $y-($ph/2)] \
-            #    [expr $x+($pw/2)] [expr $y+($ph/2)] -outline red -fill $color -tags "$tags"
-            #puts "Text Height:  $ph"
 
-            #  Only add text if a pin was supplied
-            if { $pin != "-" } {
-                $cnvs create text $x $y -text $pin -fill red \
-                    -anchor center -font [list arial] -justify center -tags "padnumbers"
-            }
+            #  Add text: Use pin number if it was supplied, otherwise pad name
+            $cnvs create text $x $y -text $padtxt -fill $outline \
+                -anchor center -font [list arial] -justify center -tags "padnumbers $tags $pad"
         }
         default {
             #error "Error parsing $filename (line: $line_no): $line"
@@ -1162,7 +1175,6 @@ proc ediuGraphicViewAddOutline {} {
 proc ediuDrawPartOutline { name height width x y { color "green" } { tags "partoutline" } } {
     puts [format "Part Outline input:  Name:  %s H:  %s  W:  %s  X:  %s  Y:  %s  C:  %s" $name $height $width $x $y $color]
 
-    puts "@@@@@@@@@@@@@@@@@@@ $tags"
     set x1 [expr $x-($width/2)]
     set x2 [expr $x+($width/2)]
     set y1 [expr $y-($height/2)]
@@ -2488,12 +2500,18 @@ proc ediuAIFMCMDieSection {} {
         ##  Populate the mcmdie dictionary
 
         foreach v $vars {
-            dict lappend ::mcmdie [string tolower $v] [aif::getvar $v MCM_DIE]
+            set refs [split [aif::getvar $v MCM_DIE] ","]
+
+            foreach ref $refs {
+                puts [string  trim $ref]
+                #dict lappend ::mcmdie [string trim $ref] [aif::getvar $v MCM_DIE]
+                dict lappend ::mcmdie [string trim $ref] $v
+            }
         }
 
         foreach i [dict keys $::mcmdie] {
-            Transcript $::ediu(MsgNote) [format "Part \"%s\" with reference designator:  %s" \
-                [string toupper $i] [lindex [dict get $::mcmdie $i] 0]]
+            Transcript $::ediu(MsgNote) [format "Device \"%s\" with reference designator:  %s" \
+                [lindex [dict get $::mcmdie $i] 0] $i]
         }
     } else {
         Transcript $::ediu(MsgError) [format "AIF file \"%s\" does not contain a MCM_DIE section." $::ediu(filename)]
@@ -3601,7 +3619,7 @@ proc zoomMark {c x y} {
     set zoomArea(x0) [$c canvasx $x]
     set zoomArea(y0) [$c canvasy $y]
     $c create rectangle $x $y $x $y -outline white -tag zoomArea
-    puts "zoomMark:  $x $y"
+    #puts "zoomMark:  $x $y"
 }
 
 #--------------------------------------------------------
@@ -3617,7 +3635,7 @@ proc zoomStroke {c x y} {
     set zoomArea(x1) [$c canvasx $x]
     set zoomArea(y1) [$c canvasy $y]
     $c coords zoomArea $zoomArea(x0) $zoomArea(y0) $zoomArea(x1) $zoomArea(y1)
-    puts "zoomStroke:  $x $y"
+    #puts "zoomStroke:  $x $y"
 }
 
 #--------------------------------------------------------
@@ -3680,7 +3698,7 @@ proc zoomArea {c x y} {
     #  Perform zoom operation
     #--------------------------------------------------------
     zoom $c $factor $xcenter $ycenter $winxlength $winylength
-    puts "zoomArea:  $x $y"
+    #puts "zoomArea:  $x $y"
 }
 
 
@@ -3828,5 +3846,6 @@ set ::ediu(mode) $::ediu(libraryMode)
 #catch { ediuAIFFileOpen "c:/users/mike/desktop/ImportAIF/data/Demo4.aif" } retString
 #catch { ediuAIFFileOpen "c:/users/mike/desktop/ImportAIF/data/MCMSampleC.aif" } retString
 #catch { ediuAIFFileOpen "c:/users/mike/desktop/ImportAIF/data/BGA_w2_Dies.aif" } retString
-#catch { ediuAIFFileOpen "c:/users/mike/desktop/ImportAIF/data/BGA_w2_Dies-2.aif" } retString
-ediuAIFFileOpen
+catch { ediuAIFFileOpen "c:/users/mike/desktop/ImportAIF/data/BGA_w2_Dies-2.aif" } retString
+#catch { ediuAIFFileOpen "c:/users/mike/desktop/ImportAIF/data/BGA_w2_Dies-3.aif" } retString
+#ediuAIFFileOpen
