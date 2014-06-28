@@ -742,6 +742,7 @@ proc ediuGraphicViewBuild {} {
     set rv 0
     set line_no 0
     set vm $::widgets(viewmenu)
+    $vm.devices add separator
 
     set cnvs $::widgets(graphicview)
     set txt $::widgets(netlistview)
@@ -867,8 +868,7 @@ proc ediuGraphicViewBuild {} {
             set nlr(ANGLE) [lindex $net 13]
         }
 
-
-        printArray nlr
+        #printArray nlr
 
         #  Check the netname and store it for later use
         if { [ regexp {^[[:alpha:][:alnum:]_]*\w} $netname ] == 0 } {
@@ -1208,6 +1208,7 @@ proc ediuGraphicViewZoom {scale} {
 #
 proc ediuAIFFileOpen { { f "" } } {
     ediuUpdateStatus $::ediu(busy)
+    ediuAIFInitialState
 
     ##  Set up the sections so they can be highlighted in the AIF source
 
@@ -1349,17 +1350,18 @@ proc ediuAIFFileOpen { { f "" } } {
 proc ediuAIFFileClose {} {
     ediuUpdateStatus $::ediu(busy)
     Transcript $::ediu(MsgNote) [format "AIF file \"%s\" closed." $::ediu(filename)]
-    set ::ediu(filename) $::ediu(Nothing)
-    set txt $::widgets(sourceview)
-    $txt configure -state normal
-    $txt delete 1.0 end
-    $txt configure -state disabled
-    set txt $::widgets(netlistview)
-    $txt configure -state normal
-    $txt delete 1.0 end
-    $txt configure -state disabled
-    set cnvs $::widgets(graphicview)
-    $cnvs delete all
+    #set ::ediu(filename) $::ediu(Nothing)
+    #set txt $::widgets(sourceview)
+    #$txt configure -state normal
+    #$txt delete 1.0 end
+    #$txt configure -state disabled
+    #set txt $::widgets(netlistview)
+    #$txt configure -state normal
+    #$txt delete 1.0 end
+    #$txt configure -state disabled
+    #set cnvs $::widgets(graphicview)
+    #$cnvs delete all
+    ediuAIFInitialState
     ediuUpdateStatus $::ediu(ready)
 }
 
@@ -1379,8 +1381,10 @@ proc ediuAIFInitialState {} {
     set cnvs $::widgets(graphicview)
     $cnvs delete all
 
+    ##  Clean up menus, remove dynamic content
     set vm $::widgets(viewmenu)
-    $vm.devices delete 0 end
+    $vm.devices delete 3 end
+    $vm.pads delete 3 end
 }
 
 
@@ -2526,6 +2530,7 @@ proc ediuAIFPadsSection {} {
 
     set rv 0
     set vm $::widgets(viewmenu)
+    $vm.pads add separator
 
     ##  Make sure we have a PADS section!
     if { [lsearch -exact $aif::sections PADS] != -1 } {
