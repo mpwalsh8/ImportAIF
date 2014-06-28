@@ -73,11 +73,16 @@
 #                 from example found at:  http://wiki.tcl.tk/4844
 #    06/02/2014 - Fixed scroll bars on all ctext widgets and canvas.
 #    06/20/2014 - Added balls and bond fingers from AIF netlist.
+#    06/24/2014 - Add support for oblong shaped pads.
+#    06/25/2014 - Separated pad and refdes text from the object list
+#                 so they couldbe managed individually.  Add support
+#                 rotation of rectangular and oblong pads.
 #
 #
 #    Useful links:
 #      Drawing rounded polygons:  http://wiki.tcl.tk/8590
 #      Drawing rounded rectangles:  http://wiki.tcl.tk/1416
+#      Drawing regular polygons:  http://wiki.tcl.tk/8398
 #
 
 package require tile
@@ -86,6 +91,7 @@ package require ctext
 package require csv
 package require inifile
 package require Tk 8.4
+package require math::bigfloat
 
 ##  Load the Mentor DLLs.
 ::tcom::import "$env(SDD_HOME)/wg/$env(SDD_PLATFORM)/bin/ExpeditionPCB.exe"
@@ -430,40 +436,47 @@ proc BuildGUI {} {
     $vm add cascade -label "Objects" \
          -underline 1 -menu $vm.objects
     menu $vm.objects -tearoff 0
-    $vm.objects add cascade -label "All On" -underline 5 -command { ediuVisibleObject -all on }
-    $vm.objects add cascade -label "All Off" -underline 5 -command { ediuVisibleObject -all off }
+    $vm.objects add cascade -label "All On" -underline 5 -command { gui::VisibleObject -all on }
+    $vm.objects add cascade -label "All Off" -underline 5 -command { gui::VisibleObject -all off }
     $vm.objects add separator
     $vm.objects add checkbutton -label "Pads" -underline 0 \
-        -variable gui::objects(diepads) -onvalue 1 -offvalue 0 -command ediuVisibleObject
+        -variable gui::objects(diepads) -onvalue 1 -offvalue 0 -command gui::VisibleObject
     $vm.objects add checkbutton -label "Balls" -underline 0 \
-        -variable gui::objects(balls) -onvalue 1 -offvalue 0 -command ediuVisibleObject
+        -variable gui::objects(balls) -onvalue 1 -offvalue 0 -command gui::VisibleObject
     $vm.objects add checkbutton -label "Fingers" -underline 0 \
-        -variable gui::objects(fingers) -onvalue 1 -offvalue 0 -command ediuVisibleObject
-    $vm.objects add checkbutton -label "Pad Numbers" -underline 0 \
-        -variable gui::objects(padnumbers) -onvalue 1 -offvalue 0 -command ediuVisibleObject
+        -variable gui::objects(fingers) -onvalue 1 -offvalue 0 -command gui::VisibleObject
     $vm.objects add checkbutton -label "Die Outline" -underline 0 \
-        -variable gui::objects(dieoutline) -onvalue 1 -offvalue 0 -command ediuVisibleObject
+        -variable gui::objects(dieoutline) -onvalue 1 -offvalue 0 -command gui::VisibleObject
     $vm.objects add checkbutton -label "BGA Outline" -underline 0 \
-        -variable gui::objects(bgaoutline) -onvalue 1 -offvalue 0 -command ediuVisibleObject
+        -variable gui::objects(bgaoutline) -onvalue 1 -offvalue 0 -command gui::VisibleObject
     $vm.objects add checkbutton -label "Part Outlines" -underline 5 \
-        -variable gui::objects(partoutline) -onvalue 1 -offvalue 0 -command ediuVisibleObject
-    $vm.objects add checkbutton -label "Ref Designators" -underline 5 \
-        -variable gui::objects(refdes) -onvalue 1 -offvalue 0 -command ediuVisibleObject
+        -variable gui::objects(partoutline) -onvalue 1 -offvalue 0 -command gui::VisibleObject
     $vm.objects add checkbutton -label "Rings" -underline 0 \
-        -variable gui::objects(rings) -onvalue 1 -offvalue 0 -command ediuVisibleObject
+        -variable gui::objects(rings) -onvalue 1 -offvalue 0 -command gui::VisibleObject
+
+    $vm add cascade -label "Text" \
+         -underline 1 -menu $vm.text
+    menu $vm.text -tearoff 0
+    $vm.text add cascade -label "All On" -underline 5 -command { gui::VisibleObject -all on }
+    $vm.text add cascade -label "All Off" -underline 5 -command { gui::VisibleObject -all off }
+    $vm.text add separator
+    $vm.text add checkbutton -label "Pad Numbers" -underline 0 \
+        -variable gui::text(padnumbers) -onvalue 1 -offvalue 0 -command gui::VisibleText
+    $vm.text add checkbutton -label "Ref Designators" -underline 5 \
+        -variable gui::text(refdes) -onvalue 1 -offvalue 0 -command gui::VisibleText
 
     $vm add cascade -label "Devices" \
          -underline 0 -menu $vm.devices
     menu $vm.devices -tearoff 0
-    $vm.devices add cascade -label "All On" -underline 5 -command { ediuVisibleDevice -all on }
-    $vm.devices add cascade -label "All Off" -underline 5 -command { ediuVisibleDevice -all off }
+    $vm.devices add cascade -label "All On" -underline 5 -command { gui::VisibleDevice -all on }
+    $vm.devices add cascade -label "All Off" -underline 5 -command { gui::VisibleDevice -all off }
     $vm.devices add separator
 
     $vm add cascade -label "Pads" \
          -underline 0 -menu $vm.pads
     menu $vm.pads -tearoff 0
-    $vm.pads add cascade -label "All On" -underline 5 -command { ediuVisiblePad -all on }
-    $vm.pads add cascade -label "All Off" -underline 5 -command { ediuVisiblePad -all off }
+    $vm.pads add cascade -label "All On" -underline 5 -command { gui::VisiblePad -all on }
+    $vm.pads add cascade -label "All Off" -underline 5 -command { gui::VisiblePad -all off }
     $vm.pads add separator
 
     # Define the Help menu
@@ -723,134 +736,6 @@ proc ediuChooseCellPartitionDialog {} {
 }
 
 #
-#  ediuVisibleObject
-#
-proc ediuVisibleObject { { all "" } { state "" } } {
-
-    global argc
-    puts "ARGC:  $argc"
-    puts "All:  $all"
-    puts "State:  $state"
-
-    ##  Handle an "all on" or "all off" request
-    if { $all == "-all" } {
-        foreach o [array names gui::objects] {
-            set gui::objects($o) [expr  { $state == "on" ? 1 : 0 } ]
-        }
-        foreach d [array names gui::devices] {
-            set gui::devices($d) [expr  { $state == "on" ? 1 : 0 } ]
-        }
-        foreach p [array names gui::pads] {
-            set gui::pads($p) [expr  { $state == "on" ? 1 : 0 } ]
-        }
-    }
-
-    set cnvs $::widgets(graphicview)
-
-    #  Set visibility of objects
-    foreach o [array names gui::objects] {
-        puts "$o"
-        set id [$cnvs find withtag $o]
-        if { $gui::objects($o) == 0 } {
-            puts "found by tag"
-            puts $o
-            puts $id
-            foreach i $id {
-                $cnvs itemconfigure $i -state hidden
-            }
-        } elseif { $o == "padnumbers" } {
-            puts "Special case tag:  $o"
-            foreach i $id {
-                #$cnvs itemconfigure $i -state normal
-            }
-        } else {
-            puts "nothing found by tag"
-            foreach i $id {
-                $cnvs itemconfigure $i -state normal
-            }
-        }
-    }
-}
-
-#
-#  ediuVisibleDevice
-#
-proc ediuVisibleDevice { { all "" } { state "" } } {
-
-    ##  Handle an "all on" or "all off" request
-    if { $all == "-all" } {
-        foreach o [array names gui::objects] {
-            set gui::objects($o) [expr  { $state == "on" ? 1 : 0 } ]
-        }
-        foreach d [array names gui::devices] {
-            set gui::devices($d) [expr  { $state == "on" ? 1 : 0 } ]
-        }
-        foreach p [array names gui::pads] {
-            set gui::pads($p) [expr  { $state == "on" ? 1 : 0 } ]
-        }
-    }
-
-    set cnvs $::widgets(graphicview)
-
-    # Set visibility of devices
-    foreach d [array names gui::devices] {
-        set id [$cnvs find withtag $d]
-        if { $gui::devices($d) == 0 } {
-            #puts "found by tag"
-            #puts $d
-            #puts $id
-            foreach i $id {
-                $cnvs itemconfigure $i -state hidden
-            }
-        } else {
-            #puts "nothing found by tag"
-            foreach i $id {
-                $cnvs itemconfigure $i -state normal
-            }
-        }
-    }
-}
-
-#
-#  ediuVisiblePad
-#
-proc ediuVisiblePad { { all "" } { state "" } } {
-
-    ##  Handle an "all on" or "all off" request
-    if { $all == "-all" } {
-        foreach o [array names gui::objects] {
-            set gui::objects($o) [expr  { $state == "on" ? 1 : 0 } ]
-        }
-        foreach d [array names gui::devices] {
-            set gui::devices($d) [expr  { $state == "on" ? 1 : 0 } ]
-        }
-        foreach p [array names gui::pads] {
-            set gui::pads($p) [expr  { $state == "on" ? 1 : 0 } ]
-        }
-    }
-
-    set cnvs $::widgets(graphicview)
-
-    # Set visibility of devices
-    foreach p [array names gui::pads] {
-        set id [$cnvs find withtag $p]
-        if { $gui::pads($p) == 0 } {
-            #puts "found by tag"
-            #puts $d
-            #puts $id
-            foreach i $id {
-                $cnvs itemconfigure $i -state hidden
-            }
-        } else {
-            #puts "nothing found by tag"
-            foreach i $id {
-                $cnvs itemconfigure $i -state normal
-            }
-        }
-    }
-}
-
-#
 #  ediuGraphicViewBuild
 #
 proc ediuGraphicViewBuild {} {
@@ -866,7 +751,7 @@ proc ediuGraphicViewBuild {} {
     ##  Add the outline
     #ediuGraphicViewAddOutline
 
-    ##  Draw the BGA outline (if it ecists)
+    ##  Draw the BGA outline (if it exists)
     if { $::ediu(BGA) == 1 } {
         ediuDrawBGAOutline
     }
@@ -917,7 +802,7 @@ proc ediuGraphicViewBuild {} {
                 #  Add part to the View Devices menu and make it visible
                 set gui::devices($part(REF)) 1
                 $vm.devices add checkbutton -label "$part(REF)" -underline 0 \
-                    -variable gui::devices($part(REF)) -onvalue 1 -offvalue 0 -command ediuVisibleDevice
+                    -variable gui::devices($part(REF)) -onvalue 1 -offvalue 0 -command gui::VisibleDevice
             }
         }
     }
@@ -1019,7 +904,7 @@ proc ediuGraphicViewBuild {} {
 
         if { $nlr(FINNAME) != "-" } {
             puts "---------------------> Finger"
-            ediuGraphicViewAddPin $nlr(FIN_X) $nlr(FIN_Y) $nlr(FINNUM) $nlr(NETNAME) $nlr(FINNAME) $line_no "fingers" "purple" "white"
+            ediuGraphicViewAddPin $nlr(FIN_X) $nlr(FIN_Y) $nlr(FINNUM) $nlr(NETNAME) $nlr(FINNAME) $line_no "fingers" "purple" "white" $nlr(ANGLE)
         } else {
             Transcript $::ediu(MsgWarning) [format "Skipping finger for net \"%s\" on line %d, no finger assignment." $netname, $line_no]
         }
@@ -1060,7 +945,7 @@ proc ediuGraphicViewBuild {} {
 #
 #  ediuGraphicViewAddPin
 #
-proc ediuGraphicViewAddPin { x y pin net pad line_no { tags "diepads" } { color "yellow" } { outline "red" } } {
+proc ediuGraphicViewAddPin { x y pin net pad line_no { tags "diepads" } { color "yellow" } { outline "red" } { angle 0 } } {
     set cnvs $::widgets(graphicview)
     set padtxt [expr {$pin == "-" ? $pad : $pin}]
 
@@ -1077,7 +962,6 @@ proc ediuGraphicViewAddPin { x y pin net pad line_no { tags "diepads" } { color 
 
             #  Add text: Use pin number if it was supplied, otherwise pad name
             $cnvs create text $x $y -text $padtxt -fill $outline \
-                #-anchor center -font [list arial] -justify center -tags "padnumbers"
                 -anchor center -font [list arial] -justify center -tags "padnumbers $tags $pad"
         }
         "CIRCLE" -
@@ -1089,7 +973,6 @@ proc ediuGraphicViewAddPin { x y pin net pad line_no { tags "diepads" } { color 
 
             #  Add text: Use pin number if it was supplied, otherwise pad name
             $cnvs create text $x $y -text $padtxt -fill $outline \
-                #-anchor center -font [list arial] -justify center -tags "padnumbers"
                 -anchor center -font [list arial] -justify center -tags "padnumbers $tags $pad"
         }
         "OBLONG" -
@@ -1098,10 +981,14 @@ proc ediuGraphicViewAddPin { x y pin net pad line_no { tags "diepads" } { color 
             set pw [pad::getWidth $pad]
             set ph [pad::getHeight $pad]
 
-            set x1 [expr $x-($pw/2)]
-            set y1 [expr $y-($ph/2)]
-            set x2 [expr $x+($pw/2)]
-            set y2 [expr $y+($ph/2)]
+            set x1 [expr $x-($pw/2.0)]
+            set y1 [expr $y-($ph/2.0)]
+            set x2 [expr $x+($pw/2.0)]
+            set y2 [expr $y+($ph/2.0)]
+            #set xx1 $x1
+            #set yy1 $y1
+            #set xx2 $x2
+            #set yy2 $y2
 
             ##  An "oblong" pad is a rectangular pad with rounded ends.  The rounded
             ##  end is circular based on the width of the pad.  Ideally we'd draw this
@@ -1110,17 +997,57 @@ proc ediuGraphicViewAddPin { x y pin net pad line_no { tags "diepads" } { color 
             ##
             ##  @todo:  Draw it as a single object which will also support rotation.
 
-            puts [format "Pad extents:  X1:  %s  Y1:  %s  X2:  %s  Y2:  %s" $x1 $y1 $x2 $y2]
+            #puts [format "Pad extents:  X1:  %s  Y1:  %s  X2:  %s  Y2:  %s" $x1 $y1 $x2 $y2]
 
-            $cnvs create rectangle $x1 [expr {$y1+($pw/2)}] $x2 [expr {$y2-($pw/2)}] -outline $outline -fill $color -tags "$tags $pad"
-            $cnvs create arc [expr {$x-($pw/2)}] $y1 [expr {$x + ($pw/2)}] [expr {$y1+$pw}] \
-                 -start 0 -extent 180 -outline $outline -fill $color -tags "$tags $pad"
-            $cnvs create arc [expr {$x-($pw/2)}] [expr {$y2-$pw}] [expr {$x + ($pw/2)}] $y2 \
-                 -start 180 -extent 180 -outline $outline -fill $color -tags "$tags $pad"
+            #$cnvs create poly [list $xx1 $yy1  $xx1 $yy2 $xx2 $yy2 $xx2 $yy1] -outline $outline -fill "pink" -tags "dummy"
+            #set id [$cnvs create poly [list $x1 $y1  $x1 $y2 $x2 $y2 $x2 $y1] -outline $outline -fill $color -tags "$tags $pad"]
+
+            #  Compose the pad - it is four pieces:  Arc, Segment, Arc, Segment
+
+            set padxy {}
+
+            #  Top arc
+            set arc [gui::ArcPath [expr {$x-($pw/2.0)}] $y1 [expr {$x + ($pw/2.0)}] [expr {$y1+$pw}] -start 180 -extent 180 -sides 20]
+            foreach e $arc { lappend padxy $e }
+
+            #  Bottom Arc
+            set arc [gui::ArcPath [expr {$x-($pw/2.0)}] [expr {$y2-$pw}] [expr {$x + ($pw/2.0)}] $y2 -start 0 -extent 180 -sides 20]
+            foreach e $arc { lappend padxy $e }
+
+            set id [$cnvs create poly $padxy -outline $outline -fill $color -tags "$tags $pad"]
 
             #  Add text: Use pin number if it was supplied, otherwise pad name
             $cnvs create text $x $y -text $padtxt -fill $outline \
                 -anchor center -font [list arial] -justify center -tags "padnumbers $tags $pad"
+
+            #  Handle any angle ajustment
+
+            if { $angle != 0 } {
+                set Ox $x
+                set Oy $y
+
+                set radians [expr {$angle * atan(1) * 4 / 180.0}] ;# Radians
+                set xy {}
+                foreach {x y} [$cnvs coords $id] {
+                    # rotates vector (Ox,Oy)->(x,y) by angle clockwise
+
+                    # Shift the object to the origin
+                    set x [expr {$x - $Ox}]
+                    set y [expr {$y - $Oy}]
+
+                    #  Rotate the object
+                    set xx [expr {$x * cos($radians) - $y * sin($radians)}]
+                    set yy [expr {$x * sin($radians) + $y * cos($radians)}]
+
+                    # Shift the object back to the original XY location
+                    set xx [expr {$xx + $Ox}]
+                    set yy [expr {$yy + $Oy}]
+
+                    lappend xy $xx $yy
+                }
+                $cnvs coords $id $xy
+            }
+            
         }
         "RECT" -
         "RECTANGLE" {
@@ -1229,6 +1156,21 @@ proc ediuDrawBGAOutline { { color "white" } } {
     $cnvs create polygon $points -outline $color -tags "$::bga(name) bgaoutline"
     $cnvs create text $x2 $y2 -text $::bga(name) -fill $color \
         -anchor sw -font [list arial] -justify right -tags "$::bga(name) refdes"
+
+    $cnvs create text $x1 $y1 -text [format "X: %.2f  Y: %.2f" $x1 $y1] -fill $color \
+        -anchor sw -font [list arial] -justify left -tags "$::bga(name) refdes"
+    $cnvs create text $x1 $y2 -text [format "X: %.2f  Y: %.2f" $x1 $y2] -fill $color \
+        -anchor nw -font [list arial] -justify left -tags "$::bga(name) refdes"
+    $cnvs create text $x2 $y1 -text [format "X: %.2f  Y: %.2f" $x2 $y1] -fill $color \
+        -anchor se -font [list arial] -justify left -tags "$::bga(name) refdes"
+    $cnvs create text $x2 $y2 -text [format "X: %.2f  Y: %.2f" $x2 $y2] -fill $color \
+        -anchor ne -font [list arial] -justify left -tags "$::bga(name) refdes"
+
+    $cnvs create line [expr $x1 - $::bga(width) / 4] 0 [expr $x2 +$::bga(width) / 4] 0 \
+        -fill $color -dash . -tags "$::bga(name) bgaoutline"
+    $cnvs create line 0 [expr $y1 - $::bga(height) / 4] 0 [expr $y2 +$::bga(height) / 4] \
+        -fill $color -dash . -tags "$::bga(name) bgaoutline"
+
     $cnvs configure -scrollregion [$cnvs bbox all]
 }
 
@@ -2602,7 +2544,7 @@ proc ediuAIFPadsSection {} {
             #  Add pad to the View Devices menu and make it visible
             set gui::pads($v) 1
             $vm.pads add checkbutton -label "$v" -underline 0 \
-                -variable gui::pads($v) -onvalue 1 -offvalue 0 -command ediuVisiblePad
+                -variable gui::pads($v) -onvalue 1 -offvalue 0 -command gui::VisiblePad
         }
 
         foreach i [dict keys $::pads] {
@@ -3429,7 +3371,254 @@ namespace eval gui {
     variable objects
     variable devices
     variable pads
+    variable text
 }
+
+#
+#  gui::VisibleObject
+#
+proc gui::VisibleObject { { all "" } { state "" } } {
+
+    global argc
+    puts "ARGC:  $argc"
+    puts "All:  $all"
+    puts "State:  $state"
+
+    ##  Handle an "all on" or "all off" request
+    if { $all == "-all" } {
+        gui::VisibleAll $state
+    }
+
+    set cnvs $::widgets(graphicview)
+
+    #  Set visibility of objects
+    foreach o [array names gui::objects] {
+        puts "$o"
+        set id [$cnvs find withtag $o]
+        if { $gui::objects($o) == 0 } {
+            #puts "found by tag"
+            #puts $o
+            #puts $id
+            foreach i $id {
+                $cnvs itemconfigure $i -state hidden
+            }
+        } else {
+            #puts "nothing found by tag"
+            foreach i $id {
+                $cnvs itemconfigure $i -state normal
+            }
+        }
+    }
+}
+
+#
+#  gui::VisibleDevice
+#
+proc gui::VisibleDevice { { all "" } { state "" } } {
+
+    ##  Handle an "all on" or "all off" request
+    if { $all == "-all" } {
+        gui::VisibleAll $state
+    }
+
+    set cnvs $::widgets(graphicview)
+
+    # Set visibility of devices
+    foreach d [array names gui::devices] {
+        set id [$cnvs find withtag $d]
+        if { $gui::devices($d) == 0 } {
+            #puts "found by tag"
+            #puts $d
+            #puts $id
+            foreach i $id {
+                $cnvs itemconfigure $i -state hidden
+            }
+        } else {
+            #puts "nothing found by tag"
+            foreach i $id {
+                $cnvs itemconfigure $i -state normal
+            }
+        }
+    }
+}
+
+#
+#  gui::VisiblePad
+#
+proc gui::VisiblePad { { all "" } { state "" } } {
+
+    ##  Handle an "all on" or "all off" request
+    if { $all == "-all" } {
+        gui::VisibleAll $state
+    }
+
+    set cnvs $::widgets(graphicview)
+
+    # Set visibility of devices
+    foreach p [array names gui::pads] {
+        set id [$cnvs find withtag $p]
+        if { $gui::pads($p) == 0 } {
+            #puts "found by tag"
+            #puts $p
+            #puts $id
+            foreach i $id {
+                $cnvs itemconfigure $i -state hidden
+            }
+        } else {
+            #puts "nothing found by tag"
+            foreach i $id {
+                $cnvs itemconfigure $i -state normal
+            }
+        }
+    }
+}
+
+#
+#  gui::VisibleText
+#
+proc gui::VisibleText { { all "" } { state "" } } {
+
+    ##  Handle an "all on" or "all off" request
+    if { $all == "-all" } {
+        gui::VisibleAll $state
+    }
+
+    set cnvs $::widgets(graphicview)
+
+    # Set visibility of devices
+    foreach t [array names gui::text] {
+        set id [$cnvs find withtag $t]
+        if { $gui::text($t) == 0 } {
+            #puts "found by tag"
+            #puts $t
+            #puts $id
+            foreach i $id {
+                $cnvs itemconfigure $i -state hidden
+            }
+        } else {
+            #puts "nothing found by tag"
+            foreach i $id {
+                $cnvs itemconfigure $i -state normal
+            }
+        }
+    }
+}
+
+#
+#  gui::VisibleAll
+#
+proc gui::VisibleAll { { state "" } } {
+
+    ##  Handle the "all on" or "all off" request
+
+    #  Objects
+    foreach o [array names gui::objects] {
+        set gui::objects($o) [expr  { $state == "on" ? 1 : 0 } ]
+    }
+
+    #  Devices
+    foreach d [array names gui::devices] {
+        set gui::devices($d) [expr  { $state == "on" ? 1 : 0 } ]
+    }
+
+    #  Pads
+    foreach p [array names gui::pads] {
+        set gui::pads($p) [expr  { $state == "on" ? 1 : 0 } ]
+    }
+
+    #  Text
+    foreach t [array names gui::text] {
+        set gui::text($t) [expr  { $state == "on" ? 1 : 0 } ]
+    }
+}
+
+#
+#  gui::RotateXY
+#
+#  From Ian Gabbitas ...
+#
+#    x2 = x * cos(radA) - y * sin(radA)
+#    y2 = x * sin(radA) + y * cos(radA)
+#  
+proc gui::RotateXY { x y { angle 0 } } {
+    #set radians [expr $angle*(3.14159265/180.0)]
+    set radians [expr {$angle * atan(1) * 4 / 180.0}] ;# Radians
+    puts "R:  $radians"
+    puts "A:  $angle"
+    set x2 [expr { $x * cos($radians) - $y * sin($radians) }]
+    set y2 [expr { $x * sin($radians) + $y * cos($radians) }]
+    #puts "====================================="
+    #puts ""
+    #puts [format "Rotation:  X1:  %s  Y1:  %s  X2:  %s  Y2:  %s  A:  %s" $x $y $x2 $y2 $angle]
+    #puts ""
+    #puts "====================================="
+    return [list $x2 $y2]
+}
+
+#
+#  gui::ArcPath
+#
+#  @see http://wiki.tcl.tk/8612
+#
+#  
+proc gui::ArcPath {x0 y0 x1 y1 args} {
+    
+    array set V {-sides 0 -start 90 -extent 360} ;# Default values
+    foreach {a value} $args {
+        if {! [info exists V($a)]} {error "unknown option $a"}
+        if {$value == {}} {error "value of \"$a\" missing"}
+        set V($a) $value
+    }
+    if {$V(-extent) == 0} {return {}}
+    
+    set xm [expr {($x0+$x1)/2.}]
+    set ym [expr {($y0+$y1)/2.}]
+    set rx [expr {$xm-$x0}]
+    set ry [expr {$ym-$y0}]
+ 
+    set n $V(-sides)
+    if {$n == 0} {                              ;# 0 sides => circle
+        set n [expr {round(($rx+$ry)*0.5)}]
+        if {$n < 2} {set n 4}
+    }
+    
+    set dir [expr {$V(-extent) < 0 ? -1 : 1}]   ;# Extent can be negative
+    if {abs($V(-extent)) > 360} {
+        set V(-extent) [expr {$dir * (abs($V(-extent)) % 360)}]
+    }
+    set step [expr {$dir * 360.0 / $n}]
+    set numsteps [expr {1 + double($V(-extent)) / $step}]
+                              
+    set xy {}
+    set DEG2RAD [expr {4*atan(1)*2/360}]
+                              
+    for {set i 0} {$i < int($numsteps)} {incr i} {
+        set rad [expr {($V(-start) - $i * $step) * $DEG2RAD}]
+        set x [expr {$rx*cos($rad)}]
+        set y [expr {$ry*sin($rad)}]
+        lappend xy [expr {$xm + $x}] [expr {$ym - $y}]
+    }
+ 
+    # Figure out where last segment should end
+    if {$numsteps != int($numsteps)} {
+        # Vecter V1 is last drawn vertext (x,y) from above
+        # Vector V2 is the edge of the polygon
+        set rad2 [expr {($V(-start) - int($numsteps) * $step) * $DEG2RAD}]
+        set x2 [expr {$rx*cos($rad2) - $x}]
+        set y2 [expr {$ry*sin($rad2) - $y}]
+ 
+        # Vector V3 is unit vector in direction we end at
+        set rad3 [expr {($V(-start) - $V(-extent)) * $DEG2RAD}]
+        set x3 [expr {cos($rad3)}]
+        set y3 [expr {sin($rad3)}]
+ 
+        # Find where V3 crosses V1+V2 => find j s.t.  V1 + kV2 = jV3
+        set j [expr {($x*$y2 - $x2*$y) / ($x3*$y2 - $x2*$y3)}]
+ 
+        lappend xy [expr {$xm + $j * $x3}] [expr {$ym - $j * $y3}]
+    }
+    return $xy
+ }
 
 
 ##
