@@ -77,6 +77,7 @@
 #    06/25/2014 - Separated pad and refdes text from the object list
 #                 so they couldbe managed individually.  Add support
 #                 rotation of rectangular and oblong pads.
+#    06/26/2014 - Oblong pads are displayed correctly and support rotation.
 #
 #
 #    Useful links:
@@ -91,7 +92,7 @@ package require ctext
 package require csv
 package require inifile
 package require Tk 8.4
-package require math::bigfloat
+#package require math::bigfloat
 
 ##  Load the Mentor DLLs.
 ::tcom::import "$env(SDD_HOME)/wg/$env(SDD_PLATFORM)/bin/ExpeditionPCB.exe"
@@ -853,7 +854,7 @@ proc ediuGraphicViewBuild {} {
 
         #  A simple netlist with ball assignment has 6 fields
         if { [llength [split $net]] > 5 } {
-            set nlr(BALLNUM [lindex $net 5]
+            set nlr(BALLNUM) [lindex $net 5]
         }
 
         #  A complex netlist with ball and rings assignments has 14 fields
@@ -948,6 +949,7 @@ proc ediuGraphicViewBuild {} {
 proc ediuGraphicViewAddPin { x y pin net pad line_no { tags "diepads" } { color "yellow" } { outline "red" } { angle 0 } } {
     set cnvs $::widgets(graphicview)
     set padtxt [expr {$pin == "-" ? $pad : $pin}]
+    puts [format "Pad Text:  %s (Pin:  %s  Pad:  %s" $padtxt $pin $pad]
 
     ##  Figure out the pad shape
     set shape [pad::getShape $pad]
@@ -956,8 +958,8 @@ proc ediuGraphicViewAddPin { x y pin net pad line_no { tags "diepads" } { color 
         "SQ" -
         "SQUARE" {
             set pw [pad::getWidth $pad]
-            $cnvs create rectangle [expr {$x-($pw/2)}] [expr {$y-($pw/2)}] \
-                [expr {$x + ($pw/2)}] [expr {$y + ($pw/2)}] -outline $outline \
+            $cnvs create rectangle [expr {$x-($pw/2.0)}] [expr {$y-($pw/2.0)}] \
+                [expr {$x + ($pw/2.0)}] [expr {$y + ($pw/2.0)}] -outline $outline \
                 -fill $color -tags "$tags $pad" 
 
             #  Add text: Use pin number if it was supplied, otherwise pad name
@@ -967,8 +969,8 @@ proc ediuGraphicViewAddPin { x y pin net pad line_no { tags "diepads" } { color 
         "CIRCLE" -
         "ROUND" {
             set pw [pad::getWidth $pad]
-            $cnvs create oval [expr {$x-($pw/2)}] [expr {$y-($pw/2)}] \
-                [expr {$x + ($pw/2)}] [expr {$y + ($pw/2)}] -outline $outline \
+            $cnvs create oval [expr {$x-($pw/2.0)}] [expr {$y-($pw/2.0)}] \
+                [expr {$x + ($pw/2.0)}] [expr {$y + ($pw/2.0)}] -outline $outline \
                 -fill $color -tags "$tags $pad" 
 
             #  Add text: Use pin number if it was supplied, otherwise pad name
@@ -1054,10 +1056,10 @@ proc ediuGraphicViewAddPin { x y pin net pad line_no { tags "diepads" } { color 
             set pw [pad::getWidth $pad]
             set ph [pad::getHeight $pad]
 
-            set x1 [expr $x-($pw/2)]
-            set y1 [expr $y-($ph/2)]
-            set x2 [expr $x+($pw/2)]
-            set y2 [expr $y+($ph/2)]
+            set x1 [expr $x-($pw/2.0)]
+            set y1 [expr $y-($ph/2.0)]
+            set x2 [expr $x+($pw/2.0)]
+            set y2 [expr $y+($ph/2.0)]
 
             puts [format "Pad extents:  X1:  %s  Y1:  %s  X2:  %s  Y2:  %s" $x1 $y1 $x2 $y2]
 
@@ -1102,10 +1104,10 @@ proc ediuGraphicViewAddOutline {} {
 proc ediuDrawPartOutline { name height width x y { color "green" } { tags "partoutline" } } {
     puts [format "Part Outline input:  Name:  %s H:  %s  W:  %s  X:  %s  Y:  %s  C:  %s" $name $height $width $x $y $color]
 
-    set x1 [expr $x-($width/2)]
-    set x2 [expr $x+($width/2)]
-    set y1 [expr $y-($height/2)]
-    set y2 [expr $y+($height/2)]
+    set x1 [expr $x-($width/2.0)]
+    set x2 [expr $x+($width/2.0)]
+    set y1 [expr $y-($height/2.0)]
+    set y2 [expr $y+($height/2.0)]
 
     set cnvs $::widgets(graphicview)
     $cnvs create rectangle $x1 $y1 $x2 $y2 -outline $color -tags "$name $tags"
@@ -3576,8 +3578,8 @@ proc gui::ArcPath {x0 y0 x1 y1 args} {
     }
     if {$V(-extent) == 0} {return {}}
     
-    set xm [expr {($x0+$x1)/2.}]
-    set ym [expr {($y0+$y1)/2.}]
+    set xm [expr {($x0+$x1)/2.0}]
+    set ym [expr {($y0+$y1)/2.0}]
     set rx [expr {$xm-$x0}]
     set ry [expr {$ym-$y0}]
  
