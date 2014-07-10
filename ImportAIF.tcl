@@ -1102,7 +1102,7 @@ proc ediuGraphicViewAddOutline {} {
 #  ediuDrawPartOutline
 #
 proc ediuDrawPartOutline { name height width x y { color "green" } { tags "partoutline" } } {
-    puts [format "Part Outline input:  Name:  %s H:  %s  W:  %s  X:  %s  Y:  %s  C:  %s" $name $height $width $x $y $color]
+    #puts [format "Part Outline input:  Name:  %s H:  %s  W:  %s  X:  %s  Y:  %s  C:  %s" $name $height $width $x $y $color]
 
     set x1 [expr $x-($width/2.0)]
     set x2 [expr $x+($width/2.0)]
@@ -1114,7 +1114,7 @@ proc ediuDrawPartOutline { name height width x y { color "green" } { tags "parto
     $cnvs create text $x2 $y2 -text $name -fill $color \
         -anchor sw -font [list arial] -justify right -tags "$name refdes"
 
-    puts [format "Part Outline extents:  X1:  %s  Y1:  %s  X2:  %s  Y2:  %s" $x1 $y1 $x2 $y2]
+    #puts [format "Part Outline extents:  X1:  %s  Y1:  %s  X2:  %s  Y2:  %s" $x1 $y1 $x2 $y2]
 
     $cnvs configure -scrollregion [$cnvs bbox all]
 }
@@ -1129,7 +1129,7 @@ proc ediuDrawBGAOutline { { color "white" } } {
     set x2 [expr +($::bga(width) / 2)]
     set y1 [expr -($::bga(height) / 2)]
     set y2 [expr +($::bga(height) / 2)]
-    puts [format "BGA Outline extents:  X1:  %s  Y1:  %s  X2:  %s  Y2:  %s" $x1 $y1 $x2 $y2]
+    #puts [format "BGA Outline extents:  X1:  %s  Y1:  %s  X2:  %s  Y2:  %s" $x1 $y1 $x2 $y2]
 
     #  Does BGA section contain POLYGON outline?  If not, use the height and width
     if { [lsearch -exact [aif::variables BGA] OUTLINE] != -1 } {
@@ -1154,11 +1154,11 @@ proc ediuDrawBGAOutline { { color "white" } } {
         set points { $x1 $y1 $x2 $y2 }
     }
 
-    #$cnvs create polygon $points -outline $color -fill "#eee" -tags "$::bga(name) bgaoutline"
     $cnvs create polygon $points -outline $color -tags "$::bga(name) bgaoutline"
     $cnvs create text $x2 $y2 -text $::bga(name) -fill $color \
         -anchor sw -font [list arial] -justify right -tags "$::bga(name) refdes"
 
+    #  Add some text to note the corner XY coordinates - visual reference only
     $cnvs create text $x1 $y1 -text [format "X: %.2f  Y: %.2f" $x1 $y1] -fill $color \
         -anchor sw -font [list arial] -justify left -tags "$::bga(name) refdes"
     $cnvs create text $x1 $y2 -text [format "X: %.2f  Y: %.2f" $x1 $y2] -fill $color \
@@ -1168,6 +1168,7 @@ proc ediuDrawBGAOutline { { color "white" } } {
     $cnvs create text $x2 $y2 -text [format "X: %.2f  Y: %.2f" $x2 $y2] -fill $color \
         -anchor ne -font [list arial] -justify left -tags "$::bga(name) refdes"
 
+    #  Add cross hairs through the origin - visual reference only
     $cnvs create line [expr $x1 - $::bga(width) / 4] 0 [expr $x2 +$::bga(width) / 4] 0 \
         -fill $color -dash . -tags "$::bga(name) bgaoutline"
     $cnvs create line 0 [expr $y1 - $::bga(height) / 4] 0 [expr $y2 +$::bga(height) / 4] \
@@ -1269,15 +1270,6 @@ proc ediuAIFFileOpen { { f "" } } {
         aif::parse $::ediu(filename)
         Transcript $::ediu(MsgNote) [format "Parsed AIF file \"%s\"." $::ediu(filename)]
 
-        #foreach i $aif::sections {
-        #    #Transcript $::ediu(MsgNote) [format "Section \"%s\" found." $i]
-        #    puts [format "Section:  %s" $i]
-        #    foreach j [aif::variables $i] {
-        #        puts [format "  Variable:  %s" $j]
-        #        puts [format "     Value:  %s" [aif::getvar $j $i]]
-        #    }
-        #}
-
         ##  Load the DATABASE section ...
 
         if { [ ediuAIFDatabaseSection ] == -1 } {
@@ -1324,14 +1316,6 @@ proc ediuAIFFileOpen { { f "" } } {
             return -1
         }
 
-            ##  Extract die pad details from AIF file
-#        ediuAIFPad
-#        ediuAIFName
-
-        ##  Extract pad details from AIF file
-#        ediuPadGeomName
-#        ediuPadGeomShape
-
         ##  Draw the Graphic View
 
         ediuGraphicViewBuild
@@ -1352,17 +1336,6 @@ proc ediuAIFFileOpen { { f "" } } {
 proc ediuAIFFileClose {} {
     ediuUpdateStatus $::ediu(busy)
     Transcript $::ediu(MsgNote) [format "AIF file \"%s\" closed." $::ediu(filename)]
-    #set ::ediu(filename) $::ediu(Nothing)
-    #set txt $::widgets(sourceview)
-    #$txt configure -state normal
-    #$txt delete 1.0 end
-    #$txt configure -state disabled
-    #set txt $::widgets(netlistview)
-    #$txt configure -state normal
-    #$txt delete 1.0 end
-    #$txt configure -state disabled
-    #set cnvs $::widgets(graphicview)
-    #$cnvs delete all
     ediuAIFInitialState
     ediuUpdateStatus $::ediu(ready)
 }
@@ -2385,7 +2358,7 @@ proc ediuAIFDatabaseSection {} {
         set vars [aif::variables DATABASE]
 
         foreach v $vars {
-            puts [format "-->  %s" $v]
+            #puts [format "-->  %s" $v]
             set ::database([string tolower $v]) [aif::getvar $v DATABASE]
         }
 
@@ -2451,7 +2424,7 @@ proc ediuAIFMCMDieSection {} {
             set refs [split [aif::getvar $v MCM_DIE] ","]
 
             foreach ref $refs {
-                puts [string  trim $ref]
+                #puts [string  trim $ref]
                 #dict lappend ::mcmdie [string trim $ref] [aif::getvar $v MCM_DIE]
                 dict lappend ::mcmdie [string trim $ref] $v
             }
@@ -2481,7 +2454,7 @@ proc ediuAIFDieSection {} {
         set vars [aif::variables DIE]
 
         foreach v $vars {
-            puts [format "-->  %s" $v]
+            #puts [format "-->  %s" $v]
             set ::die([string tolower $v]) [aif::getvar $v DIE]
         }
 
@@ -2510,7 +2483,7 @@ proc ediuAIFBGASection {} {
         set vars [aif::variables BGA]
 
         foreach v $vars {
-            puts [format "-->  %s" $v]
+            #puts [format "-->  %s" $v]
             set ::bga([string tolower $v]) [aif::getvar $v BGA]
         }
 
@@ -2613,32 +2586,6 @@ proc ediuAIFPad {} {
 
     Transcript $::ediu(MsgNote) [format "Scanning AIF source for \"%s\" section." $::sections(diePads)]
 
-#    set txt $::widgets(sourceview)
-#    set dp [$txt search $::sections(diePads) 1.0 end]
-#
-#    ##  Was the diePads section found?
-#
-#    if {$dp != $::ediu(Nothing)} {
-#        set dpl [lindex [split $dp .] 0]
-#        Transcript $::ediu(MsgNote) [format "Found section \"%s\" in AIF on line %s." $::sections(diePads) $dpl]
-#
-#        ##  Need the text from the padGeomName line, drop the terminating semicolon
-#        set dplt [$txt get $dpl.0 "$dpl.end"]
-#
-#        ##  Extract the shape, height, and width from the padGeomShape
-#        set ::diePads(count) [lindex [split $dplt] 1]
-#        #set ::diePads(count) 25
-#        Transcript $::ediu(MsgNote) [format "AIF has %s pads." $::diePads(count)]
-#    } else {
-#        Transcript $::ediu(MsgError) [format "AIF does not contain section \"%s\", build aborted." $::sections(diePads)]
-#        return
-#    }
-#
-##    if { $::diePads(count) > 1000 } {
-##        set ::diePads(count) 1000
-##        Transcript $::ediu(MsgNote) [format "AIF now has %s pads." $::diePads(count)]
-##    }
-
     set pads [aif::variables PADS]
 
     set ::diePads(count) [llength $pads]
@@ -2647,22 +2594,6 @@ proc ediuAIFPad {} {
         Transcript $::ediu(MsgNote) [format "AIF contains %s %s." $::diePads(count) [ediuPlural $::diePads(count) "pad"]]
     } else {
         Transcript $::ediu(MsgError) [format "AIF does not contain section \"%s\", build aborted." $::sections(diePads)]
-        return
-    }
-
-    foreach pad $pads {
-        puts $pad
-    }
-    return
-
-    ##  Need to extract pad information for the number of pads in the AIF file
-
-    for {set i [expr $dpl + 1]} {$i <= [expr $dpl + $::diePads(count) + 1]} {incr i} {
-        set dplt [$txt get $i.0 "$i.end"]
-        #puts "$i-->  \"$dplt\""
-        set dpltf [split $dplt]
-        set pin [lindex $dpltf 0]
-        set ::diePads($pin) $dplt
     }
 }
 
@@ -2794,7 +2725,7 @@ proc ediuBuildAIFCell {} {
     $newCell -set MountType [expr $::CellEditorAddinLib::ECellDBMountType(ecelldbMountTypeSurface)]
     #$newCell -set LayerCount [expr 2]
     $newCell -set PinCount [expr $::diePads(count)]
-    puts [format "--->  ::diePads(count):  %s" $::diePads(count)]
+    #puts [format "--->  ::diePads(count):  %s" $::diePads(count)]
     #$newCell -set Units [expr $::CellEditorAddinLib::ECellDBUnit(ecelldbUnitUM)]
     $newCell -set Units [expr [ediuMapUnitsToEnum $::database(units) "cell"]]
     $newCell -set PackageGroup [expr $::CellEditorAddinLib::ECellDBPackageGroup(ecelldbPackageGeneral)]
