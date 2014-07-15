@@ -91,6 +91,7 @@ package require tcom
 package require ctext
 package require csv
 package require inifile
+package require tablelist
 package require Tk 8.4
 #package require math::bigfloat
 
@@ -281,6 +282,7 @@ proc ediuAIFFileInit { } {
 
     ##  Store pads in a Tcl dictionary
     set ::pads [dict create]
+    set ::padtypes [dict create]
 
     ##  Store net names in a Tcl list
     set ::netnames [list]
@@ -504,12 +506,21 @@ proc BuildGUI {} {
     set ::ediu(netlistview) $nf
     set ssf [ttk::frame $nb.sparsepinsview]
     set ::ediu(sparsepinsview) $ssf
+    set nltf [ttk::frame $nb.netlisttable]
+    set ::ediu(netlisttable) $nltf
 
-    $nb add $nb.graphicview -text "Graphic View" -padding 4
-    $nb add $nb.transcript -text "Transcript" -padding 4
-    $nb add $nb.sourceview -text "AIF" -padding 4
-    $nb add $nb.netlistview -text "Netlist" -padding 4
-    $nb add $nb.sparsepinsview -text "Sparse Pins" -padding 4
+    #$nb add $nb.graphicview -text "Graphic View" -padding 4
+    $nb add $gf -text "Graphic View" -padding 4
+    #$nb add $nb.transcript -text "Transcript" -padding 4
+    $nb add $tf -text "Transcript" -padding 4
+    #$nb add $nb.sourceview -text "AIF Source File" -padding 4
+    $nb add $sf -text "AIF" -padding 4
+    #$nb add $nb.netlistview -text "Netlist" -padding 4
+    $nb add $nf -text "Netlist" -padding 4
+    #$nb add $nb.sparsepinsview -text "Sparse Pins" -padding 4
+    $nb add $ssf -text "Sparse Pins" -padding 4
+    #$nb add $nb.netlisttable -text "AIF Netlist" -padding 4
+    $nb add $nltf -text "Netlist Table" -padding 4
 
     #  Text frame for Transcript
 
@@ -603,6 +614,22 @@ proc BuildGUI {} {
     grid $ssf.ssftextscrollx x -row 1 -column 0 -in $ssf -sticky ew
     grid columnconfigure $ssf 0 -weight 1
     grid    rowconfigure $ssf 0 -weight 1
+
+    #  Table frame for Netlist Table View
+
+    set nltable [tablelist::tablelist $nltf.tl -stretch all -background white \
+        -fullseparators true -stripebackground "#ddd" -showseparators true -columns { \
+        0 "NETNAME" 0 "PADNUM" 0 "PADNAME" 0 "PAD_X" 0 "PAD_Y" 0 "BALLNUM" 0 "BALLNAME" \
+        0 "BALL_X" 0 "BALL_Y" 0 "FINNUM" 0 "FINNAME" 0 "FIN_X" 0 "FIN_Y" 0 "ANGLE" }]
+    #$nltable configure -font courier-bold -state disabled
+    set ::widgets(netlisttable) $nltable
+    ttk::scrollbar $nltf.nltablescrolly -orient vertical -command [list $nltable yview]
+    ttk::scrollbar $nltf.nltablescrollx -orient horizontal -command [list $nltable xview]
+    grid $nltable -row 0 -column 0 -in $nltf -sticky nsew
+    grid $nltf.nltablescrolly -row 0 -column 1 -in $nltf -sticky ns
+    grid $nltf.nltablescrollx x -row 1 -column 0 -in $nltf -sticky ew
+    grid columnconfigure $nltf 0 -weight 1
+    grid    rowconfigure $nltf 0 -weight 1
 
     ##  Build the status bar
 
@@ -747,6 +774,7 @@ proc ediuGraphicViewBuild {} {
 
     set cnvs $::widgets(graphicview)
     set txt $::widgets(netlistview)
+    set nlt $::widgets(netlisttable)
     
     $cnvs delete all
 
@@ -814,6 +842,10 @@ proc ediuGraphicViewBuild {} {
 
     set nl [$txt get 1.0 end]
 
+    ##  Clean up netlist table
+    $nlt configure -state normal
+    $nlt delete 0 end
+
     ##  Process the netlist looking for the pads
 
     foreach n [split $nl '\n'] {
@@ -824,6 +856,10 @@ proc ediuGraphicViewBuild {} {
 
         set net [regexp -inline -all -- {\S+} $n]
         set netname [lindex [regexp -inline -all -- {\S+} $n] 0]
+
+        ##  Put netlist into table for easy review
+
+        $nlt insert end $net
 
         ##  Initialize array to store netlist fields
 
@@ -869,7 +905,7 @@ proc ediuGraphicViewBuild {} {
             set nlr(ANGLE) [lindex $net 13]
         }
 
-        #printArray nlr
+        printArray nlr
 
         #  Check the netname and store it for later use
         if { [ regexp {^[[:alpha:][:alnum:]_]*\w} $netname ] == 0 } {
@@ -888,6 +924,7 @@ proc ediuGraphicViewBuild {} {
             set ref [lindex [split $nlr(PADNUM) "."] 0]
             puts "---------------------> Die Pad"
             ediuGraphicViewAddPin $nlr(PAD_X) $nlr(PAD_Y) $nlr(PADNUM) $nlr(NETNAME) $nlr(PADNAME) $line_no "diepads $ref"
+            dict lappend ::padtypes $nlr(PADNAME) "diepad"
         } else {
             Transcript $::ediu(MsgWarning) [format "Skipping die pad for net \"%s\" on line %d, no pad assignment." $netname, $line_no]
         }
@@ -897,6 +934,7 @@ proc ediuGraphicViewBuild {} {
         if { $nlr(BALLNAME) != "-" } {
             puts "---------------------> Ball"
             ediuGraphicViewAddPin $nlr(BALL_X) $nlr(BALL_Y) $nlr(BALLNUM) $nlr(NETNAME) $nlr(BALLNAME) $line_no "balls" "white" "red"
+            dict lappend ::padtypes $nlr(PADNAME) "ballpad"
         } else {
             Transcript $::ediu(MsgWarning) [format "Skipping ball pad for net \"%s\" on line %d, no ball assignment." $netname, $line_no]
         }
@@ -906,10 +944,14 @@ proc ediuGraphicViewBuild {} {
         if { $nlr(FINNAME) != "-" } {
             puts "---------------------> Finger"
             ediuGraphicViewAddPin $nlr(FIN_X) $nlr(FIN_Y) $nlr(FINNUM) $nlr(NETNAME) $nlr(FINNAME) $line_no "fingers" "purple" "white" $nlr(ANGLE)
+            dict lappend ::padtypes $nlr(PADNAME) "bondpad"
         } else {
             Transcript $::ediu(MsgWarning) [format "Skipping finger for net \"%s\" on line %d, no finger assignment." $netname, $line_no]
         }
     }
+
+    #$nlt insert end {}
+    $nlt configure -state disabled
 
     ##  Set an initial scale so the die is visible
     ##  This is an estimate based on trying a couple of
@@ -2515,6 +2557,7 @@ proc ediuAIFPadsSection {} {
         ##  Flush the pads dictionary
 
         set ::pads [dict create]
+        set ::padtypes [dict create]
 
         ##  Populate the pads dictionary
 
