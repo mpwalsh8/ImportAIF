@@ -78,6 +78,7 @@
 #                 so they couldbe managed individually.  Add support
 #                 rotation of rectangular and oblong pads.
 #    06/26/2014 - Oblong pads are displayed correctly and support rotation.
+#    07/14/2014 - New view of AIF netlist implemented using TableList widget.
 #
 #
 #    Useful links:
@@ -115,21 +116,21 @@ proc ediuInit {} {
         mode ""
         designMode "Design"
         libraryMode "Central Library"
-        sparseMode 0
+        #sparseMode 0
         AIFFile ""
-        sparsePinsFile ""
+        #sparsePinsFile ""
         targetPath ""
         PCBDesign ""
         CentralLibrary ""
 	    filename ""
-        sparsepinsfile ""
+        #sparsepinsfile ""
         statusLine ""
         notebook ""
         transcript ""
         sourceview ""
         graphicview ""
         netlistview ""
-        sparsepinsview ""
+        #sparsepinsview ""
         EDIU "Expedition AIF Import Utility"
         MsgNote 0
         MsgWarning 1
@@ -152,8 +153,8 @@ proc ediuInit {} {
         sTime ""
         cTime ""
         consoleEcho "True"
-        sparsepinnames {}
-        sparsepinnumbers {}
+        #sparsepinnames {}
+        #sparsepinnumbers {}
         LeftBracket "\["
         RightBracket "\]"
         BackSlash "\\"
@@ -221,7 +222,7 @@ proc ediuInit {} {
         sourceview ""
         graphicview ""
         netlistview ""
-        sparsepinsview ""
+        #sparsepinsview ""
         statuslight ""
         design ""
         library ""
@@ -288,8 +289,10 @@ proc ediuAIFFileInit { } {
     set ::netnames [list]
 
     ##  Store netlist in a Tcl list
-    #set ::netlist [dict create]
     set ::netlist [list]
+
+    ##  Store bondpad connections in a Tcl list
+    set ::bondpadconnections [list]
 }
 
 #
@@ -336,11 +339,11 @@ proc BuildGUI {} {
     $fm add command -label "Close AIF " \
          -accelerator "F6" -underline 0 \
          -command ediuAIFFileClose
-    $fm add separator
-    $fm add command -label "Open Sparse Pins ..." \
+    #$fm add separator
+    #$fm add command -label "Open Sparse Pins ..." \
          -underline 1 -command ediuSparsePinsFileOpen
-    $fm add command -label "Close Sparse Pins " \
-         -underline 1 -command ediuSparsePinsFileClose
+    #$fm add command -label "Close Sparse Pins " \
+         #-underline 1 -command ediuSparsePinsFileClose
     if {[llength [info commands console]]} {
         $fm add separator
 	    $fm add command -label "Show Console" \
@@ -376,9 +379,9 @@ proc BuildGUI {} {
     $sm add command \
         -label "Target Central Library ..." -state disabled \
          -underline 2 -command ediuSetupOpenLMC
-    $sm add separator
-    $sm add checkbutton -label "Sparse Mode" -underline 0 \
-        -variable ::ediu(sparseMode) -command ediuToggleSparseMode
+    #$sm add separator
+    #$sm add checkbutton -label "Sparse Mode" -underline 0 \
+        #-variable ::ediu(sparseMode) -command ediuToggleSparseMode
     $sm add separator
     $sm add radiobutton -label "Application Visibility On" -underline 0 \
         -variable ::ediu(appVisible) -value "True"
@@ -504,8 +507,8 @@ proc BuildGUI {} {
     set ::ediu(graphicview) $gf
     set nf [ttk::frame $nb.netlistview]
     set ::ediu(netlistview) $nf
-    set ssf [ttk::frame $nb.sparsepinsview]
-    set ::ediu(sparsepinsview) $ssf
+    #set ssf [ttk::frame $nb.sparsepinsview]
+    #set ::ediu(sparsepinsview) $ssf
     set nltf [ttk::frame $nb.netlisttable]
     set ::ediu(netlisttable) $nltf
 
@@ -517,8 +520,8 @@ proc BuildGUI {} {
     $nb add $sf -text "AIF Source File" -padding 4
     #$nb add $nb.netlistview -text "Netlist" -padding 4
     $nb add $nf -text "Netlist" -padding 4
-    #$nb add $nb.sparsepinsview -text "Sparse Pins" -padding 4
-    $nb add $ssf -text "Sparse Pins" -padding 4
+    ##$nb add $nb.sparsepinsview -text "Sparse Pins" -padding 4
+    #$nb add $ssf -text "Sparse Pins" -padding 4
     #$nb add $nb.netlisttable -text "AIF Netlist" -padding 4
     $nb add $nltf -text "AIF Netlist" -padding 4
 
@@ -602,18 +605,18 @@ proc BuildGUI {} {
 
     #  Text frame for Sparse Pins View
 
-    set ssftext [ctext $ssf.text -wrap none \
-        -xscrollcommand [list $ssf.ssftextscrollx set] \
-        -yscrollcommand [list $ssf.ssftextscrolly set]]
-    $ssftext configure -font courier-bold -state disabled
-    set ::widgets(sparsepinsview) $ssftext
-    ttk::scrollbar $ssf.ssftextscrolly -orient vertical -command [list $ssftext yview]
-    ttk::scrollbar $ssf.ssftextscrollx -orient horizontal -command [list $ssftext xview]
-    grid $ssftext -row 0 -column 0 -in $ssf -sticky nsew
-    grid $ssf.ssftextscrolly -row 0 -column 1 -in $ssf -sticky ns
-    grid $ssf.ssftextscrollx x -row 1 -column 0 -in $ssf -sticky ew
-    grid columnconfigure $ssf 0 -weight 1
-    grid    rowconfigure $ssf 0 -weight 1
+    #set ssftext [ctext $ssf.text -wrap none \
+        #-xscrollcommand [list $ssf.ssftextscrollx set] \
+        #-yscrollcommand [list $ssf.ssftextscrolly set]]
+    #$ssftext configure -font courier-bold -state disabled
+    #set ::widgets(sparsepinsview) $ssftext
+    #ttk::scrollbar $ssf.ssftextscrolly -orient vertical -command [list $ssftext yview]
+    #ttk::scrollbar $ssf.ssftextscrollx -orient horizontal -command [list $ssftext xview]
+    #grid $ssftext -row 0 -column 0 -in $ssf -sticky nsew
+    #grid $ssf.ssftextscrolly -row 0 -column 1 -in $ssf -sticky ns
+    #grid $ssf.ssftextscrollx x -row 1 -column 0 -in $ssf -sticky ew
+    #grid columnconfigure $ssf 0 -weight 1
+    #grid    rowconfigure $ssf 0 -weight 1
 
     #  Table frame for Netlist Table View
 
@@ -954,6 +957,12 @@ proc ediuGraphicViewBuild {} {
         } else {
             Transcript $::ediu(MsgWarning) [format "Skipping finger for net \"%s\" on line %d, no finger assignment." $netname, $line_no]
         }
+
+        ##  Need to detect connections - there are two types:
+        ##
+        ##  1)  Bond Pad connections
+        ##  2)  Any other connection (Die to Die,  Die to BGA, etc.)
+        ##
     }
 
     #$nlt configure -state disabled
@@ -3268,30 +3277,31 @@ proc netlist::load { } {
 
     foreach n [split [$txt get 1.0 end] '\n'] {
         if { $n == "" } { continue }
-            ##  Extract the net name from the first field (col 1)
-            set netname [lindex [regexp -inline -all -- {\S+} $n] 0]
-            set padname [lindex [regexp -inline -all -- {\S+} $n] 2]
 
-            ##  Check net name for legal syntax, add it to the list
-            ##  of nets if it is valid.  The list contains just unique
-            ##  netnames.  The netlist text widget contains the netlist.
+        ##  Extract the net name from the first field (col 1)
+        set netname [lindex [regexp -inline -all -- {\S+} $n] 0]
+        set padname [lindex [regexp -inline -all -- {\S+} $n] 2]
 
-            if { [ regexp {^[[:alpha:][:alnum:]_]*\w} $netname ] == 0 } {
-                Transcript $::ediu(MsgError) [format "Net name \"%s\" is not supported AIF syntax." $netname]
-                set rv -1
-            } else {
-                incr connections
+        ##  Check net name for legal syntax, add it to the list
+        ##  of nets if it is valid.  The list contains just unique
+        ##  netnames.  The netlist text widget contains the netlist.
 
-                if { [lsearch -exact $nl $netname ] == -1 } {
-                    lappend nl $netname
-                    Transcript $::ediu(MsgNote) [format "Found net name \"%s\"." $netname]
-                }
+        if { [ regexp {^[[:alpha:][:alnum:]_]*\w} $netname ] == 0 } {
+            Transcript $::ediu(MsgError) [format "Net name \"%s\" is not supported AIF syntax." $netname]
+            set rv -1
+        } else {
+            incr connections
 
-                if { [lsearch -exact $pads $padname ] == -1 && $padname != "-" } {
-                    lappend pads $padname
-                    Transcript $::ediu(MsgNote) [format "Found reference to pad \"%s\"." $padname]
-                }
+            if { [lsearch -exact $nl $netname ] == -1 } {
+                lappend nl $netname
+                Transcript $::ediu(MsgNote) [format "Found net name \"%s\"." $netname]
             }
+
+            if { [lsearch -exact $pads $padname ] == -1 && $padname != "-" } {
+                lappend pads $padname
+                Transcript $::ediu(MsgNote) [format "Found reference to pad \"%s\"." $padname]
+            }
+        }
     }
 }
 
@@ -3726,6 +3736,15 @@ proc aif::parse {filename} {
                 Transcript $::ediu(MsgWarning) [format "Skipping line %d in AIF file \"%s\"." $line_no $::ediu(filename)]
                 puts $line
             }
+        }
+    }
+
+    # Cleanup the netlist, sort it and eliminate duplicates
+    set nl [lsort -unique [split [$txt get 1.0 end] '\n']]
+    $txt delete 1.0 end
+    foreach n $nl {
+        if { $n != "" } {
+            $txt insert end "$n\n"
         }
     }
 
