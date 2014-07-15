@@ -514,13 +514,13 @@ proc BuildGUI {} {
     #$nb add $nb.transcript -text "Transcript" -padding 4
     $nb add $tf -text "Transcript" -padding 4
     #$nb add $nb.sourceview -text "AIF Source File" -padding 4
-    $nb add $sf -text "AIF" -padding 4
+    $nb add $sf -text "AIF Source File" -padding 4
     #$nb add $nb.netlistview -text "Netlist" -padding 4
     $nb add $nf -text "Netlist" -padding 4
     #$nb add $nb.sparsepinsview -text "Sparse Pins" -padding 4
     $nb add $ssf -text "Sparse Pins" -padding 4
     #$nb add $nb.netlisttable -text "AIF Netlist" -padding 4
-    $nb add $nltf -text "Netlist Table" -padding 4
+    $nb add $nltf -text "AIF Netlist" -padding 4
 
     #  Text frame for Transcript
 
@@ -618,9 +618,15 @@ proc BuildGUI {} {
     #  Table frame for Netlist Table View
 
     set nltable [tablelist::tablelist $nltf.tl -stretch all -background white \
+        -xscrollcommand [list $nltf.nltablescrollx set] \
+        -yscrollcommand [list $nltf.nltablescrolly set] \
         -fullseparators true -stripebackground "#ddd" -showseparators true -columns { \
         0 "NETNAME" 0 "PADNUM" 0 "PADNAME" 0 "PAD_X" 0 "PAD_Y" 0 "BALLNUM" 0 "BALLNAME" \
         0 "BALL_X" 0 "BALL_Y" 0 "FINNUM" 0 "FINNAME" 0 "FIN_X" 0 "FIN_Y" 0 "ANGLE" }]
+    $nltable columnconfigure 0 -sortmode ascii
+    $nltable columnconfigure 1 -sortmode ascii
+    $nltable columnconfigure 2 -sortmode ascii
+
     #$nltable configure -font courier-bold -state disabled
     set ::widgets(netlisttable) $nltable
     ttk::scrollbar $nltf.nltablescrolly -orient vertical -command [list $nltable yview]
@@ -843,7 +849,7 @@ proc ediuGraphicViewBuild {} {
     set nl [$txt get 1.0 end]
 
     ##  Clean up netlist table
-    $nlt configure -state normal
+    #$nlt configure -state normal
     $nlt delete 0 end
 
     ##  Process the netlist looking for the pads
@@ -950,8 +956,7 @@ proc ediuGraphicViewBuild {} {
         }
     }
 
-    #$nlt insert end {}
-    $nlt configure -state disabled
+    #$nlt configure -state disabled
 
     ##  Set an initial scale so the die is visible
     ##  This is an estimate based on trying a couple of
