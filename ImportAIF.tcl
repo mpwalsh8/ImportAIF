@@ -184,6 +184,9 @@ proc ediuInit {} {
     array set gui::pads {
     }
 
+    array set gui::bondwires {
+    }
+
     ##  Keywords to scan for in AIF file
     array unset ::sections
     #array set ::sections {
@@ -293,6 +296,7 @@ proc ediuAIFFileInit { } {
 
     ##  Store bondpad connections in a Tcl list
     set ::bondpadconnections [list]
+    set ::bondwires [list]
 }
 
 #
@@ -374,7 +378,7 @@ proc BuildGUI {} {
             ediuUpdateStatus $::ediu(ready) }
     $sm add separator
     $sm add command \
-        -label "Target Design ..." \
+        -label "Target Design ..." -state normal \
         -underline 1 -command ediuSetupOpenPCB
     $sm add command \
         -label "Target Central Library ..." -state disabled \
@@ -388,24 +392,24 @@ proc BuildGUI {} {
     $sm add radiobutton -label "Application Visibility Off" -underline 0 \
         -variable ::ediu(appVisible) -value "False"
 
-    #  Define the Build menu
+    #  Define the Generate menu
     set bm [menu $mb.build -tearoff 0]
-    $mb add cascade -label "Build" -menu $mb.build -underline 0
+    $mb add cascade -label "Generate" -menu $mb.build -underline 0
     #$bm add command -label "Pad ..." \
          #-underline 0 \
-         #-command ediuBuildAIFPad
+         #-command ediuGenerateAIFPad
     $bm add command -label "Pads ..." \
          -underline 0 \
-         -command ediuBuildAIFPads
+         -command ediuGenerateAIFPads
     $bm add command -label "Padstacks ..." \
          -underline 0 \
-         -command ediuBuildAIFPadstacks
+         -command ediuGenerateAIFPadstacks
     $bm add command -label "Cell ..." \
          -underline 0 \
-         -command ediuBuildAIFCell
+         -command ediuGenerateAIFCell
     $bm add command -label "PDB ..." \
          -underline 1 \
-         -command ediuBuildAIFPDB
+         -command ediuGenerateAIFPDB
 
     #  Define the View menu
     set vm [menu $mb.zoom -tearoff 0]
@@ -474,9 +478,16 @@ proc BuildGUI {} {
     $vm add cascade -label "Devices" \
          -underline 0 -menu $vm.devices
     menu $vm.devices -tearoff 0
-    $vm.devices add cascade -label "All On" -underline 5 -command { gui::VisibleDevice -all on }
-    $vm.devices add cascade -label "All Off" -underline 5 -command { gui::VisibleDevice -all off }
+    $vm.devices add cascade -label "All On" -underline 5 -command { gui::Visibility {bga device} -mode on }
+    $vm.devices add cascade -label "All Off" -underline 5 -command { gui::Visibility {bga device} -mode off }
     $vm.devices add separator
+
+    $vm add cascade -label "Bond Wires" \
+         -underline 0 -menu $vm.bondwires
+    menu $vm.bondwires -tearoff 0
+    $vm.bondwires add cascade -label "All On" -underline 5 -command { gui::Visibility "bondwire" -mode on }
+    $vm.bondwires add cascade -label "All Off" -underline 5 -command { gui::Visibility "bondwire" -mode off }
+    $vm.bondwires add separator
 
     $vm add cascade -label "Pads" \
          -underline 0 -menu $vm.pads
@@ -525,12 +536,18 @@ proc BuildGUI {} {
     #$nb add $nb.netlisttable -text "AIF Netlist" -padding 4
     $nb add $nltf -text "AIF Netlist" -padding 4
 
+    #  Hide the netlist tab, it is used but shouldn't be visible
+    $nb hide $nf
+
+    #  Define fixed with font used for displaying text
+    font create EDIUFont -family Courier -size 10 -weight bold
+
     #  Text frame for Transcript
 
     set tftext [ctext $tf.text -wrap none \
         -xscrollcommand [list $tf.tftextscrollx set] \
         -yscrollcommand [list $tf.tftextscrolly set]]
-    $tftext configure -font courier-bold -state disabled
+    $tftext configure -font EDIUFont -state disabled
     set ::widgets(transcript) $tftext
     ttk::scrollbar $tf.tftextscrolly -orient vertical -command [list $tftext yview]
     ttk::scrollbar $tf.tftextscrollx -orient horizontal -command [list $tftext xview]
@@ -545,7 +562,7 @@ proc BuildGUI {} {
     set sftext [ctext $sf.text -wrap none \
         -xscrollcommand [list $sf.sftextscrollx set] \
         -yscrollcommand [list $sf.sftextscrolly set]]
-    $sftext configure -font courier-bold -state disabled
+    $sftext configure -font EDIUFont -state disabled
     set ::widgets(sourceview) $sftext
     ttk::scrollbar $sf.sftextscrolly -orient vertical -command [list $sftext yview]
     ttk::scrollbar $sf.sftextscrollx -orient horizontal -command [list $sftext xview]
@@ -593,7 +610,8 @@ proc BuildGUI {} {
     set nftext [ctext $nf.text -wrap none \
         -xscrollcommand [list $nf.nftextscrollx set] \
         -yscrollcommand [list $nf.nftextscrolly set]]
-    $nftext configure -font courier-bold -state disabled
+        
+    $nftext configure -font EDIUFont -state disabled
     set ::widgets(netlistview) $nftext
     ttk::scrollbar $nf.nftextscrolly -orient vertical -command [list $nftext yview]
     ttk::scrollbar $nf.nftextscrollx -orient horizontal -command [list $nftext xview]
@@ -608,7 +626,7 @@ proc BuildGUI {} {
     #set ssftext [ctext $ssf.text -wrap none \
         #-xscrollcommand [list $ssf.ssftextscrollx set] \
         #-yscrollcommand [list $ssf.ssftextscrolly set]]
-    #$ssftext configure -font courier-bold -state disabled
+    #$ssftext configure -font EDIUFont -state disabled
     #set ::widgets(sparsepinsview) $ssftext
     #ttk::scrollbar $ssf.ssftextscrolly -orient vertical -command [list $ssftext yview]
     #ttk::scrollbar $ssf.ssftextscrollx -orient horizontal -command [list $ssftext xview]
@@ -793,6 +811,12 @@ proc ediuGraphicViewBuild {} {
     ##  Draw the BGA outline (if it exists)
     if { $::ediu(BGA) == 1 } {
         ediuDrawBGAOutline
+
+        #  Add BGA to the View Devices menu and make it visible
+        set gui::devices($::bga(name)) 1
+        $vm.devices add checkbutton -label "$::bga(name)" -underline 0 \
+            -variable gui::devices($::bga(name)) -onvalue 1 -offvalue 0 -command gui::VisibleDevice
+        $vm.devices add separator
     }
 
     ##  Is this an MCM-AIF?
@@ -839,13 +863,13 @@ proc ediuGraphicViewBuild {} {
                 ediuDrawPartOutline $part(REF) $part(HEIGHT) $part(WIDTH) $part(X) $part(Y)
 
                 #  Add part to the View Devices menu and make it visible
-                set gui::devices($part(REF)) 1
+                set gui::devices($part(REF)) on
                 $vm.devices add checkbutton -label "$part(REF)" -underline 0 \
-                    -variable gui::devices($part(REF)) -onvalue 1 -offvalue 0 -command gui::VisibleDevice
+                    -variable gui::devices($part(REF)) -onvalue on -offvalue off \
+                    -command  "gui::Visibility device-$part(REF) -mode gui::devices($part(REF))"
             }
         }
     }
-
 
     ##  Load the NETLIST section
 
@@ -914,7 +938,7 @@ proc ediuGraphicViewBuild {} {
             set nlr(ANGLE) [lindex $net 13]
         }
 
-        printArray nlr
+        #printArray nlr
 
         #  Check the netname and store it for later use
         if { [ regexp {^[[:alpha:][:alnum:]_]*\w} $netname ] == 0 } {
@@ -963,7 +987,36 @@ proc ediuGraphicViewBuild {} {
         ##  1)  Bond Pad connections
         ##  2)  Any other connection (Die to Die,  Die to BGA, etc.)
         ##
+
+        ##  Look for bond wire connections
+
+        if { $nlr(PAD_X) != "-"  && $nlr(PAD_Y) != "-"  && $nlr(FIN_X) != "-"  && $nlr(FIN_Y) != "-" } {
+            lappend ::bondwires [list $nlr(NETNAME) $nlr(PAD_X) $nlr(PAD_Y) $nlr(FIN_X) $nlr(FIN_Y)]
+        }
     }
+
+    #  Draw Bond Wires
+    foreach bw $::bondwires {
+        foreach {net x1 y1 x2 y2} $bw {
+            puts [format "Wire (%s) -- X1:  %s  Y1:  %s  X2:  %s  Y2:  %s" $net $x1 $y1 $x2 $y2]
+            $cnvs create line $x1 $y1 $x2 $y2 -tags "bondwire bondwire-$net" -fill "orange" -width 1
+
+            #  Add bond wire to the View Bond Wires menu and make it visible
+            #  Because a net can have more than one bond wire, need to ensure
+            #  already hasn't been added or it will result in redundant menus.
+
+            if { [array size gui::bondwires] == 0 || \
+                 [lsearch [array names gui::bondwires] $net] == -1 } {
+                set gui::bondwires(net) on
+                $vm.bondwires add checkbutton -label "$net" -underline 0 \
+                    -variable gui::bondwires($net) -onvalue on -offvalue off \
+                    -command  "gui::Visibility bondwire-$net -mode gui::bondwires($net)"
+            }
+        }
+    }
+#puts "here1"
+    #ediuDrawBondWires
+#puts "here2"
 
     #$nlt configure -state disabled
 
@@ -1166,9 +1219,9 @@ proc ediuDrawPartOutline { name height width x y { color "green" } { tags "parto
     set y2 [expr $y+($height/2.0)]
 
     set cnvs $::widgets(graphicview)
-    $cnvs create rectangle $x1 $y1 $x2 $y2 -outline $color -tags "$name $tags"
+    $cnvs create rectangle $x1 $y1 $x2 $y2 -outline $color -tags "device device-$name $tags"
     $cnvs create text $x2 $y2 -text $name -fill $color \
-        -anchor sw -font [list arial] -justify right -tags "$name refdes"
+        -anchor sw -font [list arial] -justify right -tags "device device-$name refdes refdes-$name"
 
     #puts [format "Part Outline extents:  X1:  %s  Y1:  %s  X2:  %s  Y2:  %s" $x1 $y1 $x2 $y2]
 
@@ -1210,9 +1263,9 @@ proc ediuDrawBGAOutline { { color "white" } } {
         set points { $x1 $y1 $x2 $y2 }
     }
 
-    $cnvs create polygon $points -outline $color -tags "$::bga(name) bgaoutline"
+    $cnvs create polygon $points -outline $color -tags "$::bga(name) bga bgaoutline"
     $cnvs create text $x2 $y2 -text $::bga(name) -fill $color \
-        -anchor sw -font [list arial] -justify right -tags "$::bga(name) refdes"
+        -anchor sw -font [list arial] -justify right -tags "$::bga(name) bga refdes"
 
     #  Add some text to note the corner XY coordinates - visual reference only
     $cnvs create text $x1 $y1 -text [format "X: %.2f  Y: %.2f" $x1 $y1] -fill $color \
@@ -1231,6 +1284,17 @@ proc ediuDrawBGAOutline { { color "white" } } {
         -fill $color -dash . -tags "$::bga(name) bgaoutline"
 
     $cnvs configure -scrollregion [$cnvs bbox all]
+}
+
+proc ediuDrawBondWires { { color "orange" } } {
+    set cnvs $::widgets(graphicview)
+
+    foreach bw $::bondwires {
+        foreach {net x1 y1 x2 y2} $bw {
+            puts [format "Wire (%s) -- X1:  %s  Y1:  %s  X2:  %s  Y2:  %s" $net $x1 $y1 $x2 $y2]
+            $cnvs create line $x1 $y1 $x2 $y2 -tags "bondwire bondwire-$net" -fill $color -width 1
+        }
+    }
 }
 
 #
@@ -1400,17 +1464,30 @@ proc ediuAIFFileClose {} {
 #  ediuAIFInitialState
 #
 proc ediuAIFInitialState {} {
+
+    ##  Put everything back into an initial state
+    ediuAIFFileInit
     set ::ediu(filename) $::ediu(Nothing)
+
+    ##  Remove all content from the AIF source view
     set txt $::widgets(sourceview)
     $txt configure -state normal
     $txt delete 1.0 end
     $txt configure -state disabled
+
+    ##  Remove all content from the (hidden) netlist text view
     set txt $::widgets(netlistview)
     $txt configure -state normal
     $txt delete 1.0 end
     $txt configure -state disabled
+
+    ##  Remove all content from the source graphic view
     set cnvs $::widgets(graphicview)
     $cnvs delete all
+
+    ##  Remove all content from the AIF Netlist table
+    set nlt $::widgets(netlisttable)
+    $nlt delete 0 end
 
     ##  Clean up menus, remove dynamic content
     set vm $::widgets(viewmenu)
@@ -1890,14 +1967,14 @@ proc ediuMapUnitsToEnum { units { type "pad" } } {
 }
 
 #
-#  ediuBuildAIFPad
+#  ediuGenerateAIFPad
 #
 #  This subroutine will create die pads based on the "PADS" section
 #  found in the AIF file.  It can optionally replace an existing pad
 #  based on the second argument.
 #
 
-proc ediuBuildAIFPads { } {
+proc ediuGenerateAIFPads { } {
     foreach p [padGetAllPads] {
         set ::padGeom(name) $p
         set ::padGeom(shape) [pad::getShape $p]
@@ -1906,18 +1983,18 @@ proc ediuBuildAIFPads { } {
         set ::padGeom(offsetx) 0.0
         set ::padGeom(offsety) 0.0
 
-        ediuBuildAIFPad
+        ediuGenerateAIFPad
     }
 }
 
 #
-#  ediuBuildAIFPad
+#  ediuGenerateAIFPad
 #
 #  Pads are interesting in that can't simply be updated.  To change a pad
 #  it must be deleted and then replaced.  A pad can't be deleted if it is
 #  referenced by a padstack so that scenario must be handled.
 #
-proc ediuBuildAIFPad { { mode "-replace" } } {
+proc ediuGenerateAIFPad { { mode "-replace" } } {
     ediuUpdateStatus $::ediu(busy)
     set ::ediu(sTime) [clock format [clock seconds] -format "%m/%d/%Y %T"]
 
@@ -2019,14 +2096,14 @@ puts "------>$padName<----------"
 }
 
 #
-#  ediuBuildAIFPadstacks
+#  ediuGenerateAIFPadstacks
 #
 #  This subroutine will create die pads based on the "PADS" section
 #  found in the AIF file.  It can optionally replace an existing pad
 #  based on the second argument.
 #
 
-proc ediuBuildAIFPadstacks { } {
+proc ediuGenerateAIFPadstacks { } {
     foreach p [padGetAllPads] {
         set ::padGeom(name) $p
         set ::padGeom(shape) [pad::getShape $p]
@@ -2035,14 +2112,14 @@ proc ediuBuildAIFPadstacks { } {
         set ::padGeom(offsetx) 0.0
         set ::padGeom(offsety) 0.0
 
-        ediuBuildAIFPadstack
+        ediuGenerateAIFPadstack
     }
 }
 
 #
-#  ediuBuildAIFPadstack
+#  ediuGenerateAIFPadstack
 #
-proc ediuBuildAIFPadstack { { mode "-replace" } } {
+proc ediuGenerateAIFPadstack { { mode "-replace" } } {
     ediuUpdateStatus $::ediu(busy)
     set ::ediu(sTime) [clock format [clock seconds] -format "%m/%d/%Y %T"]
 
@@ -2655,9 +2732,9 @@ proc ediuAIFPad {} {
 }
 
 #
-#  ediuBuildAIFCell
+#  ediuGenerateAIFCell
 #
-proc ediuBuildAIFCell {} {
+proc ediuGenerateAIFCell {} {
     ediuUpdateStatus $::ediu(busy)
     set ::ediu(sTime) [clock format [clock seconds] -format "%m/%d/%Y %T"]
 
@@ -2875,7 +2952,7 @@ proc ediuBuildAIFCell {} {
         set diePadFields(padx) [netlist::getDiePadX $i]
         set diePadFields(pady) [netlist::getDiePadY $i]
         set diePadFields(net) [netlist::getNetName $i]
-        printArray diePadFields
+        #printArray diePadFields
     
         ## Need to handle sparse mode?
 
@@ -2966,9 +3043,9 @@ proc ediuBuildAIFCell {} {
 }
 
 #
-#  ediuBuildAIFPDB
+#  ediuGenerateAIFPDB
 #
-proc ediuBuildAIFPDB {} {
+proc ediuGenerateAIFPDB {} {
     ediuUpdateStatus $::ediu(busy)
     set ::ediu(sTime) [clock format [clock seconds] -format "%m/%d/%Y %T"]
 
@@ -3075,7 +3152,7 @@ proc ediuBuildAIFPDB {} {
 
     $::ediu(partEdtr) SaveActiveDatabase
 
-    ##  Build a new part.  The first part of this is done in
+    ##  Generate a new part.  The first part of this is done in
     ##  in the PDB Editor which is part of the Library Manager.
     ##  The graphics and pins are then added using the PDB Editor
     ##  AddIn which sort of looks like a mini version of Expediiton.
@@ -3423,9 +3500,9 @@ proc gui::VisibleDevice { { all "" } { state "" } } {
     foreach d [array names gui::devices] {
         set id [$cnvs find withtag $d]
         if { $gui::devices($d) == 0 } {
-            #puts "found by tag"
-            #puts $d
-            #puts $id
+            puts "found by tag"
+            puts $d
+            puts $id
             foreach i $id {
                 $cnvs itemconfigure $i -state hidden
             }
@@ -3434,6 +3511,42 @@ proc gui::VisibleDevice { { all "" } { state "" } } {
             foreach i $id {
                 $cnvs itemconfigure $i -state normal
             }
+        }
+    }
+}
+
+#
+#  gui::Visibility
+#
+proc gui::Visibility { tags args } {
+
+    ##  Process command arguments
+    array set V { -mode toggle -all false } ;# Default values
+    foreach {a value} $args {
+        if {! [info exists V($a)]} {error "unknown option $a"}
+        if {$value == {}} {error "value of \"$a\" missing"}
+        set V($a) $value
+    }
+
+    ##  If not tags not a global operation then return
+    if { $tags == "" && $V(-all) == false } { return {} }
+
+    set cnvs $::widgets(graphicview)
+
+    ##  Find all items with the supplied tag
+    foreach tag $tags {
+        set id [$cnvs find withtag $tag]
+        foreach i $id {
+            if { $V(-mode) == "toggle" } {
+                set v [lindex [$cnvs itemconfigure $i -state] 4]
+                set v [expr {$v == "hidden" ? "normal" : "hidden"}]
+            } elseif { $V(-mode) == "on" } {
+                set v "normal"
+            } else {
+                set v "hidden"
+            }
+
+            $cnvs itemconfigure $i -state $v
         }
     }
 }
@@ -4024,7 +4137,6 @@ proc printArray { name } {
         puts "$el = $a($el)"
     }
 }
-
 ##  Main applicationhttp://codex.wordpress.org/HTTP_API
 console show
 ediuInit
@@ -4033,13 +4145,14 @@ ediuUpdateStatus $::ediu(ready)
 Transcript $::ediu(MsgNote) "$::ediu(EDIU) ready."
 #ediuChooseCellPartitionDialog
 #puts $retString
-set ::ediu(mode) $::ediu(libraryMode)
+#set ::ediu(mode) $::ediu(libraryMode)
 #ediuSetupOpenLMC "C:/Users/mike/Documents/Sandbox/Sandbox.lmc"
 #set ::ediu(mode) $::ediu(designMode)
 #ediuSetupOpenPCB "C:/Users/mike/Documents/a_simple_design_ee794/a_simple_design.pcb"
 #catch { ediuAIFFileOpen "c:/users/mike/desktop/ImportAIF/data/Demo4.aif" } retString
 #catch { ediuAIFFileOpen "c:/users/mike/desktop/ImportAIF/data/MCMSampleC.aif" } retString
 #catch { ediuAIFFileOpen "c:/users/mike/desktop/ImportAIF/data/BGA_w2_Dies.aif" } retString
-catch { ediuAIFFileOpen "c:/users/mike/desktop/ImportAIF/data/BGA_w2_Dies-2.aif" } retString
+##catch { ediuAIFFileOpen "c:/users/mike/desktop/ImportAIF/data/BGA_w2_Dies-2.aif" } retString
 #catch { ediuAIFFileOpen "c:/users/mike/desktop/ImportAIF/data/BGA_w2_Dies-3.aif" } retString
+catch { ediuAIFFileOpen "c:/users/mike/desktop/ImportAIF/data/Test2.aif" } retString
 #ediuAIFFileOpen
