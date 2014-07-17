@@ -187,6 +187,11 @@ proc ediuInit {} {
     array set gui::bondwires {
     }
 
+    array set gui::guides {
+        xyaxis on
+        dimensions on
+    }
+
     ##  Keywords to scan for in AIF file
     array unset ::sections
     #array set ::sections {
@@ -485,8 +490,12 @@ proc BuildGUI {} {
     $vm add cascade -label "Bond Wires" \
          -underline 0 -menu $vm.bondwires
     menu $vm.bondwires -tearoff 0
-    $vm.bondwires add cascade -label "All On" -underline 5 -command { gui::Visibility "bondwire" -mode on }
-    $vm.bondwires add cascade -label "All Off" -underline 5 -command { gui::Visibility "bondwire" -mode off }
+    $vm.bondwires add cascade -label "All On" -underline 5 \
+        -command { gui::Visibility "bondwire" -all true -mode on ; \
+        foreach bw $::bondwires { set gui::bondwires([lindex $bw 0]) on }  }
+    $vm.bondwires add cascade -label "All Off" -underline 5 \
+        -command { gui::Visibility "bondwire" -all true -mode off ; \
+        foreach bw $::bondwires { set gui::bondwires([lindex $bw 0]) off }  }
     $vm.bondwires add separator
 
     $vm add cascade -label "Pads" \
@@ -495,6 +504,25 @@ proc BuildGUI {} {
     $vm.pads add cascade -label "All On" -underline 5 -command { gui::VisiblePad -all on }
     $vm.pads add cascade -label "All Off" -underline 5 -command { gui::VisiblePad -all off }
     $vm.pads add separator
+
+    $vm add separator
+
+    $vm add cascade -label "Guides" \
+         -underline 0 -menu $vm.guides
+    menu $vm.guides -tearoff 0
+    $vm.guides add cascade -label "All On" -underline 5 \
+        -command { gui::Visibility "guides" -all true -mode on ; \
+        foreach g [array names gui::guides] { set gui::guides($g) on }  }
+    $vm.guides add cascade -label "All Off" -underline 5 \
+        -command { gui::Visibility "guides" -all true -mode off ; \
+        foreach g [array names gui::guides] { set gui::guides($g) off }  }
+    $vm.guides add separator
+    $vm.guides add checkbutton -label "XY Axis" \
+        -variable gui::guides(xyaxis) -onvalue on -offvalue off \
+        -command  "gui::Visibility xyaxis -mode toggle"
+    $vm.guides add checkbutton -label "Dimensions" \
+        -variable gui::guides(dimensions) -onvalue on -offvalue off \
+        -command  "gui::Visibility dimensions -mode toggle"
 
     # Define the Help menu
     set hm [menu .menubar.help -tearoff 0]
@@ -1007,16 +1035,13 @@ proc ediuGraphicViewBuild {} {
 
             if { [array size gui::bondwires] == 0 || \
                  [lsearch [array names gui::bondwires] $net] == -1 } {
-                set gui::bondwires(net) on
-                $vm.bondwires add checkbutton -label "$net" -underline 0 \
+                set gui::bondwires($net) on
+                $vm.bondwires add checkbutton -label "$net" \
                     -variable gui::bondwires($net) -onvalue on -offvalue off \
-                    -command  "gui::Visibility bondwire-$net -mode gui::bondwires($net)"
+                    -command  "gui::Visibility bondwire-$net -mode toggle"
             }
         }
     }
-#puts "here1"
-    #ediuDrawBondWires
-#puts "here2"
 
     #$nlt configure -state disabled
 
@@ -1269,32 +1294,21 @@ proc ediuDrawBGAOutline { { color "white" } } {
 
     #  Add some text to note the corner XY coordinates - visual reference only
     $cnvs create text $x1 $y1 -text [format "X: %.2f  Y: %.2f" $x1 $y1] -fill $color \
-        -anchor sw -font [list arial] -justify left -tags "$::bga(name) refdes"
+        -anchor sw -font [list arial] -justify left -tags "guides dimensions"
     $cnvs create text $x1 $y2 -text [format "X: %.2f  Y: %.2f" $x1 $y2] -fill $color \
-        -anchor nw -font [list arial] -justify left -tags "$::bga(name) refdes"
+        -anchor nw -font [list arial] -justify left -tags "guides dimensions"
     $cnvs create text $x2 $y1 -text [format "X: %.2f  Y: %.2f" $x2 $y1] -fill $color \
-        -anchor se -font [list arial] -justify left -tags "$::bga(name) refdes"
+        -anchor se -font [list arial] -justify left -tags "guides dimensions"
     $cnvs create text $x2 $y2 -text [format "X: %.2f  Y: %.2f" $x2 $y2] -fill $color \
-        -anchor ne -font [list arial] -justify left -tags "$::bga(name) refdes"
+        -anchor ne -font [list arial] -justify left -tags "guides dimensions"
 
     #  Add cross hairs through the origin - visual reference only
     $cnvs create line [expr $x1 - $::bga(width) / 4] 0 [expr $x2 +$::bga(width) / 4] 0 \
-        -fill $color -dash . -tags "$::bga(name) bgaoutline"
+        -fill $color -dash . -tags "guides xyaxis"
     $cnvs create line 0 [expr $y1 - $::bga(height) / 4] 0 [expr $y2 +$::bga(height) / 4] \
-        -fill $color -dash . -tags "$::bga(name) bgaoutline"
+        -fill $color -dash . -tags "guides xyaxis"
 
     $cnvs configure -scrollregion [$cnvs bbox all]
-}
-
-proc ediuDrawBondWires { { color "orange" } } {
-    set cnvs $::widgets(graphicview)
-
-    foreach bw $::bondwires {
-        foreach {net x1 y1 x2 y2} $bw {
-            puts [format "Wire (%s) -- X1:  %s  Y1:  %s  X2:  %s  Y2:  %s" $net $x1 $y1 $x2 $y2]
-            $cnvs create line $x1 $y1 $x2 $y2 -tags "bondwire bondwire-$net" -fill $color -width 1
-        }
-    }
 }
 
 #
@@ -3519,6 +3533,8 @@ proc gui::VisibleDevice { { all "" } { state "" } } {
 #  gui::Visibility
 #
 proc gui::Visibility { tags args } {
+
+    puts "$tags $args"
 
     ##  Process command arguments
     array set V { -mode toggle -all false } ;# Default values
