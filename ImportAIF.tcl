@@ -174,7 +174,7 @@ proc ediuInit {} {
     }
 
     array set gui::text {
-        padnumbers 1
+        padnumber 1
         refdes 1
     }
 
@@ -476,15 +476,19 @@ proc BuildGUI {} {
     $vm.text add cascade -label "All Off" -underline 5 -command { gui::VisibleObject -all off }
     $vm.text add separator
     $vm.text add checkbutton -label "Pad Numbers" -underline 0 \
-        -variable gui::text(padnumbers) -onvalue 1 -offvalue 0 -command gui::VisibleText
+        -variable gui::text(padnumber) -onvalue 1 -offvalue 0 -command gui::VisibleText
     $vm.text add checkbutton -label "Ref Designators" -underline 5 \
         -variable gui::text(refdes) -onvalue 1 -offvalue 0 -command gui::VisibleText
 
     $vm add cascade -label "Devices" \
          -underline 0 -menu $vm.devices
     menu $vm.devices -tearoff 0
-    $vm.devices add cascade -label "All On" -underline 5 -command { gui::Visibility {bga device} -mode on }
-    $vm.devices add cascade -label "All Off" -underline 5 -command { gui::Visibility {bga device} -mode off }
+    $vm.devices add cascade -label "All On" -underline 5 \
+        -command { gui::Visibility {bga device} -mode on ; \
+        foreach d $::mcmdie { set gui::devices($d) on } }
+    $vm.devices add cascade -label "All Off" -underline 5 \
+        -command { gui::Visibility {bga device} -mode off ; \
+        foreach d $::mcmdie { set gui::devices($d) off } }
     $vm.devices add separator
 
     $vm add cascade -label "Bond Wires" \
@@ -501,9 +505,14 @@ proc BuildGUI {} {
     $vm add cascade -label "Pads" \
          -underline 0 -menu $vm.pads
     menu $vm.pads -tearoff 0
-    $vm.pads add cascade -label "All On" -underline 5 -command { gui::VisiblePad -all on }
-    $vm.pads add cascade -label "All Off" -underline 5 -command { gui::VisiblePad -all off }
+    $vm.pads add cascade -label "All On" -underline 5 \
+        -command { gui::Visibility "pad" -all true -mode on ; \
+        foreach p $::pads { set gui::pads([lindex $p 0]) on }  }
+    $vm.pads add cascade -label "All Off" -underline 5 \
+        -command { gui::Visibility "pad" -all true -mode off ; \
+        foreach p $::pads { set gui::pads([lindex $p 0]) off }  }
     $vm.pads add separator
+
 
     $vm add separator
 
@@ -894,7 +903,7 @@ proc ediuGraphicViewBuild {} {
                 set gui::devices($part(REF)) on
                 $vm.devices add checkbutton -label "$part(REF)" -underline 0 \
                     -variable gui::devices($part(REF)) -onvalue on -offvalue off \
-                    -command  "gui::Visibility device-$part(REF) -mode gui::devices($part(REF))"
+                    -command  "gui::Visibility device-$part(REF) -mode toggle"
             }
         }
     }
@@ -984,7 +993,7 @@ proc ediuGraphicViewBuild {} {
         if { $nlr(PADNAME) != "-" } {
             set ref [lindex [split $nlr(PADNUM) "."] 0]
             puts "---------------------> Die Pad"
-            ediuGraphicViewAddPin $nlr(PAD_X) $nlr(PAD_Y) $nlr(PADNUM) $nlr(NETNAME) $nlr(PADNAME) $line_no "diepads $ref"
+            ediuGraphicViewAddPin $nlr(PAD_X) $nlr(PAD_Y) $nlr(PADNUM) $nlr(NETNAME) $nlr(PADNAME) $line_no "diepad pad pad-$nlr(PADNAME) $ref"
             dict lappend ::padtypes $nlr(PADNAME) "diepad"
         } else {
             Transcript $::ediu(MsgWarning) [format "Skipping die pad for net \"%s\" on line %d, no pad assignment." $netname, $line_no]
@@ -994,8 +1003,10 @@ proc ediuGraphicViewBuild {} {
 
         if { $nlr(BALLNAME) != "-" } {
             puts "---------------------> Ball"
-            ediuGraphicViewAddPin $nlr(BALL_X) $nlr(BALL_Y) $nlr(BALLNUM) $nlr(NETNAME) $nlr(BALLNAME) $line_no "balls" "white" "red"
+            ediuGraphicViewAddPin $nlr(BALL_X) $nlr(BALL_Y) $nlr(BALLNUM) $nlr(NETNAME) $nlr(BALLNAME) $line_no "ballpad pad pad-$nlr(BALLNAME)" "white" "red"
+            puts "---------------------> Ball Middle"
             dict lappend ::padtypes $nlr(PADNAME) "ballpad"
+            puts "---------------------> Ball End"
         } else {
             Transcript $::ediu(MsgWarning) [format "Skipping ball pad for net \"%s\" on line %d, no ball assignment." $netname, $line_no]
         }
@@ -1004,7 +1015,7 @@ proc ediuGraphicViewBuild {} {
 
         if { $nlr(FINNAME) != "-" } {
             puts "---------------------> Finger"
-            ediuGraphicViewAddPin $nlr(FIN_X) $nlr(FIN_Y) $nlr(FINNUM) $nlr(NETNAME) $nlr(FINNAME) $line_no "fingers" "purple" "white" $nlr(ANGLE)
+            ediuGraphicViewAddPin $nlr(FIN_X) $nlr(FIN_Y) $nlr(FINNUM) $nlr(NETNAME) $nlr(FINNAME) $line_no "bondpad pad pad-$nlr(FINNAME)" "purple" "white" $nlr(ANGLE)
             dict lappend ::padtypes $nlr(PADNAME) "bondpad"
         } else {
             Transcript $::ediu(MsgWarning) [format "Skipping finger for net \"%s\" on line %d, no finger assignment." $netname, $line_no]
@@ -1094,22 +1105,22 @@ proc ediuGraphicViewAddPin { x y pin net pad line_no { tags "diepads" } { color 
             set pw [pad::getWidth $pad]
             $cnvs create rectangle [expr {$x-($pw/2.0)}] [expr {$y-($pw/2.0)}] \
                 [expr {$x + ($pw/2.0)}] [expr {$y + ($pw/2.0)}] -outline $outline \
-                -fill $color -tags "$tags $pad" 
+                -fill $color -tags "$tags" 
 
             #  Add text: Use pin number if it was supplied, otherwise pad name
             $cnvs create text $x $y -text $padtxt -fill $outline \
-                -anchor center -font [list arial] -justify center -tags "padnumbers $tags $pad"
+                -anchor center -font [list arial] -justify center -tags "padnumber $tags"
         }
         "CIRCLE" -
         "ROUND" {
             set pw [pad::getWidth $pad]
             $cnvs create oval [expr {$x-($pw/2.0)}] [expr {$y-($pw/2.0)}] \
                 [expr {$x + ($pw/2.0)}] [expr {$y + ($pw/2.0)}] -outline $outline \
-                -fill $color -tags "$tags $pad" 
+                -fill $color -tags "$tags" 
 
             #  Add text: Use pin number if it was supplied, otherwise pad name
             $cnvs create text $x $y -text $padtxt -fill $outline \
-                -anchor center -font [list arial] -justify center -tags "padnumbers $tags $pad"
+                -anchor center -font [list arial] -justify center -tags "padnumber $tags"
         }
         "OBLONG" -
         "OBROUND" {
@@ -1150,11 +1161,11 @@ proc ediuGraphicViewAddPin { x y pin net pad line_no { tags "diepads" } { color 
             set arc [gui::ArcPath [expr {$x-($pw/2.0)}] [expr {$y2-$pw}] [expr {$x + ($pw/2.0)}] $y2 -start 0 -extent 180 -sides 20]
             foreach e $arc { lappend padxy $e }
 
-            set id [$cnvs create poly $padxy -outline $outline -fill $color -tags "$tags $pad"]
+            set id [$cnvs create poly $padxy -outline $outline -fill $color -tags "$tags"]
 
             #  Add text: Use pin number if it was supplied, otherwise pad name
             $cnvs create text $x $y -text $padtxt -fill $outline \
-                -anchor center -font [list arial] -justify center -tags "padnumbers $tags $pad"
+                -anchor center -font [list arial] -justify center -tags "padnumber $tags"
 
             #  Handle any angle ajustment
 
@@ -1201,7 +1212,7 @@ proc ediuGraphicViewAddPin { x y pin net pad line_no { tags "diepads" } { color 
 
             #  Add text: Use pin number if it was supplied, otherwise pad name
             $cnvs create text $x $y -text $padtxt -fill $outline \
-                -anchor center -font [list arial] -justify center -tags "padnumbers $tags $pad"
+                -anchor center -font [list arial] -justify center -tags "padnumber $tags $pad"
         }
         default {
             #error "Error parsing $filename (line: $line_no): $line"
@@ -2670,9 +2681,12 @@ proc ediuAIFPadsSection {} {
             dict lappend ::pads $v [aif::getvar $v PADS]
             
             #  Add pad to the View Devices menu and make it visible
-            set gui::pads($v) 1
-            $vm.pads add checkbutton -label "$v" -underline 0 \
-                -variable gui::pads($v) -onvalue 1 -offvalue 0 -command gui::VisiblePad
+            set gui::pads($v) on
+            #$vm.pads add checkbutton -label "$v" -underline 0 \
+            #    -variable gui::pads($v) -onvalue on -offvalue off -command gui::VisiblePad
+            $vm.pads add checkbutton -label "$v" \
+                -variable gui::pads($v) -onvalue on -offvalue off \
+                -command  "gui::Visibility pad-$v -mode toggle"
         }
 
         foreach i [dict keys $::pads] {
