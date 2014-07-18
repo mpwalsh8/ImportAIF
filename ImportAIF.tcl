@@ -161,6 +161,8 @@ proc ediuInit {} {
         ScaleFactor 1
         BGA 0
         MCMAIF 0
+        DIEREF "U1"
+        BGAREF "A1"
     }
 
     array set gui::objects {
@@ -174,8 +176,8 @@ proc ediuInit {} {
     }
 
     array set gui::text {
-        padnumber 1
-        refdes 1
+        padnumber on
+        refdes on
     }
 
     array set gui::devices {
@@ -187,9 +189,12 @@ proc ediuInit {} {
     array set gui::bondwires {
     }
 
+    array set gui::netlines {
+    }
+
     array set gui::guides {
         xyaxis on
-        dimensions on
+        dimension on
     }
 
     ##  Keywords to scan for in AIF file
@@ -230,6 +235,7 @@ proc ediuInit {} {
         sourceview ""
         graphicview ""
         netlistview ""
+        kynnetlistview ""
         #sparsepinsview ""
         statuslight ""
         design ""
@@ -273,6 +279,7 @@ proc ediuAIFFileInit { } {
     ##  Die Details
     array set ::die {
         name ""
+        refdes "U1"
         width 0
         height 0
         center { 0 0 }
@@ -282,6 +289,7 @@ proc ediuAIFFileInit { } {
     ##  BGA Details
     array set ::bga {
         name ""
+        refdes "A1"
         width 0
         height 0
     }
@@ -472,13 +480,19 @@ proc BuildGUI {} {
     $vm add cascade -label "Text" \
          -underline 1 -menu $vm.text
     menu $vm.text -tearoff 0
-    $vm.text add cascade -label "All On" -underline 5 -command { gui::VisibleObject -all on }
-    $vm.text add cascade -label "All Off" -underline 5 -command { gui::VisibleObject -all off }
+    $vm.text add cascade -label "All On" -underline 5 \
+        -command { gui::Visibility "text" -all true -mode on ; \
+        foreach t [array names gui::text] { set gui::text([lindex $t 0]) on }  }
+    $vm.text add cascade -label "All Off" -underline 5 \
+        -command { gui::Visibility "text" -all true -mode off ; \
+        foreach t [array names gui::text] { set gui::text([lindex $t 0]) off }  }
     $vm.text add separator
     $vm.text add checkbutton -label "Pad Numbers" -underline 0 \
-        -variable gui::text(padnumber) -onvalue 1 -offvalue 0 -command gui::VisibleText
+        -variable gui::text(padnumber) -onvalue on -offvalue off \
+        -command  "gui::Visibility padnumber -mode toggle"
     $vm.text add checkbutton -label "Ref Designators" -underline 5 \
-        -variable gui::text(refdes) -onvalue 1 -offvalue 0 -command gui::VisibleText
+        -variable gui::text(refdes) -onvalue on -offvalue off \
+        -command  "gui::Visibility refdes -mode toggle"
 
     $vm add cascade -label "Devices" \
          -underline 0 -menu $vm.devices
@@ -501,6 +515,17 @@ proc BuildGUI {} {
         -command { gui::Visibility "bondwire" -all true -mode off ; \
         foreach bw $::bondwires { set gui::bondwires([lindex $bw 0]) off }  }
     $vm.bondwires add separator
+
+    $vm add cascade -label "Net Lines" \
+         -underline 0 -menu $vm.netlines
+    menu $vm.netlines -tearoff 0
+    $vm.netlines add cascade -label "All On" -underline 5 \
+        -command { gui::Visibility "netline" -all true -mode on ; \
+        foreach nl $::netlines { set gui::netlines([lindex $nl 0]) on }  }
+    $vm.netlines add cascade -label "All Off" -underline 5 \
+        -command { gui::Visibility "netline" -all true -mode off ; \
+        foreach nl $::netlines { set gui::netlines([lindex $nl 0]) off }  }
+    $vm.netlines add separator
 
     $vm add cascade -label "Pads" \
          -underline 0 -menu $vm.pads
@@ -530,8 +555,8 @@ proc BuildGUI {} {
         -variable gui::guides(xyaxis) -onvalue on -offvalue off \
         -command  "gui::Visibility xyaxis -mode toggle"
     $vm.guides add checkbutton -label "Dimensions" \
-        -variable gui::guides(dimensions) -onvalue on -offvalue off \
-        -command  "gui::Visibility dimensions -mode toggle"
+        -variable gui::guides(dimension) -onvalue on -offvalue off \
+        -command  "gui::Visibility dimension -mode toggle"
 
     # Define the Help menu
     set hm [menu .menubar.help -tearoff 0]
@@ -559,19 +584,16 @@ proc BuildGUI {} {
     #set ::ediu(sparsepinsview) $ssf
     set nltf [ttk::frame $nb.netlisttable]
     set ::ediu(netlisttable) $nltf
+    set knltf [ttk::frame $nb.kynnetlist]
+    set ::ediu(kynnetlist) $knltf
 
-    #$nb add $nb.graphicview -text "Graphic View" -padding 4
     $nb add $gf -text "Graphic View" -padding 4
-    #$nb add $nb.transcript -text "Transcript" -padding 4
     $nb add $tf -text "Transcript" -padding 4
-    #$nb add $nb.sourceview -text "AIF Source File" -padding 4
     $nb add $sf -text "AIF Source File" -padding 4
-    #$nb add $nb.netlistview -text "Netlist" -padding 4
     $nb add $nf -text "Netlist" -padding 4
-    ##$nb add $nb.sparsepinsview -text "Sparse Pins" -padding 4
     #$nb add $ssf -text "Sparse Pins" -padding 4
-    #$nb add $nb.netlisttable -text "AIF Netlist" -padding 4
     $nb add $nltf -text "AIF Netlist" -padding 4
+    $nb add $knltf -text "KYN Netlist" -padding 4
 
     #  Hide the netlist tab, it is used but shouldn't be visible
     $nb hide $nf
@@ -694,6 +716,22 @@ proc BuildGUI {} {
     grid $nltf.nltablescrollx x -row 1 -column 0 -in $nltf -sticky ew
     grid columnconfigure $nltf 0 -weight 1
     grid    rowconfigure $nltf 0 -weight 1
+
+    #  Text frame for Key-in Netlist View
+
+    set knltftext [ctext $knltf.text -wrap none \
+        -xscrollcommand [list $knltf.nftextscrollx set] \
+        -yscrollcommand [list $knltf.nftextscrolly set]]
+        
+    $knltftext configure -font EDIUFont -state disabled
+    set ::widgets(kynnetlistview) $knltftext
+    ttk::scrollbar $knltf.nftextscrolly -orient vertical -command [list $knltftext yview]
+    ttk::scrollbar $knltf.nftextscrollx -orient horizontal -command [list $knltftext xview]
+    grid $knltftext -row 0 -column 0 -in $knltf -sticky nsew
+    grid $knltf.nftextscrolly -row 0 -column 1 -in $knltf -sticky ns
+    grid $knltf.nftextscrollx x -row 1 -column 0 -in $knltf -sticky ew
+    grid columnconfigure $knltf 0 -weight 1
+    grid    rowconfigure $knltf 0 -weight 1
 
     ##  Build the status bar
 
@@ -839,6 +877,7 @@ proc ediuGraphicViewBuild {} {
     set cnvs $::widgets(graphicview)
     set txt $::widgets(netlistview)
     set nlt $::widgets(netlisttable)
+    set kyn $::widgets(kynnetlistview)
     
     $cnvs delete all
 
@@ -983,7 +1022,7 @@ proc ediuGraphicViewBuild {} {
             set rv -1
         } else {
             if { [lsearch -exact $::netlist $netname ] == -1 } {
-                lappend ::netlist $netname
+                #lappend ::netlist $netname
                 Transcript $::ediu(MsgNote) [format "Found net name \"%s\"." $netname]
             }
         }
@@ -1032,7 +1071,74 @@ proc ediuGraphicViewBuild {} {
         if { $nlr(PAD_X) != "-"  && $nlr(PAD_Y) != "-"  && $nlr(FIN_X) != "-"  && $nlr(FIN_Y) != "-" } {
             lappend ::bondwires [list $nlr(NETNAME) $nlr(PAD_X) $nlr(PAD_Y) $nlr(FIN_X) $nlr(FIN_Y)]
         }
+
+        ##  Look for net line connections (which are different than netlist connections)
+
+        if { $nlr(PAD_X) != "-"  && $nlr(PAD_Y) != "-"  && $nlr(BALL_X) != "-"  && $nlr(BALL_Y) != "-" } {
+            lappend ::netlines [list $nlr(NETNAME) $nlr(PAD_X) $nlr(PAD_Y) $nlr(BALL_X) $nlr(BALL_Y)]
+        }
+
+        ##  Add any connections to the netlist
+
+        $nlt insert end $net
+        if { $nlr(BALL_X) != "-"  && $nlr(BALL_Y) != "-" } {
+            if { $nlr(PAD_X) != "-"  && $nlr(PAD_Y) != "-" } {
+                lappend ::netlist [list $nlr(NETNAME) $nlr(PADNUM) [format "%s.%s" $::bga(refdes) $nlr(BALLNUM)]]
+            } else {
+                lappend ::netlist [list $nlr(NETNAME) [format "%s.%s" $::bga(refdes) $nlr(BALLNUM)]]
+            }
+        }
     }
+
+    #  Generate KYN Netlist
+    $kyn configure -state normal
+
+    ##  Netlist file header 
+    $kyn insert end ";; V4.1.0\n"
+    $kyn insert end "%net\n"
+    $kyn insert end "%Prior=1\n\n"
+    $kyn insert end "%page=0\n"
+
+    ##  Netlist content
+    set p ""
+    foreach n $::netlist {
+        set c ""
+        foreach i $n {
+            if { [lsearch $n $i] == 0 } {
+                set c $i
+                if { $c == $p } {
+                    $kyn insert end "*  "
+                } else {
+                    $kyn insert end "\\$i\\  "
+                }
+            } else {
+                set p [split $i "."]
+                if { [llength $p] > 1 } {
+                    $kyn insert end [format " \\%s\\-\\%s\\" [lindex $p 0] [lindex $p 1]]
+                } else {
+                    $kyn insert end [format " \\%s\\-\\%s\\" $::ediu(DIEREF) [lindex $p 0]]
+                }
+            }
+            puts "$i"
+        }
+
+        set p $c
+        $kyn insert end "\n"
+        puts "$n"
+    }
+
+    ##  Output the part list
+    $kyn insert end "\n%Part\n"
+    foreach i [dict keys $::mcmdie] {
+        $kyn insert end [format "\\%s\\   \\%s\\\n" [dict get $::mcmdie $i] $i]
+    }
+    
+    ##  If there is a BGA, make sure to put it in the part list
+    if { $::ediu(BGA) == 1 } {
+        $kyn insert end [format "\\%s\\   \\%s\\\n" $::bga(name) $::bga(refdes)]
+    }
+
+    $kyn configure -state disabled
 
     #  Draw Bond Wires
     foreach bw $::bondwires {
@@ -1050,6 +1156,26 @@ proc ediuGraphicViewBuild {} {
                 $vm.bondwires add checkbutton -label "$net" \
                     -variable gui::bondwires($net) -onvalue on -offvalue off \
                     -command  "gui::Visibility bondwire-$net -mode toggle"
+            }
+        }
+    }
+
+    #  Draw Net Lines
+    foreach nl $::netlines {
+        foreach {net x1 y1 x2 y2} $nl {
+            puts [format "Net Line (%s) -- X1:  %s  Y1:  %s  X2:  %s  Y2:  %s" $net $x1 $y1 $x2 $y2]
+            $cnvs create line $x1 $y1 $x2 $y2 -tags "netline netline-$net" -fill "cyan" -width 1
+
+            #  Add bond wire to the View Bond Wires menu and make it visible
+            #  Because a net can have more than one bond wire, need to ensure
+            #  already hasn't been added or it will result in redundant menus.
+
+            if { [array size gui::netlines] == 0 || \
+                 [lsearch [array names gui::netlines] $net] == -1 } {
+                set gui::netlines($net) on
+                $vm.netlines add checkbutton -label "$net" \
+                    -variable gui::netlines($net) -onvalue on -offvalue off \
+                    -command  "gui::Visibility netline-$net -mode toggle"
             }
         }
     }
@@ -1091,7 +1217,7 @@ proc ediuGraphicViewBuild {} {
 #
 #  ediuGraphicViewAddPin
 #
-proc ediuGraphicViewAddPin { x y pin net pad line_no { tags "diepads" } { color "yellow" } { outline "red" } { angle 0 } } {
+proc ediuGraphicViewAddPin { x y pin net pad line_no { tags "diepad" } { color "yellow" } { outline "red" } { angle 0 } } {
     set cnvs $::widgets(graphicview)
     set padtxt [expr {$pin == "-" ? $pad : $pin}]
     puts [format "Pad Text:  %s (Pin:  %s  Pad:  %s" $padtxt $pin $pad]
@@ -1109,7 +1235,8 @@ proc ediuGraphicViewAddPin { x y pin net pad line_no { tags "diepads" } { color 
 
             #  Add text: Use pin number if it was supplied, otherwise pad name
             $cnvs create text $x $y -text $padtxt -fill $outline \
-                -anchor center -font [list arial] -justify center -tags "padnumber $tags"
+                -anchor center -font [list arial] -justify center \
+                -tags "text padnumber padnumber-$pin $tags"
         }
         "CIRCLE" -
         "ROUND" {
@@ -1120,7 +1247,8 @@ proc ediuGraphicViewAddPin { x y pin net pad line_no { tags "diepads" } { color 
 
             #  Add text: Use pin number if it was supplied, otherwise pad name
             $cnvs create text $x $y -text $padtxt -fill $outline \
-                -anchor center -font [list arial] -justify center -tags "padnumber $tags"
+                -anchor center -font [list arial] -justify center \
+                -tags "text padnumber padnumber-$pin $tags"
         }
         "OBLONG" -
         "OBROUND" {
@@ -1165,7 +1293,8 @@ proc ediuGraphicViewAddPin { x y pin net pad line_no { tags "diepads" } { color 
 
             #  Add text: Use pin number if it was supplied, otherwise pad name
             $cnvs create text $x $y -text $padtxt -fill $outline \
-                -anchor center -font [list arial] -justify center -tags "padnumber $tags"
+                -anchor center -font [list arial] -justify center \
+                -tags "text padnumber padnumber-$pin $tags"
 
             #  Handle any angle ajustment
 
@@ -1212,7 +1341,8 @@ proc ediuGraphicViewAddPin { x y pin net pad line_no { tags "diepads" } { color 
 
             #  Add text: Use pin number if it was supplied, otherwise pad name
             $cnvs create text $x $y -text $padtxt -fill $outline \
-                -anchor center -font [list arial] -justify center -tags "padnumber $tags $pad"
+                -anchor center -font [list arial] -justify center \
+                -tags "text padnumber padnumber-$pin $tags"
         }
         default {
             #error "Error parsing $filename (line: $line_no): $line"
@@ -1257,7 +1387,7 @@ proc ediuDrawPartOutline { name height width x y { color "green" } { tags "parto
     set cnvs $::widgets(graphicview)
     $cnvs create rectangle $x1 $y1 $x2 $y2 -outline $color -tags "device device-$name $tags"
     $cnvs create text $x2 $y2 -text $name -fill $color \
-        -anchor sw -font [list arial] -justify right -tags "device device-$name refdes refdes-$name"
+        -anchor sw -font [list arial] -justify right -tags "text device device-$name refdes refdes-$name"
 
     #puts [format "Part Outline extents:  X1:  %s  Y1:  %s  X2:  %s  Y2:  %s" $x1 $y1 $x2 $y2]
 
@@ -1301,17 +1431,17 @@ proc ediuDrawBGAOutline { { color "white" } } {
 
     $cnvs create polygon $points -outline $color -tags "$::bga(name) bga bgaoutline"
     $cnvs create text $x2 $y2 -text $::bga(name) -fill $color \
-        -anchor sw -font [list arial] -justify right -tags "$::bga(name) bga refdes"
+        -anchor sw -font [list arial] -justify right -tags "$::bga(name) bga text refdes"
 
     #  Add some text to note the corner XY coordinates - visual reference only
     $cnvs create text $x1 $y1 -text [format "X: %.2f  Y: %.2f" $x1 $y1] -fill $color \
-        -anchor sw -font [list arial] -justify left -tags "guides dimensions"
+        -anchor sw -font [list arial] -justify left -tags "guides dimension text"
     $cnvs create text $x1 $y2 -text [format "X: %.2f  Y: %.2f" $x1 $y2] -fill $color \
-        -anchor nw -font [list arial] -justify left -tags "guides dimensions"
+        -anchor nw -font [list arial] -justify left -tags "guides dimension text"
     $cnvs create text $x2 $y1 -text [format "X: %.2f  Y: %.2f" $x2 $y1] -fill $color \
-        -anchor se -font [list arial] -justify left -tags "guides dimensions"
+        -anchor se -font [list arial] -justify left -tags "guides dimension text"
     $cnvs create text $x2 $y2 -text [format "X: %.2f  Y: %.2f" $x2 $y2] -fill $color \
-        -anchor ne -font [list arial] -justify left -tags "guides dimensions"
+        -anchor ne -font [list arial] -justify left -tags "guides dimension text"
 
     #  Add cross hairs through the origin - visual reference only
     $cnvs create line [expr $x1 - $::bga(width) / 4] 0 [expr $x2 +$::bga(width) / 4] 0 \
@@ -4185,4 +4315,5 @@ Transcript $::ediu(MsgNote) "$::ediu(EDIU) ready."
 ##catch { ediuAIFFileOpen "c:/users/mike/desktop/ImportAIF/data/BGA_w2_Dies-2.aif" } retString
 #catch { ediuAIFFileOpen "c:/users/mike/desktop/ImportAIF/data/BGA_w2_Dies-3.aif" } retString
 catch { ediuAIFFileOpen "c:/users/mike/desktop/ImportAIF/data/Test2.aif" } retString
+gui::Visibility text -all true -mode off
 #ediuAIFFileOpen
