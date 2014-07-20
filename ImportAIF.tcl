@@ -2184,7 +2184,8 @@ proc ediuMapUnitsToEnum { units { type "pad" } } {
 #
 
 proc ediuGenerateAIFPads { } {
-    foreach p [padGetAllPads] {
+    foreach i [AIFForms::SelectFromList "Select Pads" [padGetAllPads]] {
+        set p [lindex $i 1]
         set ::padGeom(name) $p
         set ::padGeom(shape) [pad::getShape $p]
         set ::padGeom(width) [pad::getWidth $p]
@@ -2209,8 +2210,8 @@ proc ediuGenerateAIFPad { { mode "-replace" } } {
 
     ##  Make sure a Target library or design has been defined
 
-    if {$::ediu(targetPath) == $::ediu(Nothing)} {
-            if {$::ediu(mode) == $::ediu(designMode)} {
+    if {$::ediu(targetPath) == $::ediu(Nothing) && $::ediu(connectMode) != True } {
+        if {$::ediu(mode) == $::ediu(designMode)} {
             Transcript $::ediu(MsgError) "No Design (PCB) specified, build aborted."
         } elseif {$::ediu(mode) == $::ediu(libraryMode)} {
             Transcript $::ediu(MsgError) "No Central Library (LMC) specified, build aborted."
@@ -2233,7 +2234,7 @@ proc ediuGenerateAIFPad { { mode "-replace" } } {
 
     ##  Map the shape to something we can pass through the API
 
-    set shape [ediuMapShapeToEnum $::padGeom(shape)]
+    set shape [MapEnum::Shape $::padGeom(shape)]
 
     if { $shape == $::ediu(Nothing) } {
         Transcript $::ediu(MsgError) "Unsupported pad shape, build aborted."
@@ -2286,10 +2287,10 @@ proc ediuGenerateAIFPad { { mode "-replace" } } {
     $newPad -set Name $padName
 puts "------>$padName<----------"
     $newPad -set Shape [expr $shape]
-    $newPad -set Width [expr [ediuMapUnitsToEnum $::database(units) "pad"]] [expr $::padGeom(width)]
-    $newPad -set Height [expr [ediuMapUnitsToEnum $::database(units) "pad"]] [expr $::padGeom(height)]
-    $newPad -set OriginOffsetX [expr [ediuMapUnitsToEnum $::database(units) "pad"]] [expr $::padGeom(offsetx)]
-    $newPad -set OriginOffsetY [expr [ediuMapUnitsToEnum $::database(units) "pad"]] [expr $::padGeom(offsety)]
+    $newPad -set Width [expr [MapEnum::Units $::database(units) "pad"]] [expr $::padGeom(width)]
+    $newPad -set Height [expr [MapEnum::Units $::database(units) "pad"]] [expr $::padGeom(height)]
+    $newPad -set OriginOffsetX [expr [MapEnum::Units $::database(units) "pad"]] [expr $::padGeom(offsetx)]
+    $newPad -set OriginOffsetY [expr [MapEnum::Units $::database(units) "pad"]] [expr $::padGeom(offsety)]
 
     Transcript $::ediu(MsgNote) [format "Committing pad:  %s" $padName]
     $newPad Commit
@@ -2338,7 +2339,7 @@ proc ediuGenerateAIFPadstack { { mode "-replace" } } {
 
     ##  Make sure a Target library or design has been defined
 
-    if {$::ediu(targetPath) == $::ediu(Nothing)} {
+    if {$::ediu(targetPath) == $::ediu(Nothing) && $::ediu(connectMode) != True } {
         if {$::ediu(mode) == $::ediu(designMode)} {
             Transcript $::ediu(MsgError) "No Design (PCB) specified, build aborted."
         } elseif {$::ediu(mode) == $::ediu(libraryMode)} {
@@ -2976,7 +2977,7 @@ proc ediuGenerateAIFCell {} {
 
     ##  Make sure a Target library or design has been defined
 
-    if {$::ediu(targetPath) == $::ediu(Nothing)} {
+    if {$::ediu(targetPath) == $::ediu(Nothing) && $::ediu(connectMode) != True } {
         if {$::ediu(mode) == $::ediu(designMode)} {
             Transcript $::ediu(MsgError) "No Design (PCB) specified, build aborted."
         } elseif {$::ediu(mode) == $::ediu(libraryMode)} {
@@ -3097,7 +3098,7 @@ proc ediuGenerateAIFCell {} {
     $newCell -set PinCount [expr $::diePads(count)]
     #puts [format "--->  ::diePads(count):  %s" $::diePads(count)]
     #$newCell -set Units [expr $::CellEditorAddinLib::ECellDBUnit(ecelldbUnitUM)]
-    $newCell -set Units [expr [ediuMapUnitsToEnum $::database(units) "cell"]]
+    $newCell -set Units [expr [MapEnum::Units $::database(units) "cell"]]
     $newCell -set PackageGroup [expr $::CellEditorAddinLib::ECellDBPackageGroup(ecelldbPackageGeneral)]
     ##  Commit the cell to the database so it can
     ##  be edited using the Cell Editor AddIn.
@@ -3250,7 +3251,7 @@ proc ediuGenerateAIFCell {} {
 
     ##  Add the Placment Outline
     $cellEditor PutPlacementOutline [expr $::MGCPCB::EPcbSide(epcbSideMount)] 5 $ptsArray \
-        [expr 0] [expr 0] $component [expr [ediuMapUnitsToEnum $::database(units) "cell"]]
+        [expr 0] [expr 0] $component [expr [MapEnum::Units $::database(units) "cell"]]
 
     ##  Terminate transactions
     $cellEditor TransactionEnd True
@@ -3287,7 +3288,7 @@ proc ediuGenerateAIFPDB {} {
 
     ##  Make sure a Target library or design has been defined
 
-    if {$::ediu(targetPath) == $::ediu(Nothing)} {
+    if {$::ediu(targetPath) == $::ediu(Nothing) && $::ediu(connectMode) != True } {
         if {$::ediu(mode) == $::ediu(designMode)} {
             Transcript $::ediu(MsgError) "No Design (PCB) specified, build aborted."
         } elseif {$::ediu(mode) == $::ediu(libraryMode)} {
@@ -4375,6 +4376,7 @@ proc printArray { name } {
         puts "$el = $a($el)"
     }
 }
+
 ##  Main application
 
 ##  Figure out where the script lives
@@ -4384,7 +4386,7 @@ variable IMPORTAIF [pwd]
 cd $pwd
 
 ##  Load various pieces which comprise the application
-foreach script { ImportAIFForms.tcl } {
+foreach script { Forms.tcl MapEnum.tcl } {
     source $IMPORTAIF/$script
 }
 

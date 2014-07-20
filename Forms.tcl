@@ -49,6 +49,7 @@ namespace eval AIFForms {
     variable widgets
     variable lblist [list]
     variable rv
+    variable selectmode multiple
 
     array set widgets {
         lb .aifListBox
@@ -58,7 +59,23 @@ namespace eval AIFForms {
     proc SelectFromList { { p "Select From List" } { l [list] } } {
         variable rv
         variable lblist
+        variable selectmode
+
         set lblist $l
+        set selectmode multiple
+        set rv [list]
+        SelectFromListBoxDialog $p
+        return $rv
+    }
+
+    ##  Select One From List
+    proc SelectOneFromList { { p "Select One From List" } { l [list] } } {
+        variable rv
+        variable lblist
+        variable selectmode
+
+        set lblist $l
+        set selectmode single
         SelectFromListBoxDialog $p
         return $rv
     }
@@ -69,12 +86,12 @@ namespace eval AIFForms {
         variable widgets
 
         set dlg $widgets(lb)
-        set rv [list]
 
         ##  If there is a selection, capture value and index
         if { [$dlg.f.sf.list curselection] != "" } {
-            set rv [list [$dlg.f.sf.list curselection] \
-                [$dlg.f.sf.list get [$dlg.f.sf.list curselection]]]
+            foreach i [$dlg.f.sf.list curselection] {
+                lappend rv [list $i [$dlg.f.sf.list get $i]]
+            }
         }
 
         ##  Clean up and return
@@ -88,6 +105,7 @@ namespace eval AIFForms {
     proc SelectFromListBoxDialog { { p "Select From List Box" } } {
         variable lblist
         variable widgets
+        variable selectmode
 
         set dlg $widgets(lb)
     
@@ -100,7 +118,7 @@ namespace eval AIFForms {
     
         #  Create a sub-frame to hold all the pieces
         ttk::labelframe $dlg.f.sf -text $p
-        listbox $dlg.f.sf.list -relief raised -borderwidth 2 \
+        listbox $dlg.f.sf.list -relief raised -borderwidth 2 -selectmode $selectmode \
             -yscrollcommand "$dlg.f.sf.scroll set" -listvariable AIFForms::lblist
         ttk::scrollbar $dlg.f.sf.scroll -command "$dlg.f.sf.list yview"
         pack $dlg.f.sf.list $dlg.f.sf.scroll \
@@ -118,7 +136,7 @@ namespace eval AIFForms {
         ttk::frame $dlg.f.buttons -relief flat
     
         ttk::button $dlg.f.buttons.ok -text "Ok" -command { AIFForms::SelectFromListBox }
-        ttk::button $dlg.f.buttons.cancel -text "Cancel" -command { destroy $widgets(lb) }
+        ttk::button $dlg.f.buttons.cancel -text "Cancel" -command { destroy $AIFForms::widgets(lb) }
         
         pack $dlg.f.buttons.ok -side left
         pack $dlg.f.buttons.cancel -side right
