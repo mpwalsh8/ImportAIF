@@ -1467,11 +1467,8 @@ proc ediuGraphicViewZoom {scale} {
 #  Source View and update the appropriate status.
 #
 proc ediuAIFFileOpen { { f "" } } {
-set zzz 0
-puts [incr zzz]
     ediuUpdateStatus $::ediu(busy)
     ediuAIFInitialState
-puts [incr zzz]
 
     ##  Set up the sections so they can be highlighted in the AIF source
 
@@ -1484,7 +1481,6 @@ puts [incr zzz]
             [expr {$sectionRegExp == "" ? "(" : "|" }] \
             $::ediu(BackSlash) $::ediu(LeftBracket) $::sections($i) $::ediu(BackSlash) $::ediu(RightBracket) ]
     }
-puts [incr zzz]
 
     set sectionRegExp [format "%s)" $sectionRegExp]
 
@@ -1500,7 +1496,6 @@ puts [incr zzz]
 
     set ignoreRegExp [format "%s)" $ignoreRegExp]
 
-puts [incr zzz]
     ##  Prompt the user for a file if not supplied
 
     if { $f != $::ediu(Nothing) } {
@@ -1508,7 +1503,6 @@ puts [incr zzz]
     } else {
         set ::ediu(filename) [tk_getOpenFile -filetypes {{AIF .aif} {Txt .txt} {All *}}]
     }
-puts [incr zzz]
 
     ##  Process the user supplied file
     if {$::ediu(filename) != $::ediu(Nothing) } {
@@ -1528,20 +1522,17 @@ puts [incr zzz]
         close $f
         Transcript $::ediu(MsgNote) [format "Loaded AIF file \"%s\"." $::ediu(filename)]
 
-puts [incr zzz]
         ##  Parse AIF file
 
         AIF::Parse $::ediu(filename)
         Transcript $::ediu(MsgNote) [format "Parsed AIF file \"%s\"." $::ediu(filename)]
 
-puts [incr zzz]
         ##  Load the DATABASE section ...
 
         if { [ ediuAIFDatabaseSection ] == -1 } {
             ediuUpdateStatus $::ediu(ready)
             return -1
         }
-puts [incr zzz]
 
         ##  If the file a MCM-AIF file?
 
@@ -1551,7 +1542,6 @@ puts [incr zzz]
                 return -1
             }
         }
-puts [incr zzz]
 
         ##  Load the DIE section ...
 
@@ -1559,7 +1549,6 @@ puts [incr zzz]
             ediuUpdateStatus $::ediu(ready)
             return -1
         }
-puts [incr zzz]
 
         ##  Load the optional BGA section ...
 
@@ -1569,17 +1558,13 @@ puts [incr zzz]
                 return -1
             }
         }
-puts [incr zzz]
-puts "ZZZZ"
 
         ##  Load the PADS section ...
 
         if { [ ediuAIFPadsSection ] == -1 } {
-puts "QQQQ"
             ediuUpdateStatus $::ediu(ready)
             return -1
         }
-puts [incr zzz]
 
         ##  Load the NETLIST section ...
 
@@ -1587,7 +1572,6 @@ puts [incr zzz]
             ediuUpdateStatus $::ediu(ready)
             return -1
         }
-puts [incr zzz]
 
         ##  Draw the Graphic View
 
@@ -1595,7 +1579,6 @@ puts [incr zzz]
     } else {
         Transcript $::ediu(MsgWarning) "No AIF file selected."
     }
-puts [incr zzz]
 
     ediuUpdateStatus $::ediu(ready)
 }
