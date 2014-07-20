@@ -168,38 +168,6 @@ proc ediuInit {} {
         BGAREF "A1"
     }
 
-    array set gui::objects {
-        diepads 1
-        balls 1
-        fingers 1
-        dieoutline 1
-        bgaoutline 1
-        partoutline 1
-        rings 1
-    }
-
-    array set gui::text {
-        padnumber on
-        refdes on
-    }
-
-    array set gui::devices {
-    }
-
-    array set gui::pads {
-    }
-
-    array set gui::bondwires {
-    }
-
-    array set gui::netlines {
-    }
-
-    array set gui::guides {
-        xyaxis on
-        dimension on
-    }
-
     ##  Keywords to scan for in AIF file
     array unset ::sections
     #array set ::sections {
@@ -428,7 +396,7 @@ proc BuildGUI {} {
          -command ediuGenerateAIFPadstacks
     $bm add command -label "Cells ..." \
          -underline 0 \
-         -command ediuGenerateAIFCell
+         -command ediuGenerateAIFCells
     $bm add command -label "PDBs ..." \
          -underline 1 \
          -command ediuGenerateAIFPDB
@@ -465,6 +433,7 @@ proc BuildGUI {} {
 
     $vm add separator
 
+    if { 0 } {
     $vm add cascade -label "Objects" \
          -underline 1 -menu $vm.objects
     menu $vm.objects -tearoff 0
@@ -485,66 +454,67 @@ proc BuildGUI {} {
         -variable gui::objects(partoutline) -onvalue 1 -offvalue 0 -command gui::VisibleObject
     $vm.objects add checkbutton -label "Rings" -underline 0 \
         -variable gui::objects(rings) -onvalue 1 -offvalue 0 -command gui::VisibleObject
+    }
 
     $vm add cascade -label "Text" \
          -underline 1 -menu $vm.text
     menu $vm.text -tearoff 0
     $vm.text add cascade -label "All On" -underline 5 \
-        -command { gui::Visibility "text" -all true -mode on ; \
-        foreach t [array names gui::text] { set gui::text([lindex $t 0]) on }  }
+        -command { GUI::Visibility "text" -all true -mode on ; \
+        foreach t [array names GUI::text] { set GUI::text([lindex $t 0]) on }  }
     $vm.text add cascade -label "All Off" -underline 5 \
-        -command { gui::Visibility "text" -all true -mode off ; \
-        foreach t [array names gui::text] { set gui::text([lindex $t 0]) off }  }
+        -command { GUI::Visibility "text" -all true -mode off ; \
+        foreach t [array names GUI::text] { set GUI::text([lindex $t 0]) off }  }
     $vm.text add separator
     $vm.text add checkbutton -label "Pad Numbers" -underline 0 \
-        -variable gui::text(padnumber) -onvalue on -offvalue off \
-        -command  "gui::Visibility padnumber -mode toggle"
+        -variable GUI::text(padnumber) -onvalue on -offvalue off \
+        -command  "GUI::Visibility padnumber -mode toggle"
     $vm.text add checkbutton -label "Ref Designators" -underline 5 \
-        -variable gui::text(refdes) -onvalue on -offvalue off \
-        -command  "gui::Visibility refdes -mode toggle"
+        -variable GUI::text(refdes) -onvalue on -offvalue off \
+        -command  "GUI::Visibility refdes -mode toggle"
 
     $vm add cascade -label "Devices" \
          -underline 0 -menu $vm.devices
     menu $vm.devices -tearoff 0
     $vm.devices add cascade -label "All On" -underline 5 \
-        -command { gui::Visibility {bga device} -mode on ; \
-        foreach d $::mcmdie { set gui::devices($d) on } }
+        -command { GUI::Visibility {bga device} -mode on ; \
+        foreach d $::mcmdie { set GUI::devices($d) on } }
     $vm.devices add cascade -label "All Off" -underline 5 \
-        -command { gui::Visibility {bga device} -mode off ; \
-        foreach d $::mcmdie { set gui::devices($d) off } }
+        -command { GUI::Visibility {bga device} -mode off ; \
+        foreach d $::mcmdie { set GUI::devices($d) off } }
     $vm.devices add separator
 
     $vm add cascade -label "Bond Wires" \
          -underline 0 -menu $vm.bondwires
     menu $vm.bondwires -tearoff 0
     $vm.bondwires add cascade -label "All On" -underline 5 \
-        -command { gui::Visibility "bondwire" -all true -mode on ; \
-        foreach bw $::bondwires { set gui::bondwires([lindex $bw 0]) on }  }
+        -command { GUI::Visibility "bondwire" -all true -mode on ; \
+        foreach bw $::bondwires { set GUI::bondwires([lindex $bw 0]) on }  }
     $vm.bondwires add cascade -label "All Off" -underline 5 \
-        -command { gui::Visibility "bondwire" -all true -mode off ; \
-        foreach bw $::bondwires { set gui::bondwires([lindex $bw 0]) off }  }
+        -command { GUI::Visibility "bondwire" -all true -mode off ; \
+        foreach bw $::bondwires { set GUI::bondwires([lindex $bw 0]) off }  }
     $vm.bondwires add separator
 
     $vm add cascade -label "Net Lines" \
          -underline 0 -menu $vm.netlines
     menu $vm.netlines -tearoff 0
     $vm.netlines add cascade -label "All On" -underline 5 \
-        -command { gui::Visibility "netline" -all true -mode on ; \
-        foreach nl $::netlines { set gui::netlines([lindex $nl 0]) on }  }
+        -command { GUI::Visibility "netline" -all true -mode on ; \
+        foreach nl $::netlines { set GUI::netlines([lindex $nl 0]) on }  }
     $vm.netlines add cascade -label "All Off" -underline 5 \
-        -command { gui::Visibility "netline" -all true -mode off ; \
-        foreach nl $::netlines { set gui::netlines([lindex $nl 0]) off }  }
+        -command { GUI::Visibility "netline" -all true -mode off ; \
+        foreach nl $::netlines { set GUI::netlines([lindex $nl 0]) off }  }
     $vm.netlines add separator
 
     $vm add cascade -label "Pads" \
          -underline 0 -menu $vm.pads
     menu $vm.pads -tearoff 0
     $vm.pads add cascade -label "All On" -underline 5 \
-        -command { gui::Visibility "pad" -all true -mode on ; \
-        foreach p $::pads { set gui::pads([lindex $p 0]) on }  }
+        -command { GUI::Visibility "pad" -all true -mode on ; \
+        foreach p $::pads { set GUI::pads([lindex $p 0]) on }  }
     $vm.pads add cascade -label "All Off" -underline 5 \
-        -command { gui::Visibility "pad" -all true -mode off ; \
-        foreach p $::pads { set gui::pads([lindex $p 0]) off }  }
+        -command { GUI::Visibility "pad" -all true -mode off ; \
+        foreach p $::pads { set GUI::pads([lindex $p 0]) off }  }
     $vm.pads add separator
 
 
@@ -554,18 +524,18 @@ proc BuildGUI {} {
          -underline 0 -menu $vm.guides
     menu $vm.guides -tearoff 0
     $vm.guides add cascade -label "All On" -underline 5 \
-        -command { gui::Visibility "guides" -all true -mode on ; \
-        foreach g [array names gui::guides] { set gui::guides($g) on }  }
+        -command { GUI::Visibility "guides" -all true -mode on ; \
+        foreach g [array names GUI::guides] { set GUI::guides($g) on }  }
     $vm.guides add cascade -label "All Off" -underline 5 \
-        -command { gui::Visibility "guides" -all true -mode off ; \
-        foreach g [array names gui::guides] { set gui::guides($g) off }  }
+        -command { GUI::Visibility "guides" -all true -mode off ; \
+        foreach g [array names GUI::guides] { set GUI::guides($g) off }  }
     $vm.guides add separator
     $vm.guides add checkbutton -label "XY Axis" \
-        -variable gui::guides(xyaxis) -onvalue on -offvalue off \
-        -command  "gui::Visibility xyaxis -mode toggle"
+        -variable GUI::guides(xyaxis) -onvalue on -offvalue off \
+        -command  "GUI::Visibility xyaxis -mode toggle"
     $vm.guides add checkbutton -label "Dimensions" \
-        -variable gui::guides(dimension) -onvalue on -offvalue off \
-        -command  "gui::Visibility dimension -mode toggle"
+        -variable GUI::guides(dimension) -onvalue on -offvalue off \
+        -command  "GUI::Visibility dimension -mode toggle"
 
     # Define the Help menu
     set hm [menu .menubar.help -tearoff 0]
@@ -901,9 +871,9 @@ proc ediuGraphicViewBuild {} {
         ediuDrawBGAOutline
 
         #  Add BGA to the View Devices menu and make it visible
-        set gui::devices($::bga(name)) 1
+        set GUI::devices($::bga(name)) 1
         $vm.devices add checkbutton -label "$::bga(name)" -underline 0 \
-            -variable gui::devices($::bga(name)) -onvalue 1 -offvalue 0 -command gui::VisibleDevice
+            -variable GUI::devices($::bga(name)) -onvalue 1 -offvalue 0 -command GUI::VisibleDevice
         $vm.devices add separator
     }
 
@@ -913,7 +883,7 @@ proc ediuGraphicViewBuild {} {
         foreach i [dict keys $::mcmdie] {
             #set section [format "MCM_%s_%s" [string toupper $i] [dict get $::mcmdie $i]]
             set section [format "MCM_%s_%s" [dict get $::mcmdie $i] $i]
-            if { [lsearch -exact [aif::sections] $section] != -1 } {
+            if { [lsearch -exact [AIF::Sections] $section] != -1 } {
                 array set part {
                     REF ""
                     NAME ""
@@ -926,8 +896,8 @@ proc ediuGraphicViewBuild {} {
 
                 #  Extract each of the expected keywords from the section
                 foreach key [array names part] {
-                    if { [lsearch -exact [aif::variables $section] $key] != -1 } {
-                        set part($key) [aif::getvar $key $section]
+                    if { [lsearch -exact [AIF::Variables $section] $key] != -1 } {
+                        set part($key) [AIF::GetVar $key $section]
                     }
                 }
 
@@ -951,10 +921,10 @@ proc ediuGraphicViewBuild {} {
                 ediuDrawPartOutline $part(REF) $part(HEIGHT) $part(WIDTH) $part(X) $part(Y)
 
                 #  Add part to the View Devices menu and make it visible
-                set gui::devices($part(REF)) on
+                set GUI::devices($part(REF)) on
                 $vm.devices add checkbutton -label "$part(REF)" -underline 0 \
-                    -variable gui::devices($part(REF)) -onvalue on -offvalue off \
-                    -command  "gui::Visibility device-$part(REF) -mode toggle"
+                    -variable GUI::devices($part(REF)) -onvalue on -offvalue off \
+                    -command  "GUI::Visibility device-$part(REF) -mode toggle"
             }
         }
     }
@@ -1162,12 +1132,12 @@ proc ediuGraphicViewBuild {} {
             #  Because a net can have more than one bond wire, need to ensure
             #  already hasn't been added or it will result in redundant menus.
 
-            if { [array size gui::bondwires] == 0 || \
-                 [lsearch [array names gui::bondwires] $net] == -1 } {
-                set gui::bondwires($net) on
+            if { [array size GUI::bondwires] == 0 || \
+                 [lsearch [array names GUI::bondwires] $net] == -1 } {
+                set GUI::bondwires($net) on
                 $vm.bondwires add checkbutton -label "$net" \
-                    -variable gui::bondwires($net) -onvalue on -offvalue off \
-                    -command  "gui::Visibility bondwire-$net -mode toggle"
+                    -variable GUI::bondwires($net) -onvalue on -offvalue off \
+                    -command  "GUI::Visibility bondwire-$net -mode toggle"
             }
         }
     }
@@ -1182,12 +1152,12 @@ proc ediuGraphicViewBuild {} {
             #  Because a net can have more than one bond wire, need to ensure
             #  already hasn't been added or it will result in redundant menus.
 
-            if { [array size gui::netlines] == 0 || \
-                 [lsearch [array names gui::netlines] $net] == -1 } {
-                set gui::netlines($net) on
+            if { [array size GUI::netlines] == 0 || \
+                 [lsearch [array names GUI::netlines] $net] == -1 } {
+                set GUI::netlines($net) on
                 $vm.netlines add checkbutton -label "$net" \
-                    -variable gui::netlines($net) -onvalue on -offvalue off \
-                    -command  "gui::Visibility netline-$net -mode toggle"
+                    -variable GUI::netlines($net) -onvalue on -offvalue off \
+                    -command  "GUI::Visibility netline-$net -mode toggle"
             }
         }
     }
@@ -1294,11 +1264,11 @@ proc ediuGraphicViewAddPin { x y pin net pad line_no { tags "diepad" } { color "
             set padxy {}
 
             #  Top arc
-            set arc [gui::ArcPath [expr {$x-($pw/2.0)}] $y1 [expr {$x + ($pw/2.0)}] [expr {$y1+$pw}] -start 180 -extent 180 -sides 20]
+            set arc [GUI::ArcPath [expr {$x-($pw/2.0)}] $y1 [expr {$x + ($pw/2.0)}] [expr {$y1+$pw}] -start 180 -extent 180 -sides 20]
             foreach e $arc { lappend padxy $e }
 
             #  Bottom Arc
-            set arc [gui::ArcPath [expr {$x-($pw/2.0)}] [expr {$y2-$pw}] [expr {$x + ($pw/2.0)}] $y2 -start 0 -extent 180 -sides 20]
+            set arc [GUI::ArcPath [expr {$x-($pw/2.0)}] [expr {$y2-$pw}] [expr {$x + ($pw/2.0)}] $y2 -start 0 -extent 180 -sides 20]
             foreach e $arc { lappend padxy $e }
 
             set id [$cnvs create poly $padxy -outline $outline -fill $color -tags "$tags"]
@@ -1419,8 +1389,8 @@ proc ediuDrawBGAOutline { { color "white" } } {
     #puts [format "BGA Outline extents:  X1:  %s  Y1:  %s  X2:  %s  Y2:  %s" $x1 $y1 $x2 $y2]
 
     #  Does BGA section contain POLYGON outline?  If not, use the height and width
-    if { [lsearch -exact [aif::variables BGA] OUTLINE] != -1 } {
-        set poly [split [aif::getvar OUTLINE BGA]]
+    if { [lsearch -exact [AIF::Variables BGA] OUTLINE] != -1 } {
+        set poly [split [AIF::GetVar OUTLINE BGA]]
         set pw [lindex $poly 2]
         puts $poly
         if { [lindex $poly 1] == 1 } {
@@ -1497,8 +1467,11 @@ proc ediuGraphicViewZoom {scale} {
 #  Source View and update the appropriate status.
 #
 proc ediuAIFFileOpen { { f "" } } {
+set zzz 0
+puts [incr zzz]
     ediuUpdateStatus $::ediu(busy)
     ediuAIFInitialState
+puts [incr zzz]
 
     ##  Set up the sections so they can be highlighted in the AIF source
 
@@ -1511,6 +1484,7 @@ proc ediuAIFFileOpen { { f "" } } {
             [expr {$sectionRegExp == "" ? "(" : "|" }] \
             $::ediu(BackSlash) $::ediu(LeftBracket) $::sections($i) $::ediu(BackSlash) $::ediu(RightBracket) ]
     }
+puts [incr zzz]
 
     set sectionRegExp [format "%s)" $sectionRegExp]
 
@@ -1526,6 +1500,7 @@ proc ediuAIFFileOpen { { f "" } } {
 
     set ignoreRegExp [format "%s)" $ignoreRegExp]
 
+puts [incr zzz]
     ##  Prompt the user for a file if not supplied
 
     if { $f != $::ediu(Nothing) } {
@@ -1533,6 +1508,7 @@ proc ediuAIFFileOpen { { f "" } } {
     } else {
         set ::ediu(filename) [tk_getOpenFile -filetypes {{AIF .aif} {Txt .txt} {All *}}]
     }
+puts [incr zzz]
 
     ##  Process the user supplied file
     if {$::ediu(filename) != $::ediu(Nothing) } {
@@ -1552,17 +1528,20 @@ proc ediuAIFFileOpen { { f "" } } {
         close $f
         Transcript $::ediu(MsgNote) [format "Loaded AIF file \"%s\"." $::ediu(filename)]
 
+puts [incr zzz]
         ##  Parse AIF file
 
-        aif::parse $::ediu(filename)
+        AIF::Parse $::ediu(filename)
         Transcript $::ediu(MsgNote) [format "Parsed AIF file \"%s\"." $::ediu(filename)]
 
+puts [incr zzz]
         ##  Load the DATABASE section ...
 
         if { [ ediuAIFDatabaseSection ] == -1 } {
             ediuUpdateStatus $::ediu(ready)
             return -1
         }
+puts [incr zzz]
 
         ##  If the file a MCM-AIF file?
 
@@ -1572,6 +1551,7 @@ proc ediuAIFFileOpen { { f "" } } {
                 return -1
             }
         }
+puts [incr zzz]
 
         ##  Load the DIE section ...
 
@@ -1579,6 +1559,7 @@ proc ediuAIFFileOpen { { f "" } } {
             ediuUpdateStatus $::ediu(ready)
             return -1
         }
+puts [incr zzz]
 
         ##  Load the optional BGA section ...
 
@@ -1588,13 +1569,17 @@ proc ediuAIFFileOpen { { f "" } } {
                 return -1
             }
         }
+puts [incr zzz]
+puts "ZZZZ"
 
         ##  Load the PADS section ...
 
         if { [ ediuAIFPadsSection ] == -1 } {
+puts "QQQQ"
             ediuUpdateStatus $::ediu(ready)
             return -1
         }
+puts [incr zzz]
 
         ##  Load the NETLIST section ...
 
@@ -1602,6 +1587,7 @@ proc ediuAIFFileOpen { { f "" } } {
             ediuUpdateStatus $::ediu(ready)
             return -1
         }
+puts [incr zzz]
 
         ##  Draw the Graphic View
 
@@ -1609,6 +1595,7 @@ proc ediuAIFFileOpen { { f "" } } {
     } else {
         Transcript $::ediu(MsgWarning) "No AIF file selected."
     }
+puts [incr zzz]
 
     ediuUpdateStatus $::ediu(ready)
 }
@@ -2104,78 +2091,6 @@ proc ediuPadGeomShape {} {
 }
 
 #
-#  ediuMapShapeToEnum
-#
-proc ediuMapShapeToEnum { shape } {
-    switch -exact -- [string toupper $shape] {
-        "CIRCLE" -
-        "ROUND" {
-            return $::PadstackEditorLib::EPsDBPadShape(epsdbPadShapeRound)
-        }
-        "SQ" -
-        "SQUARE" {
-            return $::PadstackEditorLib::EPsDBPadShape(epsdbPadShapeSquare)
-        }
-        "RECT" -
-        "RECTANGLE" {
-            return $::PadstackEditorLib::EPsDBPadShape(epsdbPadShapeRectangle)
-        }
-        "OBLONG" -
-        "OBROUND" {
-            return $::PadstackEditorLib::EPsDBPadShape(epsdbPadShapeOblong)
-        }
-        default {
-            return $::ediu(Nothing)
-        }
-    }
-}
-
-#
-#  ediuMapUnitsToEnum
-#
-proc ediuMapUnitsToEnum { units { type "pad" } } {
-    if { $type == "pad" } {
-        switch -exact -- [string toupper $units] {
-            "UM" {
-                return $::PadstackEditorLib::EPsDBUnit(epsdbUnitUM)
-            }
-            "MM" {
-                return $::PadstackEditorLib::EPsDBUnit(epsdbUnitMM)
-            }
-            "INCH" {
-                return $::PadstackEditorLib::EPsDBUnit(epsdbUnitInch)
-            }
-            "MIL" {
-                return $::PadstackEditorLib::EPsDBUnit(epsdbUnitMils)
-            }
-            default {
-                return $::ediu(Nothing)
-            }
-        }
-    } elseif { $type == "cell" } {
-        switch -exact -- [string toupper $units] {
-            "UM" {
-                return $::CellEditorAddinLib::ECellDBUnit(ecelldbUnitUM)
-            }
-            "MM" {
-                return $::CellEditorAddinLib::ECellDBUnit(ecelldbUnitMM)
-            }
-            "INCH" {
-                return $::CellEditorAddinLib::ECellDBUnit(ecelldbUnitInch)
-            }
-            "MIL" {
-                return $::CellEditorAddinLib::ECellDBUnit(ecelldbUnitMils)
-            }
-            default {
-                return $::ediu(Nothing)
-            }
-        }
-    } else {
-        return $::ediu(Nothing)
-    }
-}
-
-#
 #  ediuGenerateAIFPad
 #
 #  This subroutine will create die pads based on the "PADS" section
@@ -2184,7 +2099,7 @@ proc ediuMapUnitsToEnum { units { type "pad" } } {
 #
 
 proc ediuGenerateAIFPads { } {
-    foreach i [AIFForms::SelectFromList "Select Pads" [padGetAllPads]] {
+    foreach i [AIFForms::SelectFromList "Select Pad(s)" [padGetAllPads]] {
         set p [lindex $i 1]
         set ::padGeom(name) $p
         set ::padGeom(shape) [pad::getShape $p]
@@ -2314,7 +2229,8 @@ puts "------>$padName<----------"
 #
 
 proc ediuGenerateAIFPadstacks { } {
-    foreach p [padGetAllPads] {
+    foreach i [AIFForms::SelectFromList "Select Pad(s)" [padGetAllPads]] {
+        set p [lindex $i 1]
         set ::padGeom(name) $p
         set ::padGeom(shape) [pad::getShape $p]
         set ::padGeom(width) [pad::getWidth $p]
@@ -2720,13 +2636,13 @@ proc ediuAIFDatabaseSection {} {
 
     ##  Make sure we have a DATABASE section!
 
-    if { [lsearch -exact $aif::sections DATABASE] != -1 } {
+    if { [lsearch -exact $::AIF::sections DATABASE] != -1 } {
         ##  Load the DATABASE section
-        set vars [aif::variables DATABASE]
+        set vars [AIF::Variables DATABASE]
 
         foreach v $vars {
             #puts [format "-->  %s" $v]
-            set ::database([string tolower $v]) [aif::getvar $v DATABASE]
+            set ::database([string tolower $v]) [AIF::GetVar $v DATABASE]
         }
 
         ##  Make sure file format is AIF!
@@ -2736,7 +2652,7 @@ proc ediuAIFDatabaseSection {} {
             set rv -1
         }
 
-        if { ([lsearch [aif::variables "DATABASE"] "MCM"] != -1) && ($::database(mcm) == "TRUE") } {
+        if { ([lsearch [AIF::Variables "DATABASE"] "MCM"] != -1) && ($::database(mcm) == "TRUE") } {
             Transcript $::ediu(MsgError) [format "File \"%s\" is an MCM-AIF file." $::ediu(filename)]
             set ::ediu(MCMAIF) 1
             set ::widgets(AIFType) "File Type:  MCM-AIF"
@@ -2747,7 +2663,7 @@ proc ediuAIFDatabaseSection {} {
         }
 
         ##  Does the AIF file contain a BGA section?
-        set ::ediu(BGA) [expr [lsearch [aif::sections] "BGA"] != -1 ? 1 : 0]
+        set ::ediu(BGA) [expr [lsearch [AIF::Sections] "BGA"] != -1 ? 1 : 0]
  
         ##  Check units for legal option - AIF supports UM, MM, CM, INCH, MIL
 
@@ -2777,9 +2693,9 @@ proc ediuAIFMCMDieSection {} {
 
     ##  Make sure we have a MCM_DIE section!
 
-    if { [lsearch -exact $aif::sections MCM_DIE] != -1 } {
+    if { [lsearch -exact $::AIF::sections MCM_DIE] != -1 } {
         ##  Load the DATABASE section
-        set vars [aif::variables MCM_DIE]
+        set vars [AIF::Variables MCM_DIE]
 
         ##  Flush the mcmdie dictionary
 
@@ -2788,11 +2704,11 @@ proc ediuAIFMCMDieSection {} {
         ##  Populate the mcmdie dictionary
 
         foreach v $vars {
-            set refs [split [aif::getvar $v MCM_DIE] ","]
+            set refs [split [AIF::GetVar $v MCM_DIE] ","]
 
             foreach ref $refs {
                 #puts [string  trim $ref]
-                #dict lappend ::mcmdie [string trim $ref] [aif::getvar $v MCM_DIE]
+                #dict lappend ::mcmdie [string trim $ref] [AIF::GetVar $v MCM_DIE]
                 dict lappend ::mcmdie [string trim $ref] $v
             }
         }
@@ -2816,13 +2732,13 @@ proc ediuAIFMCMDieSection {} {
 #
 proc ediuAIFDieSection {} {
     ##  Make sure we have a DIE section!
-    if { [lsearch -exact $aif::sections DIE] != -1 } {
+    if { [lsearch -exact $::AIF::sections DIE] != -1 } {
         ##  Load the DIE section
-        set vars [aif::variables DIE]
+        set vars [AIF::Variables DIE]
 
         foreach v $vars {
             #puts [format "-->  %s" $v]
-            set ::die([string tolower $v]) [aif::getvar $v DIE]
+            set ::die([string tolower $v]) [AIF::GetVar $v DIE]
         }
 
         foreach i [array names ::die] {
@@ -2845,13 +2761,13 @@ proc ediuAIFDieSection {} {
 #
 proc ediuAIFBGASection {} {
     ##  Make sure we have a DIE section!
-    if { [lsearch -exact $aif::sections BGA] != -1 } {
+    if { [lsearch -exact $::AIF::sections BGA] != -1 } {
         ##  Load the DIE section
-        set vars [aif::variables BGA]
+        set vars [AIF::Variables BGA]
 
         foreach v $vars {
             #puts [format "-->  %s" $v]
-            set ::bga([string tolower $v]) [aif::getvar $v BGA]
+            set ::bga([string tolower $v]) [AIF::GetVar $v BGA]
         }
 
         foreach i [array names ::bga] {
@@ -2875,9 +2791,9 @@ proc ediuAIFPadsSection {} {
     $vm.pads add separator
 
     ##  Make sure we have a PADS section!
-    if { [lsearch -exact $aif::sections PADS] != -1 } {
+    if { [lsearch -exact $::AIF::sections PADS] != -1 } {
         ##  Load the PADS section
-        set vars [aif::variables PADS]
+        set vars [AIF::Variables PADS]
 
         ##  Flush the pads dictionary
 
@@ -2887,15 +2803,15 @@ proc ediuAIFPadsSection {} {
         ##  Populate the pads dictionary
 
         foreach v $vars {
-            dict lappend ::pads $v [aif::getvar $v PADS]
+            dict lappend ::pads $v [AIF::GetVar $v PADS]
             
             #  Add pad to the View Devices menu and make it visible
-            set gui::pads($v) on
+            set GUI::pads($v) on
             #$vm.pads add checkbutton -label "$v" -underline 0 \
-            #    -variable gui::pads($v) -onvalue on -offvalue off -command gui::VisiblePad
+            #    -variable GUI::pads($v) -onvalue on -offvalue off -command GUI::VisiblePad
             $vm.pads add checkbutton -label "$v" \
-                -variable gui::pads($v) -onvalue on -offvalue off \
-                -command  "gui::Visibility pad-$v -mode toggle"
+                -variable GUI::pads($v) -onvalue on -offvalue off \
+                -command  "GUI::Visibility pad-$v -mode toggle"
         }
 
         foreach i [dict keys $::pads] {
@@ -2931,7 +2847,7 @@ proc ediuAIFNetlistSection {} {
     set txt $::widgets(netlistview)
 
     ##  Make sure we have a NETLIST section!
-    if { [lsearch -exact $aif::sections NETLIST] != -1 } {
+    if { [lsearch -exact $::AIF::sections NETLIST] != -1 } {
         ##  Load the NETLIST section which was previously stored in the netlist text widget
 
         netlist::load
@@ -2957,7 +2873,7 @@ proc ediuAIFPad {} {
 
     Transcript $::ediu(MsgNote) [format "Scanning AIF source for \"%s\" section." $::sections(diePads)]
 
-    set pads [aif::variables PADS]
+    set pads [AIF::Variables PADS]
 
     set ::diePads(count) [llength $pads]
 
@@ -3675,301 +3591,6 @@ proc netlist::getDiePadY { index } {
 }
 
 ##
-##  Define the GUI namespace and procedures supporting GUI operations
-##
-namespace eval gui {
-    variable objects
-    variable devices
-    variable pads
-    variable text
-}
-
-#
-#  gui::VisibleObject
-#
-proc gui::VisibleObject { { all "" } { state "" } } {
-
-    global argc
-    puts "ARGC:  $argc"
-    puts "All:  $all"
-    puts "State:  $state"
-
-    ##  Handle an "all on" or "all off" request
-    if { $all == "-all" } {
-        gui::VisibleAll $state
-    }
-
-    set cnvs $::widgets(graphicview)
-
-    #  Set visibility of objects
-    foreach o [array names gui::objects] {
-        puts "$o"
-        set id [$cnvs find withtag $o]
-        if { $gui::objects($o) == 0 } {
-            #puts "found by tag"
-            #puts $o
-            #puts $id
-            foreach i $id {
-                $cnvs itemconfigure $i -state hidden
-            }
-        } else {
-            #puts "nothing found by tag"
-            foreach i $id {
-                $cnvs itemconfigure $i -state normal
-            }
-        }
-    }
-}
-
-#
-#  gui::VisibleDevice
-#
-proc gui::VisibleDevice { { all "" } { state "" } } {
-
-    ##  Handle an "all on" or "all off" request
-    if { $all == "-all" } {
-        gui::VisibleAll $state
-    }
-
-    set cnvs $::widgets(graphicview)
-
-    # Set visibility of devices
-    foreach d [array names gui::devices] {
-        set id [$cnvs find withtag $d]
-        if { $gui::devices($d) == 0 } {
-            puts "found by tag"
-            puts $d
-            puts $id
-            foreach i $id {
-                $cnvs itemconfigure $i -state hidden
-            }
-        } else {
-            #puts "nothing found by tag"
-            foreach i $id {
-                $cnvs itemconfigure $i -state normal
-            }
-        }
-    }
-}
-
-#
-#  gui::Visibility
-#
-proc gui::Visibility { tags args } {
-
-    puts "$tags $args"
-
-    ##  Process command arguments
-    array set V { -mode toggle -all false } ;# Default values
-    foreach {a value} $args {
-        if {! [info exists V($a)]} {error "unknown option $a"}
-        if {$value == {}} {error "value of \"$a\" missing"}
-        set V($a) $value
-    }
-
-    ##  If not tags not a global operation then return
-    if { $tags == "" && $V(-all) == false } { return {} }
-
-    set cnvs $::widgets(graphicview)
-
-    ##  Find all items with the supplied tag
-    foreach tag $tags {
-        set id [$cnvs find withtag $tag]
-        foreach i $id {
-            if { $V(-mode) == "toggle" } {
-                set v [lindex [$cnvs itemconfigure $i -state] 4]
-                set v [expr {$v == "hidden" ? "normal" : "hidden"}]
-            } elseif { $V(-mode) == "on" } {
-                set v "normal"
-            } else {
-                set v "hidden"
-            }
-
-            $cnvs itemconfigure $i -state $v
-        }
-    }
-}
-
-#
-#  gui::VisiblePad
-#
-proc gui::VisiblePad { { all "" } { state "" } } {
-
-    ##  Handle an "all on" or "all off" request
-    if { $all == "-all" } {
-        gui::VisibleAll $state
-    }
-
-    set cnvs $::widgets(graphicview)
-
-    # Set visibility of devices
-    foreach p [array names gui::pads] {
-        set id [$cnvs find withtag $p]
-        if { $gui::pads($p) == 0 } {
-            #puts "found by tag"
-            #puts $p
-            #puts $id
-            foreach i $id {
-                $cnvs itemconfigure $i -state hidden
-            }
-        } else {
-            #puts "nothing found by tag"
-            foreach i $id {
-                $cnvs itemconfigure $i -state normal
-            }
-        }
-    }
-}
-
-#
-#  gui::VisibleText
-#
-proc gui::VisibleText { { all "" } { state "" } } {
-
-    ##  Handle an "all on" or "all off" request
-    if { $all == "-all" } {
-        gui::VisibleAll $state
-    }
-
-    set cnvs $::widgets(graphicview)
-
-    # Set visibility of devices
-    foreach t [array names gui::text] {
-        set id [$cnvs find withtag $t]
-        if { $gui::text($t) == 0 } {
-            #puts "found by tag"
-            #puts $t
-            #puts $id
-            foreach i $id {
-                $cnvs itemconfigure $i -state hidden
-            }
-        } else {
-            #puts "nothing found by tag"
-            foreach i $id {
-                $cnvs itemconfigure $i -state normal
-            }
-        }
-    }
-}
-
-#
-#  gui::VisibleAll
-#
-proc gui::VisibleAll { { state "" } } {
-
-    ##  Handle the "all on" or "all off" request
-
-    #  Objects
-    foreach o [array names gui::objects] {
-        set gui::objects($o) [expr  { $state == "on" ? 1 : 0 } ]
-    }
-
-    #  Devices
-    foreach d [array names gui::devices] {
-        set gui::devices($d) [expr  { $state == "on" ? 1 : 0 } ]
-    }
-
-    #  Pads
-    foreach p [array names gui::pads] {
-        set gui::pads($p) [expr  { $state == "on" ? 1 : 0 } ]
-    }
-
-    #  Text
-    foreach t [array names gui::text] {
-        set gui::text($t) [expr  { $state == "on" ? 1 : 0 } ]
-    }
-}
-
-#
-#  gui::RotateXY
-#
-#  From Ian Gabbitas ...
-#
-#    x2 = x * cos(radA) - y * sin(radA)
-#    y2 = x * sin(radA) + y * cos(radA)
-#  
-proc gui::RotateXY { x y { angle 0 } } {
-    #set radians [expr $angle*(3.14159265/180.0)]
-    set radians [expr {$angle * atan(1) * 4 / 180.0}] ;# Radians
-    puts "R:  $radians"
-    puts "A:  $angle"
-    set x2 [expr { $x * cos($radians) - $y * sin($radians) }]
-    set y2 [expr { $x * sin($radians) + $y * cos($radians) }]
-    #puts "====================================="
-    #puts ""
-    #puts [format "Rotation:  X1:  %s  Y1:  %s  X2:  %s  Y2:  %s  A:  %s" $x $y $x2 $y2 $angle]
-    #puts ""
-    #puts "====================================="
-    return [list $x2 $y2]
-}
-
-#
-#  gui::ArcPath
-#
-#  @see http://wiki.tcl.tk/8612
-#
-#  
-proc gui::ArcPath {x0 y0 x1 y1 args} {
-    
-    array set V {-sides 0 -start 90 -extent 360} ;# Default values
-    foreach {a value} $args {
-        if {! [info exists V($a)]} {error "unknown option $a"}
-        if {$value == {}} {error "value of \"$a\" missing"}
-        set V($a) $value
-    }
-    if {$V(-extent) == 0} {return {}}
-    
-    set xm [expr {($x0+$x1)/2.0}]
-    set ym [expr {($y0+$y1)/2.0}]
-    set rx [expr {$xm-$x0}]
-    set ry [expr {$ym-$y0}]
- 
-    set n $V(-sides)
-    if {$n == 0} {                              ;# 0 sides => circle
-        set n [expr {round(($rx+$ry)*0.5)}]
-        if {$n < 2} {set n 4}
-    }
-    
-    set dir [expr {$V(-extent) < 0 ? -1 : 1}]   ;# Extent can be negative
-    if {abs($V(-extent)) > 360} {
-        set V(-extent) [expr {$dir * (abs($V(-extent)) % 360)}]
-    }
-    set step [expr {$dir * 360.0 / $n}]
-    set numsteps [expr {1 + double($V(-extent)) / $step}]
-                              
-    set xy {}
-    set DEG2RAD [expr {4*atan(1)*2/360}]
-                              
-    for {set i 0} {$i < int($numsteps)} {incr i} {
-        set rad [expr {($V(-start) - $i * $step) * $DEG2RAD}]
-        set x [expr {$rx*cos($rad)}]
-        set y [expr {$ry*sin($rad)}]
-        lappend xy [expr {$xm + $x}] [expr {$ym - $y}]
-    }
- 
-    # Figure out where last segment should end
-    if {$numsteps != int($numsteps)} {
-        # Vecter V1 is last drawn vertext (x,y) from above
-        # Vector V2 is the edge of the polygon
-        set rad2 [expr {($V(-start) - int($numsteps) * $step) * $DEG2RAD}]
-        set x2 [expr {$rx*cos($rad2) - $x}]
-        set y2 [expr {$ry*sin($rad2) - $y}]
- 
-        # Vector V3 is unit vector in direction we end at
-        set rad3 [expr {($V(-start) - $V(-extent)) * $DEG2RAD}]
-        set x3 [expr {cos($rad3)}]
-        set y3 [expr {sin($rad3)}]
- 
-        # Find where V3 crosses V1+V2 => find j s.t.  V1 + kV2 = jV3
-        set j [expr {($x*$y2 - $x2*$y) / ($x3*$y2 - $x2*$y3)}]
- 
-        lappend xy [expr {$xm + $j * $x3}] [expr {$ym - $j * $y3}]
-    }
-    return $xy
- }
-
-
-##
 ##  Define the AIF namespace and procedure supporting parsing operations
 ##
 namespace eval aif {
@@ -4081,7 +3702,7 @@ proc aif::parse {filename} {
                 set pair [split $line =]
                 set name [string trim [lindex $pair 0] " "]
                 set value [string trim [lindex $pair 1] " "]
-                aif::setvar $name $value $cursection
+                AIF::SetVar $name $value $cursection
             } 
             default {
                 #error "Error parsing $filename (line: $line_no): $line"
@@ -4386,7 +4007,7 @@ variable IMPORTAIF [pwd]
 cd $pwd
 
 ##  Load various pieces which comprise the application
-foreach script { Forms.tcl MapEnum.tcl } {
+foreach script { AIF.tcl Forms.tcl GUI.tcl MapEnum.tcl } {
     source $IMPORTAIF/$script
 }
 
@@ -4407,6 +4028,6 @@ Transcript $::ediu(MsgNote) "$::ediu(EDIU) ready."
 ##catch { ediuAIFFileOpen "c:/users/mike/desktop/ImportAIF/data/BGA_w2_Dies-2.aif" } retString
 #catch { ediuAIFFileOpen "c:/users/mike/desktop/ImportAIF/data/BGA_w2_Dies-3.aif" } retString
 catch { ediuAIFFileOpen "c:/users/mike/desktop/ImportAIF/data/Test2.aif" } retString
-gui::Visibility text -all true -mode off
+GUI::Visibility text -all true -mode off
 set ::ediu(cellEdtrPrtnNames) { a b c d e f }
 #ediuAIFFileOpen
