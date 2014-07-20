@@ -79,6 +79,8 @@
 #                 rotation of rectangular and oblong pads.
 #    06/26/2014 - Oblong pads are displayed correctly and support rotation.
 #    07/14/2014 - New view of AIF netlist implemented using TableList widget.
+#    07/18/2014 - New Viewing models, bond wire connections, and net line
+#                 connections all added and working.
 #
 #
 #    Useful links:
@@ -149,7 +151,8 @@ proc ediuInit {} {
         partEdtrPrtnNames {}
         pcbApp ""
         pcbDoc ""
-        appVisible "True"
+        appVisible True
+        connectMode True
         sTime ""
         cTime ""
         consoleEcho "True"
@@ -306,9 +309,9 @@ proc ediuAIFFileInit { } {
 
     ##  Store netlist in a Tcl list
     set ::netlist [list]
+    set ::netlines [list]
 
     ##  Store bondpad connections in a Tcl list
-    set ::bondpadconnections [list]
     set ::bondwires [list]
 }
 
@@ -353,9 +356,11 @@ proc BuildGUI {} {
     $fm add command -label "Open AIF ..." \
          -accelerator "F5" -underline 0 \
          -command ediuAIFFileOpen
-    $fm add command -label "Close AIF " \
+    $fm add command -label "Close AIF" \
          -accelerator "F6" -underline 0 \
          -command ediuAIFFileClose
+    $fm add command -label "Export KYN ..." \
+         -underline 7 -command ediuFileExportKYN
     #$fm add separator
     #$fm add command -label "Open Sparse Pins ..." \
          -underline 1 -command ediuSparsePinsFileOpen
@@ -400,10 +405,14 @@ proc BuildGUI {} {
     #$sm add checkbutton -label "Sparse Mode" -underline 0 \
         #-variable ::ediu(sparseMode) -command ediuToggleSparseMode
     $sm add separator
-    $sm add radiobutton -label "Application Visibility On" -underline 0 \
-        -variable ::ediu(appVisible) -value "True"
-    $sm add radiobutton -label "Application Visibility Off" -underline 0 \
-        -variable ::ediu(appVisible) -value "False"
+    $sm add checkbutton -label "Application Visibility" \
+        -variable ::ediu(appVisible) -onvalue True -offvalue False \
+        -command  {Transcript MsgNote [format "Application visibility is now %s." \
+        [expr $::ediu(appVisible) ? "on" : "off"]] }
+    $sm add checkbutton -label "Connect to Running Application" \
+        -variable ::ediu(connectMode) -onvalue True -offvalue False \
+        -command  {Transcript MsgNote [format "Application Connect mode is now %s." \
+        [expr $::ediu(connectMode) ? "on" : "off"]] }
 
     #  Define the Generate menu
     set bm [menu $mb.build -tearoff 0]
@@ -417,10 +426,10 @@ proc BuildGUI {} {
     $bm add command -label "Padstacks ..." \
          -underline 0 \
          -command ediuGenerateAIFPadstacks
-    $bm add command -label "Cell ..." \
+    $bm add command -label "Cells ..." \
          -underline 0 \
          -command ediuGenerateAIFCell
-    $bm add command -label "PDB ..." \
+    $bm add command -label "PDBs ..." \
          -underline 1 \
          -command ediuGenerateAIFPDB
 
@@ -779,9 +788,12 @@ proc BuildGUI {} {
 proc ediuChooseCellPartition {} {
     set dlg $::widgets(CellPartnDlg)
 
+    puts [$dlg.f.cellpartition.list curselection]
+    puts [$dlg.f.cellpartition.list get [$dlg.f.cellpartition.list curselection]]
+
     Transcript $::ediu(MsgNote) [format "Cell Partition \"%s\" selected." $::ediu(cellEdtrPrtnName)]
 
-    destroy $dlg
+    #destroy $dlg
 }
 
 #
@@ -1616,6 +1628,32 @@ proc ediuAIFFileClose {} {
 }
 
 #
+#  ediuFileExportKYN
+#
+proc ediuFileExportKYN { { kyn "" } } {
+
+    set txt $::widgets(kynnetlistview)
+
+    if { $kyn == "" } {
+        set kyn [tk_getSaveFile -filetypes {{KYN .kyn} {Txt .txt} {All *}}]
+    }
+
+    if { $kyn == "" } {
+        Transcript $::ediu(MsgWarning) "No KYN file specified, Export aborted."
+        return
+    }
+        
+    #  Write the KYN netlist content to the file
+    set f [open $kyn "w+"]
+    puts $f [$txt get 1.0 end]
+    close $f
+
+    Transcript $::ediu(MsgNote) [format "KYN netlist successfully exported to file \"%s\"." $kyn]
+
+    return
+}
+
+#
 #  ediuAIFInitialState
 #
 proc ediuAIFInitialState {} {
@@ -1632,6 +1670,12 @@ proc ediuAIFInitialState {} {
 
     ##  Remove all content from the (hidden) netlist text view
     set txt $::widgets(netlistview)
+    $txt configure -state normal
+    $txt delete 1.0 end
+    $txt configure -state disabled
+
+    ##  Remove all content from the keyin netlist text view
+    set txt $::widgets(kynnetlistview)
     $txt configure -state normal
     $txt delete 1.0 end
     $txt configure -state disabled
@@ -1968,8 +2012,14 @@ proc ediuClosePadstackEditor { { mode "-closedatabase" } } {
         ##  Close the Expedition Database
 
         ##  May want to leave Expedition and the database open ...
-        if { $mode == "-closedatabase" } {
-            $::ediu(pcbDoc) Save
+        #if { $mode == "-closedatabase" } {
+        #    $::ediu(pcbDoc) Save
+        #    $::ediu(pcbDoc) Close
+        #    ##  Close Expedition
+        #    $::ediu(pcbApp) Quit
+        #}
+        if { !$::ediu(connectMode) } {
+            ##  Close the Expedition Database and terminate Expedition
             $::ediu(pcbDoc) Close
             ##  Close Expedition
             $::ediu(pcbApp) Quit
@@ -2069,6 +2119,10 @@ proc ediuMapShapeToEnum { shape } {
         "RECT" -
         "RECTANGLE" {
             return $::PadstackEditorLib::EPsDBPadShape(epsdbPadShapeRectangle)
+        }
+        "OBLONG" -
+        "OBROUND" {
+            return $::PadstackEditorLib::EPsDBPadShape(epsdbPadShapeOblong)
         }
         default {
             return $::ediu(Nothing)
@@ -2443,11 +2497,16 @@ proc ediuCloseCellEditor {} {
         }
         #$::ediu(cellEdtr) SaveActiveDatabase
         $::ediu(cellEdtr) Quit
-        ##  Close the Expedition Database
+
+        ##  Save the Expedition Database
         $::ediu(pcbDoc) Save
-        $::ediu(pcbDoc) Close
-        ##  Close Expedition
-        $::ediu(pcbApp) Quit
+
+        if { !$::ediu(connectMode) } {
+            ##  Close the Expedition Database and terminate Expedition
+            $::ediu(pcbDoc) Close
+            ##  Close Expedition
+            $::ediu(pcbApp) Quit
+        }
     } elseif { $::ediu(mode) == $::ediu(libraryMode) } {
         Transcript $::ediu(MsgNote) "Closing database for Cell Editor."
         set errorCode [catch { $::ediu(cellEdtr) UnlockServer } errorMessage]
@@ -2538,10 +2597,17 @@ proc ediuClosePDBEditor { } {
         if { [$::ediu(pcbDoc) IsSaved] == "False" } {
             $::ediu(pcbDOc) Save
         }
-        $::ediu(pcbDoc) Save
-        $::ediu(pcbDoc) Close
+        #$::ediu(pcbDoc) Save
+        #$::ediu(pcbDoc) Close
         ##  Close Expedition
-        $::ediu(pcbApp) Quit
+        #$::ediu(pcbApp) Quit
+
+        if { !$::ediu(connectMode) } {
+            ##  Close the Expedition Database and terminate Expedition
+            $::ediu(pcbDoc) Close
+            ##  Close Expedition
+            $::ediu(pcbApp) Quit
+        }
     } elseif { $::ediu(mode) == $::ediu(libraryMode) } {
         Transcript $::ediu(MsgNote) "Closing database for PDB Editor."
         set errorCode [catch { $::ediu(partEdtr) UnlockServer } errorMessage]
@@ -2565,23 +2631,38 @@ proc ediuClosePDBEditor { } {
 #
 proc ediuOpenExpedition {} {
     #  Crank up Expedition
-    Transcript $::ediu(MsgNote) "Opening Expedition."
 
-    set ::ediu(pcbApp) [::tcom::ref createobject "MGCPCB.ExpeditionPCBApplication"]
+    if { $::ediu(connectMode) } {
+        Transcript $::ediu(MsgNote) "Connecting to existing Expedition session."
+        set ::ediu(pcbApp) [::tcom::ref getactiveobject "MGCPCB.ExpeditionPCBApplication"]
+
+        #  Use the active PCB document object
+        set errorCode [catch {set ::ediu(pcbDoc) [$::ediu(pcbApp) ActiveDocument] } errorMessage]
+        if {$errorCode != 0} {
+            Transcript $::ediu(MsgError) [format "API error \"%s\", build aborted." $errorMessage]
+            return -code return 1
+        }
+    } else {
+        Transcript $::ediu(MsgNote) "Opening Expedition."
+        set ::ediu(pcbApp) [::tcom::ref createobject "MGCPCB.ExpeditionPCBApplication"]
+
+        # Open the database
+        Transcript $::ediu(MsgNote) "Opening database for Expedition."
+
+        #  Create a PCB document object
+        set errorCode [catch {set ::ediu(pcbDoc) [$::ediu(pcbApp) \
+            OpenDocument $::ediu(targetPath)] } errorMessage]
+        if {$errorCode != 0} {
+            Transcript $::ediu(MsgError) [format "API error \"%s\", build aborted." $errorMessage]
+            return -code return 1
+        }
+    }
+
+    #  Turn off trivial dialog boxes - makes batch operations smoother
     [$::ediu(pcbApp) Gui] SuppressTrivialDialogs True
 
-    #  Create a PCB document object
+    #  Set application visibility
     $::ediu(pcbApp) Visible $::ediu(appVisible)
-
-    # Open the database
-    Transcript $::ediu(MsgNote) "Opening database for Expedition."
-
-    set errorCode [catch {set ::ediu(pcbDoc) [$::ediu(pcbApp) \
-        OpenDocument $::ediu(targetPath)] } errorMessage]
-    if {$errorCode != 0} {
-        Transcript $::ediu(MsgError) [format "API error \"%s\", build aborted." $errorMessage]
-        return -code return 1
-    }
 
     #  Ask Expedition document for the key
     set key [$::ediu(pcbDoc) Validate "0" ] 
@@ -2596,12 +2677,9 @@ proc ediuOpenExpedition {} {
     #$pcbApp LockServer False
     #  Suppress trivial dialog boxes
     #[$::ediu(pcbDoc) Gui] SuppressTrivialDialogs True
-
 }
 
-#    set pads [aif::variables PADS]
-
-
+#
 #  ediuAIFName
 #
 #  Scan the AIF source file for the "die_name" section
@@ -2940,11 +3018,11 @@ proc ediuGenerateAIFCell {} {
 
         #  Cannot access partition list when application is
         #  visible so if it is, hide it temporarily.
-        set visbility $::ediu(appVisible)
+        set visibility $::ediu(appVisible)
 
         $::ediu(cellEdtr) Visible False
         set partitions [$::ediu(cellEdtrDb) Partitions]
-        $::ediu(cellEdtr) Visible $visbility
+        $::ediu(cellEdtr) Visible $visibility
 
         Transcript $::ediu(MsgNote) [format "Found %s cell %s." [$partitions Count] \
             [ediuPlural [$partitions Count] "partition"]]
@@ -4297,7 +4375,19 @@ proc printArray { name } {
         puts "$el = $a($el)"
     }
 }
-##  Main applicationhttp://codex.wordpress.org/HTTP_API
+##  Main application
+
+##  Figure out where the script lives
+set pwd [pwd]
+cd [file dirname [info script]]
+variable IMPORTAIF [pwd]
+cd $pwd
+
+##  Load various pieces which comprise the application
+foreach script { ImportAIFForms.tcl } {
+    source $IMPORTAIF/$script
+}
+
 console show
 ediuInit
 BuildGUI
@@ -4316,4 +4406,5 @@ Transcript $::ediu(MsgNote) "$::ediu(EDIU) ready."
 #catch { ediuAIFFileOpen "c:/users/mike/desktop/ImportAIF/data/BGA_w2_Dies-3.aif" } retString
 catch { ediuAIFFileOpen "c:/users/mike/desktop/ImportAIF/data/Test2.aif" } retString
 gui::Visibility text -all true -mode off
+set ::ediu(cellEdtrPrtnNames) { a b c d e f }
 #ediuAIFFileOpen
