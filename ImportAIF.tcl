@@ -265,6 +265,9 @@ proc ediuAIFFileInit { } {
         height 0
     }
 
+    ##  Store devices in a Tcl list
+    array set ::devices {}
+
     ##  Store mcm die in a Tcl dictionary
     set ::mcmdie [dict create]
 
@@ -869,18 +872,21 @@ proc ediuGraphicViewBuild {} {
     ##  Draw the BGA outline (if it exists)
     if { $::ediu(BGA) == 1 } {
         ediuDrawBGAOutline
+        set ::devices($::bga(name)) [list]
 
         #  Add BGA to the View Devices menu and make it visible
-        set GUI::devices($::bga(name)) 1
+        set GUI::devices($::bga(name)) on
         $vm.devices add checkbutton -label "$::bga(name)" -underline 0 \
-            -variable GUI::devices($::bga(name)) -onvalue 1 -offvalue 0 -command GUI::VisibleDevice
+            -variable GUI::devices($::bga(name)) -onvalue on -offvalue off \
+            -command  "GUI::Visibility $::bga(name) -mode toggle"
+            
         $vm.devices add separator
     }
 
     ##  Is this an MCM-AIF?
 
     if { $::ediu(MCMAIF) == 1 } {
-        foreach i [dict keys $::mcmdie] {
+        foreach i [Die::GetAllDie] {
             #set section [format "MCM_%s_%s" [string toupper $i] [dict get $::mcmdie $i]]
             set section [format "MCM_%s_%s" [dict get $::mcmdie $i] $i]
             if { [lsearch -exact [AIF::Sections] $section] != -1 } {
@@ -904,6 +910,9 @@ proc ediuGraphicViewBuild {} {
                 #  Need the REF designator for later
 
                 set part(REF) $i
+                puts "\n\n->$i<-\n\n"
+                set ::devices($i) [list]
+                puts "\n\n<-$i->\n\n"
 
                 #  Split the CENTER keyword into X and Y components
                 #
@@ -926,6 +935,51 @@ proc ediuGraphicViewBuild {} {
                     -variable GUI::devices($part(REF)) -onvalue on -offvalue off \
                     -command  "GUI::Visibility device-$part(REF) -mode toggle"
             }
+        }
+    } else {
+        if { [lsearch -exact [AIF::Sections] DIE] != -1 } {
+            array set part {
+                REF ""
+                NAME ""
+                WIDTH 0.0
+                HEIGHT 0.0
+                CENTER { 0.0 0.0 }
+                X 0.0
+                Y 0.0
+            }
+
+            #  Extract each of the expected keywords from the section
+            foreach key [array names part] {
+                if { [lsearch -exact [AIF::Variables DIE] $key] != -1 } {
+                    set part($key) [AIF::GetVar $key DIE]
+                }
+            }
+
+            #  Need the REF designator for later
+
+            set part(REF) $::ediu(DIEREF)
+            set ::devices($::ediu(DIEREF)) [list]
+
+            #  Split the CENTER keyword into X and Y components
+            #
+            #  The AIF specification and sample file have the X and Y separated by
+            #  both a space and comma character so we'll plan to handle either situation.
+            if { [llength [split $part(CENTER) ,]] == 2 } {
+                set part(X) [lindex [split $part(CENTER) ,] 0]
+                set part(Y) [lindex [split $part(CENTER) ,] 1]
+            } else {
+                set part(X) [lindex [split $part(CENTER)] 0]
+                set part(Y) [lindex [split $part(CENTER)] 1]
+            }
+
+            #  Draw the Part Outline
+            ediuDrawPartOutline $part(REF) $part(HEIGHT) $part(WIDTH) $part(X) $part(Y)
+
+            #  Add part to the View Devices menu and make it visible
+            set GUI::devices($part(REF)) on
+            $vm.devices add checkbutton -label "$part(REF)" -underline 0 \
+                -variable GUI::devices($part(REF)) -onvalue on -offvalue off \
+                -command  "GUI::Visibility device-$part(REF) -mode toggle"
         }
     }
 
@@ -1013,7 +1067,18 @@ proc ediuGraphicViewBuild {} {
 
         if { $nlr(PADNAME) != "-" } {
             set ref [lindex [split $nlr(PADNUM) "."] 0]
-            puts "---------------------> Die Pad"
+            if { $ref == $nlr(PADNUM) } {
+                set padnum $nlr(PADNUM)
+                set ref $::ediu(DIEREF)
+            } else {
+                set padnum [lindex [split $nlr(PADNUM) "."] 1]
+            }
+
+            puts "---------------------> Die Pad:  $ref-$padnum"
+
+            ##  Record the pad and location in the device list
+            lappend ::devices($ref) [list $nlr(PADNAME) $padnum $nlr(PAD_X) $nlr(PAD_Y)]
+
             ediuGraphicViewAddPin $nlr(PAD_X) $nlr(PAD_Y) $nlr(PADNUM) $nlr(NETNAME) $nlr(PADNAME) $line_no "diepad pad pad-$nlr(PADNAME) $ref"
             dict lappend ::padtypes $nlr(PADNAME) "diepad"
         } else {
@@ -1024,6 +1089,10 @@ proc ediuGraphicViewBuild {} {
 
         if { $nlr(BALLNAME) != "-" } {
             puts "---------------------> Ball"
+
+            ##  Record the pad and location in the device list
+            lappend ::devices($::bga(name)) [list $nlr(BALLNAME) $nlr(BALLNUM) $nlr(BALL_X) $nlr(BALL_Y)]
+
             ediuGraphicViewAddPin $nlr(BALL_X) $nlr(BALL_Y) $nlr(BALLNUM) $nlr(NETNAME) $nlr(BALLNAME) $line_no "ballpad pad pad-$nlr(BALLNAME)" "white" "red"
             puts "---------------------> Ball Middle"
             dict lappend ::padtypes $nlr(PADNAME) "ballpad"
@@ -1111,7 +1180,7 @@ proc ediuGraphicViewBuild {} {
 
     ##  Output the part list
     $kyn insert end "\n%Part\n"
-    foreach i [dict keys $::mcmdie] {
+    foreach i [Die::GetAllDie] {
         $kyn insert end [format "\\%s\\   \\%s\\\n" [dict get $::mcmdie $i] $i]
     }
     
@@ -1205,12 +1274,12 @@ proc ediuGraphicViewAddPin { x y pin net pad line_no { tags "diepad" } { color "
     puts [format "Pad Text:  %s (Pin:  %s  Pad:  %s" $padtxt $pin $pad]
 
     ##  Figure out the pad shape
-    set shape [pad::getShape $pad]
+    set shape [Pad::getShape $pad]
 
     switch -regexp -- $shape {
         "SQ" -
         "SQUARE" {
-            set pw [pad::getWidth $pad]
+            set pw [Pad::getWidth $pad]
             $cnvs create rectangle [expr {$x-($pw/2.0)}] [expr {$y-($pw/2.0)}] \
                 [expr {$x + ($pw/2.0)}] [expr {$y + ($pw/2.0)}] -outline $outline \
                 -fill $color -tags "$tags" 
@@ -1222,7 +1291,7 @@ proc ediuGraphicViewAddPin { x y pin net pad line_no { tags "diepad" } { color "
         }
         "CIRCLE" -
         "ROUND" {
-            set pw [pad::getWidth $pad]
+            set pw [Pad::getWidth $pad]
             $cnvs create oval [expr {$x-($pw/2.0)}] [expr {$y-($pw/2.0)}] \
                 [expr {$x + ($pw/2.0)}] [expr {$y + ($pw/2.0)}] -outline $outline \
                 -fill $color -tags "$tags" 
@@ -1235,8 +1304,8 @@ proc ediuGraphicViewAddPin { x y pin net pad line_no { tags "diepad" } { color "
         "OBLONG" -
         "OBROUND" {
             puts [format "OBLONG PAD on line:  %d" $line_no]
-            set pw [pad::getWidth $pad]
-            set ph [pad::getHeight $pad]
+            set pw [Pad::getWidth $pad]
+            set ph [Pad::getHeight $pad]
 
             set x1 [expr $x-($pw/2.0)]
             set y1 [expr $y-($ph/2.0)]
@@ -1309,8 +1378,8 @@ proc ediuGraphicViewAddPin { x y pin net pad line_no { tags "diepad" } { color "
         }
         "RECT" -
         "RECTANGLE" {
-            set pw [pad::getWidth $pad]
-            set ph [pad::getHeight $pad]
+            set pw [Pad::getWidth $pad]
+            set ph [Pad::getHeight $pad]
 
             set x1 [expr $x-($pw/2.0)]
             set y1 [expr $y-($ph/2.0)]
@@ -1537,7 +1606,7 @@ proc ediuAIFFileOpen { { f "" } } {
         ##  If the file a MCM-AIF file?
 
         if { $::ediu(MCMAIF) == 1 } {
-            if { [ ediuAIFMCMDieSection ] == -1 } {
+            if { [ Die::MCMDieSection ] == -1 } {
                 ediuUpdateStatus $::ediu(ready)
                 return -1
             }
@@ -1545,7 +1614,7 @@ proc ediuAIFFileOpen { { f "" } } {
 
         ##  Load the DIE section ...
 
-        if { [ ediuAIFDieSection ] == -1 } {
+        if { [ Die::DieSection ] == -1 } {
             ediuUpdateStatus $::ediu(ready)
             return -1
         }
@@ -2074,7 +2143,7 @@ proc ediuPadGeomShape {} {
 }
 
 #
-#  ediuGenerateAIFPad
+#  ediuGenerateAIFPads
 #
 #  This subroutine will create die pads based on the "PADS" section
 #  found in the AIF file.  It can optionally replace an existing pad
@@ -2085,9 +2154,9 @@ proc ediuGenerateAIFPads { } {
     foreach i [AIFForms::SelectFromList "Select Pad(s)" [padGetAllPads]] {
         set p [lindex $i 1]
         set ::padGeom(name) $p
-        set ::padGeom(shape) [pad::getShape $p]
-        set ::padGeom(width) [pad::getWidth $p]
-        set ::padGeom(height) [pad::getHeight $p]
+        set ::padGeom(shape) [Pad::getShape $p]
+        set ::padGeom(width) [Pad::getWidth $p]
+        set ::padGeom(height) [Pad::getHeight $p]
         set ::padGeom(offsetx) 0.0
         set ::padGeom(offsety) 0.0
 
@@ -2215,9 +2284,9 @@ proc ediuGenerateAIFPadstacks { } {
     foreach i [AIFForms::SelectFromList "Select Pad(s)" [padGetAllPads]] {
         set p [lindex $i 1]
         set ::padGeom(name) $p
-        set ::padGeom(shape) [pad::getShape $p]
-        set ::padGeom(width) [pad::getWidth $p]
-        set ::padGeom(height) [pad::getHeight $p]
+        set ::padGeom(shape) [Pad::getShape $p]
+        set ::padGeom(width) [Pad::getWidth $p]
+        set ::padGeom(height) [Pad::getHeight $p]
         set ::padGeom(offsetx) 0.0
         set ::padGeom(offsety) 0.0
 
@@ -2325,6 +2394,28 @@ proc ediuGenerateAIFPadstack { { mode "-replace" } } {
     Transcript $::ediu(MsgNote) [format "Completion Time:  %s" $::ediu(cTime)]
 
     ediuUpdateStatus $::ediu(ready)
+}
+
+#
+#  ediuGenerateAIFCells
+#
+#  This subroutine will create die pads based on the "PADS" section
+#  found in the AIF file.  It can optionally replace an existing pad
+#  based on the second argument.
+#
+
+proc ediuGenerateAIFCells { } {
+    foreach i [AIFForms::SelectFromList "Select Cell(s)" [padGetAllPads]] {
+        set p [lindex $i 1]
+        set ::padGeom(name) $p
+        set ::padGeom(shape) [Pad::getShape $p]
+        set ::padGeom(width) [Pad::getWidth $p]
+        set ::padGeom(height) [Pad::getHeight $p]
+        set ::padGeom(offsetx) 0.0
+        set ::padGeom(offsety) 0.0
+
+        ediuGenerateAIFPad
+    }
 }
 
 #
@@ -2667,83 +2758,12 @@ proc ediuAIFDatabaseSection {} {
 }
 
 #
-#  ediuAIFMCMDieSection
-#
-#  Scan the AIF source file for the "DATABASE" section
-#
-proc ediuAIFMCMDieSection {} {
-    set rv 0
-
-    ##  Make sure we have a MCM_DIE section!
-
-    if { [lsearch -exact $::AIF::sections MCM_DIE] != -1 } {
-        ##  Load the DATABASE section
-        set vars [AIF::Variables MCM_DIE]
-
-        ##  Flush the mcmdie dictionary
-
-        set ::mcmdie [dict create]
-
-        ##  Populate the mcmdie dictionary
-
-        foreach v $vars {
-            set refs [split [AIF::GetVar $v MCM_DIE] ","]
-
-            foreach ref $refs {
-                #puts [string  trim $ref]
-                #dict lappend ::mcmdie [string trim $ref] [AIF::GetVar $v MCM_DIE]
-                dict lappend ::mcmdie [string trim $ref] $v
-            }
-        }
-
-        foreach i [dict keys $::mcmdie] {
-            Transcript $::ediu(MsgNote) [format "Device \"%s\" with reference designator:  %s" \
-                [lindex [dict get $::mcmdie $i] 0] $i]
-        }
-    } else {
-        Transcript $::ediu(MsgError) [format "AIF file \"%s\" does not contain a MCM_DIE section." $::ediu(filename)]
-        set rv -1
-    }
-
-    return $rv
-}
-
-#
-#  ediuAIFDieSection
-#
-#  Scan the AIF source file for the "DIE" section
-#
-proc ediuAIFDieSection {} {
-    ##  Make sure we have a DIE section!
-    if { [lsearch -exact $::AIF::sections DIE] != -1 } {
-        ##  Load the DIE section
-        set vars [AIF::Variables DIE]
-
-        foreach v $vars {
-            #puts [format "-->  %s" $v]
-            set ::die([string tolower $v]) [AIF::GetVar $v DIE]
-        }
-
-        foreach i [array names ::die] {
-            Transcript $::ediu(MsgNote) [format "Die \"%s\":  %s" [string toupper $i] $::die($i)]
-        }
-
-        ##  Need a partition for Cell and PDB generaton when  in CL mode
-        set ::die(partition) [format "%s_die" $::die(name)]
-
-    } else {
-        Transcript $::ediu(MsgError) [format "AIF file \"%s\" does not contain a DIE section." $::ediu(filename)]
-        return -1
-    }
-}
-
-#
 #  ediuAIFBGASection
 #
 #  Scan the AIF source file for the "DIE" section
 #
 proc ediuAIFBGASection {} {
-    ##  Make sure we have a DIE section!
+    ##  Make sure we have a BGA section!
     if { [lsearch -exact $::AIF::sections BGA] != -1 } {
         ##  Load the DIE section
         set vars [AIF::Variables BGA]
@@ -2983,7 +3003,7 @@ proc ediuGenerateAIFCell {} {
     ##  Build a new cell.  The first part of this is done in
     ##  in the Cell Editor which is part of the Library Manager.
     ##  The graphics and pins are then added using the Cell Editor
-    ##  AddIn which sort of looks like a mini version of Expediiton.
+    ##  AddIn which sort of looks like a mini version of Expedititon.
 
     set txt $::widgets(netlistview)
     set ::diePads(count) [expr {[lindex [split [$txt index end] .] 0] - 1} - 1]
@@ -3404,68 +3424,6 @@ proc ediuGenerateAIFPDB {} {
 }
 
 ##
-##  Define the pad namespace and procedure supporting pad operations
-##
-namespace eval pad {
-}
-
-proc padGetAllPads {} {
-    puts [dict key $::pads]
-    return [dict keys $::pads]
-}
-
-#  Return all of the parameters for a pad
-proc pad::getParams { pad } {
-    return [regexp -inline -all -- {\S+} [lindex [dict get $::pads $pad] 0]]
-}
-
-#  Return a specific parameter for a pad (default to first parameter)
-proc pad::getParam { pad { param  0 } } {
-    return [lindex [pad::getParams $pad] $param]
-}
-
-#  Return the shape of the pad
-proc pad::getShape { pad } {
-    return [pad::getParam $pad]
-}
-
-#  Return the width of the pad
-proc pad::getWidth { pad } {
-    return [pad::getParam $pad 1]
-}
-
-#  Return the height of the pad
-proc pad::getHeight { pad } {
-    switch -exact -- [pad::getShape $pad] {
-        "CIRCLE" -
-        "ROUND" -
-        "SQ" -
-        "SQUARE" {
-            return [pad::getParam $pad 1]
-        }
-        "OBLONG" -
-        "OBROUND" -
-        "RECT" -
-        "RECTANGLE" {
-            return [pad::getParam $pad 2]
-        }
-        default {
-            return 0
-        }
-    }
-}
-
-##
-##  Define the die namespace and procedure supporting die operations
-##
-namespace eval die {
-}
-
-proc die::getAllDie {} {
-    return [dict keys $::mcmdie]
-}
-
-##
 ##  Define the netlist namespace and procedure supporting netlist operations
 ##  Because net names in the netlist are not guaranteed to be unique (e.g. VSS,
 ##  GND, etc.), nets are looked up by index.  The netlist can be traversed with
@@ -3572,146 +3530,6 @@ proc netlist::getDiePadX { index } {
 proc netlist::getDiePadY { index } {
     return [netlist::getParam $index 4]
 }
-
-##
-##  Define the AIF namespace and procedure supporting parsing operations
-##
-namespace eval aif {
-    variable version 1.0
-
-    variable sections [list DEFAULT]
-
-    variable cursection DEFAULT
-    variable DEFAULT;   # DEFAULT section
-}
-
-proc aif::sections {} {
-    return $aif::sections
-}
-
-proc aif::variables {{section DEFAULT}} {
-    return [array names ::aif::$section]
-}
-
-proc aif::add_section {str} {
-    variable sections
-    variable cursection
-
-    set cursection [string trim $str \[\]]
-    if {[lsearch -exact $sections $cursection] == -1} {
-        lappend sections $cursection
-        variable ::aif::${cursection}
-    }
-}
-
-proc aif::setvar {varname value {section DEFAULT}} {
-    variable sections
-    if {[lsearch -exact $sections $section] == -1} {
-      aif::add_section $section
-    }
-    set ::aif::${section}($varname) $value
-}
-
-proc aif::getvar {varname {section DEFAULT}} {
-    variable sections
-    if {[lsearch -exact $sections $section] == -1} {
-        error "No such section: $section"
-    }
-    return [set ::aif::${section}($varname)]
-}
-
-
-##
-##  aif::init
-##
-##  Reset the parsing data structures for subsequent file loads
-##
-proc aif::init { } {
-    variable sections
-    variable cursection
-
-    foreach section $sections {
-        if { $section == "DEFAULT" } continue
-
-        if { [info exists ::aif::${section}] } {
-            unset ::aif::${section}
-        }
-    }
-    set sections { }
-}
-
-proc aif::parse {filename} {
-    variable sections
-    variable cursection
-
-    #  Reset data structure
-    aif::init
-
-    #  Reset Netlist tab
-    set txt $::widgets(netlistview)
-    $txt configure -state normal
-    $txt delete 1.0 end
-
-    set line_no 0
-    set fd [open $filename r]
-    while {![eof $fd]} {
-        set line [string trim [gets $fd] " "]
-        incr line_no
-        if {$line == ""} continue
-
-        ##  Handle [NETLIST] section special case
-        ##
-        ##  Need to insert the "=" character into the net definitions
-        ##  so the standard parser will pick each of them up.
-        ##
-
-        if { $cursection == "NETLIST" && [ regexp {^[[:alpha:][:alnum:]_]*\w} $line net ] } {
-            #puts [format "Net?  %s" $net]
-
-            #set line [format "%s=%s" [string trim $net] [string trimleft $line [string length $net]]]
-            $txt insert end "$line\n"
-            $txt see end
-            continue
-        }
-
-        ##  Look at each line and process sections versus section variables
-
-        switch -regexp -- $line {
-            ^;.* { }
-            ^\\[.*\\]$ {
-                aif::add_section $line
-            }
-            .*=.* {
-                set pair [split $line =]
-                set name [string trim [lindex $pair 0] " "]
-                set value [string trim [lindex $pair 1] " "]
-                AIF::SetVar $name $value $cursection
-            } 
-            default {
-                #error "Error parsing $filename (line: $line_no): $line"
-                Transcript $::ediu(MsgWarning) [format "Skipping line %d in AIF file \"%s\"." $line_no $::ediu(filename)]
-                puts $line
-            }
-        }
-    }
-
-    # Cleanup the netlist, sort it and eliminate duplicates
-    set nl [lsort -unique [split [$txt get 1.0 end] '\n']]
-    $txt delete 1.0 end
-    foreach n $nl {
-        if { $n != "" } {
-            $txt insert end "$n\n"
-        }
-    }
-
-    # Force the scroll to the top of the netlist view
-    $txt yview moveto 0
-    $txt xview moveto 0
-
-    $txt configure -state disabled
-    close $fd
-}
-
 
 #
 #  ediuPlural
@@ -4005,6 +3823,7 @@ Transcript $::ediu(MsgNote) "$::ediu(EDIU) ready."
 #ediuSetupOpenLMC "C:/Users/mike/Documents/Sandbox/Sandbox.lmc"
 #set ::ediu(mode) $::ediu(designMode)
 #ediuSetupOpenPCB "C:/Users/mike/Documents/a_simple_design_ee794/a_simple_design.pcb"
+#catch { ediuAIFFileOpen "c:/users/mike/desktop/ImportAIF/data/Demo1.aif" } retString
 #catch { ediuAIFFileOpen "c:/users/mike/desktop/ImportAIF/data/Demo4.aif" } retString
 #catch { ediuAIFFileOpen "c:/users/mike/desktop/ImportAIF/data/MCMSampleC.aif" } retString
 #catch { ediuAIFFileOpen "c:/users/mike/desktop/ImportAIF/data/BGA_w2_Dies.aif" } retString
@@ -4012,5 +3831,5 @@ Transcript $::ediu(MsgNote) "$::ediu(EDIU) ready."
 #catch { ediuAIFFileOpen "c:/users/mike/desktop/ImportAIF/data/BGA_w2_Dies-3.aif" } retString
 catch { ediuAIFFileOpen "c:/users/mike/desktop/ImportAIF/data/Test2.aif" } retString
 GUI::Visibility text -all true -mode off
-set ::ediu(cellEdtrPrtnNames) { a b c d e f }
+#set ::ediu(cellEdtrPrtnNames) { a b c d e f }
 #ediuAIFFileOpen
