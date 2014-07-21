@@ -184,3 +184,136 @@ namespace eval AIF {
         close $fd
     }
 }
+
+##
+##  Define the die namespace and procedure supporting die operations
+##
+namespace eval Die {
+
+    #
+    #  Get All Die references
+    #
+    proc GetAllDie {} {
+        return [dict keys $::mcmdie]
+    }
+
+    #
+    #  Scan the AIF source file for the "DIE" section
+    #
+    proc DieSection {} {
+        ##  Make sure we have a DIE section!
+        if { [lsearch -exact $::AIF::sections DIE] != -1 } {
+            ##  Load the DIE section
+            set vars [AIF::Variables DIE]
+
+            foreach v $vars {
+                #puts [format "-->  %s" $v]
+                set ::die([string tolower $v]) [AIF::GetVar $v DIE]
+            }
+
+            foreach i [array names ::die] {
+                Transcript $::ediu(MsgNote) [format "Die \"%s\":  %s" [string toupper $i] $::die($i)]
+            }
+
+            ##  Need a partition for Cell and PDB generaton when  in CL mode
+            set ::die(partition) [format "%s_die" $::die(name)]
+
+        } else {
+            Transcript $::ediu(MsgError) [format "AIF file \"%s\" does not contain a DIE section." $::ediu(filename)]
+            return -1
+        }
+    }
+
+    #
+    #  Scan the AIF source file for the "MCM_DIE" section
+    #
+    proc MCMDieSection {} {
+        set rv 0
+
+        ##  Make sure we have a MCM_DIE section!
+
+        if { [lsearch -exact $::AIF::sections MCM_DIE] != -1 } {
+            ##  Load the DATABASE section
+            set vars [AIF::Variables MCM_DIE]
+
+            ##  Flush the mcmdie dictionary
+
+            set ::mcmdie [dict create]
+
+            ##  Populate the mcmdie dictionary
+
+            foreach v $vars {
+                set refs [split [AIF::GetVar $v MCM_DIE] ","]
+
+                foreach ref $refs {
+                    #puts [string  trim $ref]
+                    #dict lappend ::mcmdie [string trim $ref] [AIF::GetVar $v MCM_DIE]
+                    dict lappend ::mcmdie [string trim $ref] $v
+                }
+            }
+
+            foreach i [Die::GetAllDie] {
+                Transcript $::ediu(MsgNote) [format "Device \"%s\" with reference designator:  %s" \
+                    [lindex [dict get $::mcmdie $i] 0] $i]
+            }
+        } else {
+            Transcript $::ediu(MsgError) [format "AIF file \"%s\" does not contain a MCM_DIE section." $::ediu(filename)]
+            set rv -1
+        }
+
+        return $rv
+    }
+}
+
+##
+##  Define the pad namespace and procedure supporting pad operations
+##
+namespace eval Pad {
+
+    #  Get all Pad names
+    proc padGetAllPads {} {
+        return [dict keys $::pads]
+    }
+
+    #  Return all of the parameters for a pad
+    proc getParams { pad } {
+        return [regexp -inline -all -- {\S+} [lindex [dict get $::pads $pad] 0]]
+    }
+
+    #  Return a specific parameter for a pad (default to first parameter)
+    proc getParam { pad { param  0 } } {
+        return [lindex [getParams $pad] $param]
+    }
+
+    #  Return the shape of the pad
+    proc getShape { pad } {
+        return [getParam $pad]
+    }
+
+    #  Return the width of the pad
+    proc getWidth { pad } {
+        return [getParam $pad 1]
+    }
+
+    #  Return the height of the pad
+    proc getHeight { pad } {
+        switch -exact -- [getShape $pad] {
+            "CIRCLE" -
+            "ROUND" -
+            "SQ" -
+            "SQUARE" {
+                return [getParam $pad 1]
+            }
+            "OBLONG" -
+            "OBROUND" -
+            "RECT" -
+            "RECTANGLE" {
+                return [getParam $pad 2]
+            }
+            default {
+                return 0
+            }
+        }
+    }
+}
+
