@@ -118,7 +118,7 @@ proc ediuInit {} {
         mode ""
         designMode "Design"
         libraryMode "Central Library"
-        #sparseMode 0
+        sparseMode 0
         AIFFile ""
         #sparsePinsFile ""
         targetPath ""
@@ -2405,16 +2405,8 @@ proc ediuGenerateAIFPadstack { { mode "-replace" } } {
 #
 
 proc ediuGenerateAIFCells { } {
-    foreach i [AIFForms::SelectFromList "Select Cell(s)" [padGetAllPads]] {
-        set p [lindex $i 1]
-        set ::padGeom(name) $p
-        set ::padGeom(shape) [Pad::getShape $p]
-        set ::padGeom(width) [Pad::getWidth $p]
-        set ::padGeom(height) [Pad::getHeight $p]
-        set ::padGeom(offsetx) 0.0
-        set ::padGeom(offsety) 0.0
-
-        ediuGenerateAIFPad
+    foreach i [AIFForms::SelectFromList "Select Cell(s)" [array names ::devices]] {
+        ediuGenerateAIFCell [lindex $i 1]
     }
 }
 
@@ -2867,30 +2859,9 @@ proc ediuAIFNetlistSection {} {
 }
 
 #
-#  ediuAIFPad
-#
-#  Scan the AIF source file for the "die_pads" section
-#  and extract all of the relevant die pad information.
-#
-proc ediuAIFPad {} {
-
-    Transcript $::ediu(MsgNote) [format "Scanning AIF source for \"%s\" section." $::sections(diePads)]
-
-    set pads [AIF::Variables PADS]
-
-    set ::diePads(count) [llength $pads]
-
-    if {$::diePads(count) > 0} {
-        Transcript $::ediu(MsgNote) [format "AIF contains %s %s." $::diePads(count) [ediuPlural $::diePads(count) "pad"]]
-    } else {
-        Transcript $::ediu(MsgError) [format "AIF does not contain section \"%s\", build aborted." $::sections(diePads)]
-    }
-}
-
-#
 #  ediuGenerateAIFCell
 #
-proc ediuGenerateAIFCell {} {
+proc ediuGenerateAIFCell { device } {
     ediuUpdateStatus $::ediu(busy)
     set ::ediu(sTime) [clock format [clock seconds] -format "%m/%d/%Y %T"]
 
@@ -3005,17 +2976,18 @@ proc ediuGenerateAIFCell {} {
     ##  The graphics and pins are then added using the Cell Editor
     ##  AddIn which sort of looks like a mini version of Expedititon.
 
-    set txt $::widgets(netlistview)
-    set ::diePads(count) [expr {[lindex [split [$txt index end] .] 0] - 1} - 1]
+    #set txt $::widgets(netlistview)
+    #set devicePinCount [expr {[lindex [split [$txt index end] .] 0] - 1} - 1]
+    set devicePinCount [llength $::devices($device)]
 
     set newCell [$partition NewCell [expr $::CellEditorAddinLib::ECellDBCellType(ecelldbCellTypePackage)]]
 
-    $newCell -set Name $::die(name)
-    $newCell -set Description $::die(name)
+    $newCell -set Name $device
+    $newCell -set Description $device
     $newCell -set MountType [expr $::CellEditorAddinLib::ECellDBMountType(ecelldbMountTypeSurface)]
     #$newCell -set LayerCount [expr 2]
-    $newCell -set PinCount [expr $::diePads(count)]
-    #puts [format "--->  ::diePads(count):  %s" $::diePads(count)]
+    $newCell -set PinCount [expr $devicePinCount]
+    #puts [format "--->  devicePinCount:  %s" $devicePinCount]
     #$newCell -set Units [expr $::CellEditorAddinLib::ECellDBUnit(ecelldbUnitUM)]
     $newCell -set Units [expr [MapEnum::Units $::database(units) "cell"]]
     $newCell -set PackageGroup [expr $::CellEditorAddinLib::ECellDBPackageGroup(ecelldbPackageGeneral)]
@@ -3103,22 +3075,27 @@ proc ediuGenerateAIFCell {} {
     ::tcom::foreach pin $pins {
         ##  Split of the fields extracted from the die file
 
-        set diePadFields(pinnum) [netlist::getPinNumber $i]
-        set diePadFields(padname) [netlist::getPadName $i]
-        set diePadFields(padx) [netlist::getDiePadX $i]
-        set diePadFields(pady) [netlist::getDiePadY $i]
-        set diePadFields(net) [netlist::getNetName $i]
-        #printArray diePadFields
+        set padDefinition [lindex $::devices($device) $i]
+
+        set diePadFields(padname) [lindex $padDefinition 0]
+        set diePadFields(pinnum) [lindex $padDefinition 1]
+        set diePadFields(padx) [lindex $padDefinition 2]
+        set diePadFields(pady) [lindex $padDefinition 3]
+        #set diePadFields(net) [netlist::getNetName $i]
+
+        printArray diePadFields
     
         ## Need to handle sparse mode?
 
         set skip False
 
+if { 0 } {
         if { $::ediu(sparseMode) } {
             if { [lsearch $::ediu(sparsepinnames) $diePadFields(pinnum)] == -1 } {
                 set skip True
             }
         }
+}
 
         if { $skip  == False } {
             Transcript $::ediu(MsgNote) [format "Placing pin \"%s\" using padstack \"%s\"." \
@@ -3199,9 +3176,24 @@ proc ediuGenerateAIFCell {} {
 }
 
 #
+#  ediuGenerateAIFPDBs
+#
+#  This subroutine will create die pads based on the "PADS" section
+#  found in the AIF file.  It can optionally replace an existing pad
+#  based on the second argument.
+#
+
+proc ediuGenerateAIFPDBs { } {
+    foreach i [AIFForms::SelectFromList "Select PDB(s)" [array names ::devices]] {
+        ediuGenerateAIFPDB [lindex $i 1]
+    }
+}
+
+
+#
 #  ediuGenerateAIFPDB
 #
-proc ediuGenerateAIFPDB {} {
+proc ediuGenerateAIFPDB { device } {
     ediuUpdateStatus $::ediu(busy)
     set ::ediu(sTime) [clock format [clock seconds] -format "%m/%d/%Y %T"]
 
@@ -3315,13 +3307,13 @@ proc ediuGenerateAIFPDB {} {
 
     set newPart [$partition NewPart]
 
-    $newPart -set Name $::die(name)
-    $newPart -set Number $::die(name)
+    $newPart -set Name $device
+    $newPart -set Number $device
     $newPart -set Type [expr $::MGCPCBPartsEditor::EPDBPartType(epdbPartIC)]
     $newPart -set RefDesPrefix "U"
     $newPart -set Description "IC"
 
-    #  Commit the Cell so it can be mapped.
+    #  Commit the Part so it can be mapped.
     $newPart Commit
 
     #  Start doing the pin mapping
@@ -3332,7 +3324,7 @@ proc ediuGenerateAIFPDB {} {
     puts "----> Mapping Sym Refs:  [[$mapping SymbolReferences] Count]"
 
     #  Need to add a symbol reference
-    set symRef [$mapping PutSymbolReference $::die(name)]
+    set symRef [$mapping PutSymbolReference $device]
 
     puts "----> Mapping Sym Refs:  [[$mapping SymbolReferences] Count]"
 
@@ -3349,15 +3341,15 @@ proc ediuGenerateAIFPDB {} {
     }
 
     #  Need to add a cell reference
-    set cellRef [$mapping PutCellReference $::die(name) \
-        $::MGCPCBPartsEditor::EPDBCellReferenceType(epdbCellRefTop) $::die(name)]
+    set cellRef [$mapping PutCellReference $device \
+        $::MGCPCBPartsEditor::EPDBCellReferenceType(epdbCellRefTop) $device]
 
     ##  Define the gate - what to do about swap code?
-    set gate [$mapping PutGate "gate_1" $::diePads(count) \
+    set gate [$mapping PutGate "gate_1" $devicePinCount \
         $::MGCPCBPartsEditor::EPDBGateType(epdbGateTypeLogical)]
 
     ##  Add a pin defintition for each pin to the gate
-    for {set i 1} {$i <= $::diePads(count)} {incr i} {
+    for {set i 1} {$i <= $devicePinCount} {incr i} {
         Transcript $::ediu(MsgNote) [format "Adding Pin Definition %d \"P%s\" %d \"Unknown\"" \
             $i $i [expr $::MGCPCBPartsEditor::EPDBPinPropertyType(epdbPinPropertyPinType)]]
         ##$gate PutPinDefinition [expr $i] [format "P%s" $i] \
@@ -3372,7 +3364,7 @@ proc ediuGenerateAIFPDB {} {
 
     if { [[$mapping SymbolReferences] Count] != 0 } {
         Transcript $::ediu(MsgWarning) \
-            [format "Symbol Reference \"%s\" is already defined." $::die(name)]
+            [format "Symbol Reference \"%s\" is already defined." $device]
 
         set i 1
         set pinNames [$symRef PinNames]
@@ -3387,23 +3379,19 @@ proc ediuGenerateAIFPDB {} {
     set slot [$mapping PutSlot $gate $symRef]
 
     ##  Add a pin defintition for each pin to the slot
-    for {set i 1} {$i <= $::diePads(count)} {incr i} {
+    for { set i 1 } { $i <= $devicePinCount } { incr i } {
         ##  Split of the fields extracted from the die file
 
-        #set dpltf [split $::diePads($i)]
-        #set diePadFields(pinnum) [lindex $dpltf 0]
-
-        #Transcript $::ediu(MsgNote) [format "Adding pin \"%s\" to slot." $diePadFields(pinnum)]
         Transcript $::ediu(MsgNote) [format "Adding pin \"%s\" to slot." $i]
 
         #$slot PutPin [expr $i] [format "%s" $i] [format "P%s" $diePadFields(pinnum)]
         #$slot PutPin [expr $i] [format "%s" $i] [format "%s" $i]
 
         ## Need to handle sparse mode?
-        if { ::ediu(sparseMode) } {
-            if { $i in ::ediu(sparsepinnumbers) $i } {
-                $slot PutPin [expr $i] [format "%s" $i]
-            }
+        if { $::ediu(sparseMode) } {
+            #if { $i in ::ediu(sparsepinnumbers) $i } {
+            #    $slot PutPin [expr $i] [format "%s" $i]
+            #}
         } else {
             $slot PutPin [expr $i] [format "%s" $i]
         }
