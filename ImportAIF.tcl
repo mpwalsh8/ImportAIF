@@ -81,6 +81,8 @@
 #    07/14/2014 - New view of AIF netlist implemented using TableList widget.
 #    07/18/2014 - New Viewing models, bond wire connections, and net line
 #                 connections all added and working.
+#    07/20/2014 - Moved large chunks of code into separate files and 
+#                 namespaces to make ease of maintenance/development easier.
 #
 #
 #    Useful links:
@@ -383,26 +385,23 @@ proc BuildGUI {} {
     $sm add checkbutton -label "Connect to Running Application" \
         -variable ::ediu(connectMode) -onvalue True -offvalue False \
         -command  {Transcript MsgNote [format "Application Connect mode is now %s." \
-        [expr $::ediu(connectMode) ? "on" : "off"]] }
+        [expr $::ediu(connectMode) ? "on" : "off"]] ; ediuUpdateStatus $::ediu(ready) }
 
     #  Define the Generate menu
     set bm [menu $mb.build -tearoff 0]
     $mb add cascade -label "Generate" -menu $mb.build -underline 0
-    #$bm add command -label "Pad ..." \
-         #-underline 0 \
-         #-command ediuGenerateAIFPad
     $bm add command -label "Pads ..." \
          -underline 0 \
-         -command ediuGenerateAIFPads
+         -command MGC::Generate::Pads
     $bm add command -label "Padstacks ..." \
          -underline 0 \
-         -command ediuGenerateAIFPadstacks
+         -command MGC::Generate::Padstacks
     $bm add command -label "Cells ..." \
          -underline 0 \
-         -command ediuGenerateAIFCells
+         -command MGC::Generate::Cells
     $bm add command -label "PDBs ..." \
          -underline 1 \
-         -command ediuGenerateAIFPDB
+         -command MGC::Generate::PDBs
 
     #  Define the View menu
     set vm [menu $mb.zoom -tearoff 0]
@@ -886,7 +885,7 @@ proc ediuGraphicViewBuild {} {
     ##  Is this an MCM-AIF?
 
     if { $::ediu(MCMAIF) == 1 } {
-        foreach i [Die::GetAllDie] {
+        foreach i [AIF::MCMDie::GetAllDie] {
             #set section [format "MCM_%s_%s" [string toupper $i] [dict get $::mcmdie $i]]
             set section [format "MCM_%s_%s" [dict get $::mcmdie $i] $i]
             if { [lsearch -exact [AIF::Sections] $section] != -1 } {
@@ -910,9 +909,7 @@ proc ediuGraphicViewBuild {} {
                 #  Need the REF designator for later
 
                 set part(REF) $i
-                puts "\n\n->$i<-\n\n"
-                set ::devices($i) [list]
-                puts "\n\n<-$i->\n\n"
+                set ::devices($part(NAME)) [list]
 
                 #  Split the CENTER keyword into X and Y components
                 #
@@ -958,7 +955,7 @@ proc ediuGraphicViewBuild {} {
             #  Need the REF designator for later
 
             set part(REF) $::ediu(DIEREF)
-            set ::devices($::ediu(DIEREF)) [list]
+            set ::devices($part(NAME)) [list]
 
             #  Split the CENTER keyword into X and Y components
             #
@@ -994,7 +991,7 @@ proc ediuGraphicViewBuild {} {
     ##  Process the netlist looking for the pads
 
     foreach n [split $nl '\n'] {
-        puts "==>  $n"
+        #puts "==>  $n"
         incr line_no
         ##  Skip blank or empty lines
         if { [string length $n] == 0 } { continue }
@@ -1074,10 +1071,16 @@ proc ediuGraphicViewBuild {} {
                 set padnum [lindex [split $nlr(PADNUM) "."] 1]
             }
 
-            puts "---------------------> Die Pad:  $ref-$padnum"
+            #puts "---------------------> Die Pad:  $ref-$padnum"
 
             ##  Record the pad and location in the device list
-            lappend ::devices($ref) [list $nlr(PADNAME) $padnum $nlr(PAD_X) $nlr(PAD_Y)]
+            if { $::ediu(MCMAIF) == 1 } {
+                set name [dict get $::mcmdie $ref]
+            } else {
+                set name [AIF::GetVar NAME DIE]
+            }
+
+            lappend ::devices($name) [list $nlr(PADNAME) $padnum $nlr(PAD_X) $nlr(PAD_Y)]
 
             ediuGraphicViewAddPin $nlr(PAD_X) $nlr(PAD_Y) $nlr(PADNUM) $nlr(NETNAME) $nlr(PADNAME) $line_no "diepad pad pad-$nlr(PADNAME) $ref"
             dict lappend ::padtypes $nlr(PADNAME) "diepad"
@@ -1088,15 +1091,15 @@ proc ediuGraphicViewBuild {} {
         ##  Can the BALL pad be placed?
 
         if { $nlr(BALLNAME) != "-" } {
-            puts "---------------------> Ball"
+            #puts "---------------------> Ball"
 
             ##  Record the pad and location in the device list
             lappend ::devices($::bga(name)) [list $nlr(BALLNAME) $nlr(BALLNUM) $nlr(BALL_X) $nlr(BALL_Y)]
 
             ediuGraphicViewAddPin $nlr(BALL_X) $nlr(BALL_Y) $nlr(BALLNUM) $nlr(NETNAME) $nlr(BALLNAME) $line_no "ballpad pad pad-$nlr(BALLNAME)" "white" "red"
-            puts "---------------------> Ball Middle"
+            #puts "---------------------> Ball Middle"
             dict lappend ::padtypes $nlr(PADNAME) "ballpad"
-            puts "---------------------> Ball End"
+            #puts "---------------------> Ball End"
         } else {
             Transcript $::ediu(MsgWarning) [format "Skipping ball pad for net \"%s\" on line %d, no ball assignment." $netname, $line_no]
         }
@@ -1104,7 +1107,7 @@ proc ediuGraphicViewBuild {} {
         ##  Can the Finger pad be placed?
 
         if { $nlr(FINNAME) != "-" } {
-            puts "---------------------> Finger"
+            #puts "---------------------> Finger"
             ediuGraphicViewAddPin $nlr(FIN_X) $nlr(FIN_Y) $nlr(FINNUM) $nlr(NETNAME) $nlr(FINNAME) $line_no "bondpad pad pad-$nlr(FINNAME)" "purple" "white" $nlr(ANGLE)
             dict lappend ::padtypes $nlr(PADNAME) "bondpad"
         } else {
@@ -1175,12 +1178,12 @@ proc ediuGraphicViewBuild {} {
 
         set p $c
         $kyn insert end "\n"
-        puts "$n"
+        #puts "$n"
     }
 
     ##  Output the part list
     $kyn insert end "\n%Part\n"
-    foreach i [Die::GetAllDie] {
+    foreach i [AIF::MCMDie::GetAllDie] {
         $kyn insert end [format "\\%s\\   \\%s\\\n" [dict get $::mcmdie $i] $i]
     }
     
@@ -1194,7 +1197,7 @@ proc ediuGraphicViewBuild {} {
     #  Draw Bond Wires
     foreach bw $::bondwires {
         foreach {net x1 y1 x2 y2} $bw {
-            puts [format "Wire (%s) -- X1:  %s  Y1:  %s  X2:  %s  Y2:  %s" $net $x1 $y1 $x2 $y2]
+            #puts [format "Wire (%s) -- X1:  %s  Y1:  %s  X2:  %s  Y2:  %s" $net $x1 $y1 $x2 $y2]
             $cnvs create line $x1 $y1 $x2 $y2 -tags "bondwire bondwire-$net" -fill "orange" -width 1
 
             #  Add bond wire to the View Bond Wires menu and make it visible
@@ -1214,7 +1217,7 @@ proc ediuGraphicViewBuild {} {
     #  Draw Net Lines
     foreach nl $::netlines {
         foreach {net x1 y1 x2 y2} $nl {
-            puts [format "Net Line (%s) -- X1:  %s  Y1:  %s  X2:  %s  Y2:  %s" $net $x1 $y1 $x2 $y2]
+            #puts [format "Net Line (%s) -- X1:  %s  Y1:  %s  X2:  %s  Y2:  %s" $net $x1 $y1 $x2 $y2]
             $cnvs create line $x1 $y1 $x2 $y2 -tags "netline netline-$net" -fill "cyan" -width 1
 
             #  Add bond wire to the View Bond Wires menu and make it visible
@@ -1238,13 +1241,13 @@ proc ediuGraphicViewBuild {} {
     ##  die files.
 
     set scaleX [expr ($::widgets(windowSizeX) / (2*$::die(width)) * $::ediu(ScaleFactor))]
-    puts [format "A:  %s  B:  %s  C:  %s" $scaleX $::widgets(windowSizeX) $::die(width)]
+    #puts [format "A:  %s  B:  %s  C:  %s" $scaleX $::widgets(windowSizeX) $::die(width)]
     if { $scaleX > 0 } {
         #ediuGraphicViewZoom $scaleX
         #ediuGraphicViewZoom 1
         #zoom 1 0 0 
         set extents [$cnvs bbox all]
-        puts $extents
+        #puts $extents
         #$cnvs create rectangle $extents -outline green
         #$cnvs create oval \
         #    [expr [lindex $extents 0]-2] [expr [lindex $extents 1]-2] \
@@ -1271,15 +1274,15 @@ proc ediuGraphicViewBuild {} {
 proc ediuGraphicViewAddPin { x y pin net pad line_no { tags "diepad" } { color "yellow" } { outline "red" } { angle 0 } } {
     set cnvs $::widgets(graphicview)
     set padtxt [expr {$pin == "-" ? $pad : $pin}]
-    puts [format "Pad Text:  %s (Pin:  %s  Pad:  %s" $padtxt $pin $pad]
+    #puts [format "Pad Text:  %s (Pin:  %s  Pad:  %s" $padtxt $pin $pad]
 
     ##  Figure out the pad shape
-    set shape [Pad::getShape $pad]
+    set shape [AIF::Pad::getShape $pad]
 
     switch -regexp -- $shape {
         "SQ" -
         "SQUARE" {
-            set pw [Pad::getWidth $pad]
+            set pw [AIF::Pad::getWidth $pad]
             $cnvs create rectangle [expr {$x-($pw/2.0)}] [expr {$y-($pw/2.0)}] \
                 [expr {$x + ($pw/2.0)}] [expr {$y + ($pw/2.0)}] -outline $outline \
                 -fill $color -tags "$tags" 
@@ -1291,7 +1294,7 @@ proc ediuGraphicViewAddPin { x y pin net pad line_no { tags "diepad" } { color "
         }
         "CIRCLE" -
         "ROUND" {
-            set pw [Pad::getWidth $pad]
+            set pw [AIF::Pad::getWidth $pad]
             $cnvs create oval [expr {$x-($pw/2.0)}] [expr {$y-($pw/2.0)}] \
                 [expr {$x + ($pw/2.0)}] [expr {$y + ($pw/2.0)}] -outline $outline \
                 -fill $color -tags "$tags" 
@@ -1304,8 +1307,8 @@ proc ediuGraphicViewAddPin { x y pin net pad line_no { tags "diepad" } { color "
         "OBLONG" -
         "OBROUND" {
             puts [format "OBLONG PAD on line:  %d" $line_no]
-            set pw [Pad::getWidth $pad]
-            set ph [Pad::getHeight $pad]
+            set pw [AIF::Pad::getWidth $pad]
+            set ph [AIF::Pad::getHeight $pad]
 
             set x1 [expr $x-($pw/2.0)]
             set y1 [expr $y-($ph/2.0)]
@@ -1378,8 +1381,8 @@ proc ediuGraphicViewAddPin { x y pin net pad line_no { tags "diepad" } { color "
         }
         "RECT" -
         "RECTANGLE" {
-            set pw [Pad::getWidth $pad]
-            set ph [Pad::getHeight $pad]
+            set pw [AIF::Pad::getWidth $pad]
+            set ph [AIF::Pad::getHeight $pad]
 
             set x1 [expr $x-($pw/2.0)]
             set y1 [expr $y-($ph/2.0)]
@@ -1461,7 +1464,7 @@ proc ediuDrawBGAOutline { { color "white" } } {
     if { [lsearch -exact [AIF::Variables BGA] OUTLINE] != -1 } {
         set poly [split [AIF::GetVar OUTLINE BGA]]
         set pw [lindex $poly 2]
-        puts $poly
+        #puts $poly
         if { [lindex $poly 1] == 1 } {
             set points [lreplace $poly  0 3 ]
             puts $points 
@@ -1598,7 +1601,9 @@ proc ediuAIFFileOpen { { f "" } } {
 
         ##  Load the DATABASE section ...
 
-        if { [ ediuAIFDatabaseSection ] == -1 } {
+set zzz 0
+puts [format "Here:  %s" [incr zzz]]
+        if { [ AIF::Database::Section ] == -1 } {
             ediuUpdateStatus $::ediu(ready)
             return -1
         }
@@ -1606,28 +1611,32 @@ proc ediuAIFFileOpen { { f "" } } {
         ##  If the file a MCM-AIF file?
 
         if { $::ediu(MCMAIF) == 1 } {
-            if { [ Die::MCMDieSection ] == -1 } {
+            if { [ AIF::MCMDie::Section ] == -1 } {
                 ediuUpdateStatus $::ediu(ready)
                 return -1
             }
         }
+puts [format "2Here:  %s" [incr zzz]]
 
         ##  Load the DIE section ...
 
-        if { [ Die::DieSection ] == -1 } {
+        if { [ AIF::Die::Section ] == -1 } {
+puts [format "3Here:  %s" [incr zzz]]
             ediuUpdateStatus $::ediu(ready)
             return -1
         }
 
+puts [format "Here:  %s" [incr zzz]]
         ##  Load the optional BGA section ...
 
         if { $::ediu(BGA) == 1 } {
-            if { [ ediuAIFBGASection ] == -1 } {
+            if { [ AIF::BGA::Section ] == -1 } {
                 ediuUpdateStatus $::ediu(ready)
                 return -1
             }
         }
 
+puts [format "Here:  %s" [incr zzz]]
         ##  Load the PADS section ...
 
         if { [ ediuAIFPadsSection ] == -1 } {
@@ -1635,6 +1644,7 @@ proc ediuAIFFileOpen { { f "" } } {
             return -1
         }
 
+puts [format "Here:  %s" [incr zzz]]
         ##  Load the NETLIST section ...
 
         if { [ ediuAIFNetlistSection ] == -1 } {
@@ -1864,7 +1874,7 @@ proc ediuSetupOpenLMC { { f "" } } {
     ##  Invoke the Cell Editor and open the LMC
     ##  Catch any exceptions raised by opening the database
 
-    set errorCode [catch { ediuOpenCellEditor } errorMessage]
+    set errorCode [catch { MGC::OpenCellEditor } errorMessage]
     if {$errorCode != 0} {
         set ::ediu(targetPath) ""
         ediuUpdateStatus $::ediu(ready)
@@ -1893,12 +1903,12 @@ proc ediuSetupOpenLMC { { f "" } } {
         Transcript $::ediu(MsgNote) [format "Found cell partition \"%s.\"" [$partition Name]]
     }
     
-    ediuCloseCellEditor
+    MGC::CloseCellEditor
 
     ##  Invoke the PDB Editor and open the database
     ##  Catch any exceptions raised by opening the database
 
-    set errorCode [catch { ediuOpenPDBEditor } errorMessage]
+    set errorCode [catch { MGC::OpenPDBEditor } errorMessage]
     if {$errorCode != 0} {
         set ::ediu(targetPath) ""
         ediuUpdateStatus $::ediu(ready)
@@ -1919,7 +1929,7 @@ proc ediuSetupOpenLMC { { f "" } } {
         Transcript $::ediu(MsgNote) [format "Found part partition \"%s.\"" [$partition Name]]
     }
 
-    ediuClosePDBEditor
+    MGC::ClosePDBEditor
 
     ediuUpdateStatus $::ediu(ready)
 }
@@ -1955,7 +1965,11 @@ proc ediuNotImplemented {} {
 #  Update the status panes with relevant informaiton.
 #
 proc ediuUpdateStatus {mode} {
-    set ::widgets(mode) [format "Mode:  %s" $::ediu(mode)]
+    if { $::ediu(connectMode) } {
+        set ::widgets(mode) [format "Mode:  %s (Connect Mode)" $::ediu(mode)]
+    } else {
+        set ::widgets(mode) [format "Mode:  %s" $::ediu(mode)]
+    }
     set ::widgets(AIFFile) [format "AIF File:  %-50s" $::ediu(filename)]
 
     ##  Need to determine what mode to update the target path widget
@@ -1975,691 +1989,6 @@ proc ediuUpdateStatus {mode} {
         $slf configure -background green
     }
 
-}
-
-#
-#  Open the Padstack Editor
-#
-proc ediuOpenPadstackEditor { { mode "-opendatabase" } } {
-    #  Crank up the Padstack Editor once per sessions
-
-    Transcript $::ediu(MsgNote) [format "Opening Padstack Editor in %s mode." $::ediu(mode)]
-
-    ##  Which mode?  Design or Library?
-    if { $::ediu(mode) == $::ediu(designMode) } {
-        ##  Invoke Expedition on the design so the Padstack Editor can be started
-        ##  Catch any exceptions raised by opening the database
-
-        ##  Is Expedition already open?  It will be if the Padstack Editor
-        ##  is called as part of building a Cell.  In this case, there is no
-        ##  reason to reopen Expedition as it will end up in read-only mode.
-
-        if { $mode == "-opendatabase" } {
-            set errorCode [catch { ediuOpenExpedition } errorMessage]
-            if {$errorCode != 0} {
-                ediuUpdateStatus $::ediu(ready)
-                return
-            }
-        } else {
-            Transcript $::ediu(MsgNote) "Reusing previously opened instance of Expedition."
-        }
-        set ::ediu(pdstkEdtr) [$::ediu(pcbDoc) PadstackEditor]
-        set ::ediu(pdstkEdtrDb) [$::ediu(pdstkEdtr) ActiveDatabase]
-    } elseif { $::ediu(mode) == $::ediu(libraryMode) } {
-        set ::ediu(pdstkEdtr) [::tcom::ref createobject "MGCPCBLibraries.PadstackEditorDlg"]
-        # Open the database
-        set errorCode [catch {set ::ediu(pdstkEdtrDb) [$::ediu(pdstkEdtr) \
-            OpenDatabaseEx $::ediu(targetPath) false] } errorMessage]
-        if {$errorCode != 0} {
-            Transcript $::ediu(MsgError) [format "API error \"%s\", build aborted." $errorMessage]
-            return -code return 1
-        }
-    } else {
-        Transcript $::ediu(MsgError) "Mode not set, build aborted."
-        return -code return 1
-    }
-
-    # Lock the server
-    set errorCode [catch { $::ediu(pdstkEdtr) LockServer } errorMessage]
-    if {$errorCode != 0} {
-        Transcript $::ediu(MsgError) [format "API error \"%s\", build aborted." $errorMessage]
-        return -code return 1
-    }
-
-    # Display the dialog box?  Note this isn't necessary
-    # but done for clarity and useful for debugging purposes.
-    $::ediu(pdstkEdtr) Visible $::ediu(appVisible)
-}
-
-#
-#  Close Padstack Editor Lib
-#
-proc ediuClosePadstackEditor { { mode "-closedatabase" } } {
-    ##  Which mode?  Design or Library?
-
-    if { $::ediu(mode) == $::ediu(designMode) } {
-        Transcript $::ediu(MsgNote) "Closing database for Padstack Editor."
-        set errorCode [catch { $::ediu(pdstkEdtr) UnlockServer } errorMessage]
-        if {$errorCode != 0} {
-            Transcript $::ediu(MsgError) [format "API error \"%s\", build aborted." $errorMessage]
-            return -code return 1
-        }
-        Transcript $::ediu(MsgNote) "Closing Padstack Editor."
-        ##  Close Padstack Editor
-        $::ediu(pdstkEdtr) SaveActiveDatabase
-        $::ediu(pdstkEdtr) Quit
-        ##  Close the Expedition Database
-
-        ##  May want to leave Expedition and the database open ...
-        #if { $mode == "-closedatabase" } {
-        #    $::ediu(pcbDoc) Save
-        #    $::ediu(pcbDoc) Close
-        #    ##  Close Expedition
-        #    $::ediu(pcbApp) Quit
-        #}
-        if { !$::ediu(connectMode) } {
-            ##  Close the Expedition Database and terminate Expedition
-            $::ediu(pcbDoc) Close
-            ##  Close Expedition
-            $::ediu(pcbApp) Quit
-        }
-    } elseif { $::ediu(mode) == $::ediu(libraryMode) } {
-        Transcript $::ediu(MsgNote) "Closing database for Padstack Editor."
-        set errorCode [catch { $::ediu(pdstkEdtr) UnlockServer } errorMessage]
-        if {$errorCode != 0} {
-            Transcript $::ediu(MsgError) [format "API error \"%s\", build aborted." $errorMessage]
-            return -code return 1
-        }
-        $::ediu(pdstkEdtr) CloseActiveDatabase True
-        Transcript $::ediu(MsgNote) "Closing Padstack Editor."
-        $::ediu(pdstkEdtr) Quit
-    } else {
-        Transcript $::ediu(MsgError) "Mode not set, build aborted."
-        return -code return 1
-    }
-}
-
-#
-#  ediuPadGeomName
-#
-#  Scan the AIF source file for the "pad_geom_shape" section
-#
-proc ediuPadGeomName {} {
-
-    Transcript $::ediu(MsgNote) [format "Scanning AIF source for \"%s\"." $::sections(padGeomName)]
-
-    set txt $::widgets(sourceview)
-    set pgn [$txt search $::sections(padGeomName) 1.0 end]
-
-    ##  Was the padGeomName found?
-
-    if { $pgn != $::ediu(Nothing)} {
-        set pgnl [lindex [split $pgn .] 0]
-        Transcript $::ediu(MsgNote) [format "Found section \"%s\" in AIF on line %s." $::sections(padGeomName) $pgnl]
-
-        ##  Need the text from the padGeomName line, drop the terminating semicolon
-        set pgnlt [$txt get $pgnl.0 "$pgnl.end - 1 chars"]
-
-        ##  Extract the shape, height, and width from the padGeomShape
-        set ::padGeom(name) [lindex [split $pgnlt] 1]
-        Transcript $::ediu(MsgNote) [format "Extracted pad name (%s)." $::padGeom(name)]
-    } else {
-        Transcript $::ediu(MsgError) [format "AIF does not contain section \"%s\"." $::sections(padGeomShape)]
-    }
-}
-
-#
-#  ediuPadGeomShape
-#
-#  Scan the AIF source file for the "pad_geom_shape" section
-#
-proc ediuPadGeomShape {} {
-
-    Transcript $::ediu(MsgNote) [format "Scanning AIF source for \"%s\"." $::sections(padGeomShape)]
-
-    set txt $::widgets(sourceview)
-    set pgs [$txt search $::sections(padGeomShape) 1.0 end]
-
-    ##  Was the padGeomShape found?
-
-    if { $pgs != $::ediu(Nothing)} {
-        set pgsl [lindex [split $pgs .] 0]
-        Transcript $::ediu(MsgNote) [format "Found section \"%s\" in AIF on line %s." $::sections(padGeomShape) $pgsl]
-
-        ##  Need the text from the padGeomShape line, drop the terminating semicolon
-        set pgslt [$txt get $pgsl.0 "$pgsl.end - 1 chars"]
-
-        ##  Extract the shape, height, and width from the padGeomShape
-        set ::padGeom(shape) [lindex [split $pgslt] 1]
-        set ::padGeom(height) [lindex [split $pgslt] 2]
-        set ::padGeom(width) [lindex [split $pgslt] 3]
-        set ::padGeom(offsetx) 0.0
-        set ::padGeom(offsety) 0.0
-        Transcript $::ediu(MsgNote) [format "Extracting pad shape (%s), height (%s), and width (%s)." \
-            $::padGeom(shape) $::padGeom(height) $::padGeom(width)]
-    } else {
-        Transcript $::ediu(MsgError) [format "AIF does not contain section \"%s\"." $::sections(padGeomShape)]
-    }
-}
-
-#
-#  ediuGenerateAIFPads
-#
-#  This subroutine will create die pads based on the "PADS" section
-#  found in the AIF file.  It can optionally replace an existing pad
-#  based on the second argument.
-#
-
-proc ediuGenerateAIFPads { } {
-    foreach i [AIFForms::SelectFromList "Select Pad(s)" [padGetAllPads]] {
-        set p [lindex $i 1]
-        set ::padGeom(name) $p
-        set ::padGeom(shape) [Pad::getShape $p]
-        set ::padGeom(width) [Pad::getWidth $p]
-        set ::padGeom(height) [Pad::getHeight $p]
-        set ::padGeom(offsetx) 0.0
-        set ::padGeom(offsety) 0.0
-
-        ediuGenerateAIFPad
-    }
-}
-
-#
-#  ediuGenerateAIFPad
-#
-#  Pads are interesting in that can't simply be updated.  To change a pad
-#  it must be deleted and then replaced.  A pad can't be deleted if it is
-#  referenced by a padstack so that scenario must be handled.
-#
-proc ediuGenerateAIFPad { { mode "-replace" } } {
-    ediuUpdateStatus $::ediu(busy)
-    set ::ediu(sTime) [clock format [clock seconds] -format "%m/%d/%Y %T"]
-
-    ##  Make sure a Target library or design has been defined
-
-    if {$::ediu(targetPath) == $::ediu(Nothing) && $::ediu(connectMode) != True } {
-        if {$::ediu(mode) == $::ediu(designMode)} {
-            Transcript $::ediu(MsgError) "No Design (PCB) specified, build aborted."
-        } elseif {$::ediu(mode) == $::ediu(libraryMode)} {
-            Transcript $::ediu(MsgError) "No Central Library (LMC) specified, build aborted."
-        } else {
-            Transcript $::ediu(MsgError) "Mode not set, build aborted."
-        }
-
-        ediuUpdateStatus $::ediu(ready)
-        return
-    }
-
-    ##  Rudimentary error checking - need a name, shape, height, and width!
-
-    if { $::padGeom(name) == "" || $::padGeom(shape) == "" || \
-        $::padGeom(height) == "" || $::padGeom(width) == "" } {
-        Transcript $::ediu(MsgError) "Incomplete pad definition, build aborted."
-        ediuUpdateStatus $::ediu(ready)
-        return
-    }
-
-    ##  Map the shape to something we can pass through the API
-
-    set shape [MapEnum::Shape $::padGeom(shape)]
-
-    if { $shape == $::ediu(Nothing) } {
-        Transcript $::ediu(MsgError) "Unsupported pad shape, build aborted."
-        ediuUpdateStatus $::ediu(ready)
-        return
-    }
-
-    ##  Define a pad name based on the shape, height and width
-    set padName [format "%s %sx%s" $::padGeom(shape) $::padGeom(height) $::padGeom(width)]
-
-    ##  Invoke the Padstack Editor and open the target
-    ##  Catch any exceptions raised by opening the database
-    set errorCode [catch { ediuOpenPadstackEditor } errorMessage]
-    if {$errorCode != 0} {
-        ediuUpdateStatus $::ediu(ready)
-        return
-    }
-
-    #  Does the pad exist?
-
-    set oldPadName [$::ediu(pdstkEdtrDb) FindPad $padName]
-    puts "Old Pad Name:  ----->$oldPadName<>$padName<-------"
-
-    #  Echo some information about what will happen.
-
-    if {$oldPadName == $::ediu(Nothing)} {
-        Transcript $::ediu(MsgNote) [format "Pad \"%s\" does not exist." $padName]
-    } elseif {$mode == "-replace" } {
-        Transcript $::ediu(MsgWarning) [format "Pad \"%s\" already exists and will be replaced." $padName]
-
-        ##  Can't delete a pad that is referenced by a padstack so
-        ##  need to catch the error if it is raised by the API.
-        set errorCode [catch { $oldPadName Delete } errorMessage]
-        if {$errorCode != 0} {
-            Transcript $::ediu(MsgError) [format "API error \"%s\", build aborted." $errorMessage]
-            ediuClosePadstackEditor
-            ediuUpdateStatus $::ediu(ready)
-            return
-        }
-    } else {
-        Transcript $::ediu(MsgWarning) [format "Pad \"%s\" already exists and will not be replaced." $padName]
-        ediuClosePadstackEditor
-        ediuUpdateStatus $::ediu(ready)
-        return
-    }
-
-    ##  Ready to build a new pad
-    set newPad [$::ediu(pdstkEdtrDb) NewPad]
-
-    $newPad -set Name $padName
-puts "------>$padName<----------"
-    $newPad -set Shape [expr $shape]
-    $newPad -set Width [expr [MapEnum::Units $::database(units) "pad"]] [expr $::padGeom(width)]
-    $newPad -set Height [expr [MapEnum::Units $::database(units) "pad"]] [expr $::padGeom(height)]
-    $newPad -set OriginOffsetX [expr [MapEnum::Units $::database(units) "pad"]] [expr $::padGeom(offsetx)]
-    $newPad -set OriginOffsetY [expr [MapEnum::Units $::database(units) "pad"]] [expr $::padGeom(offsety)]
-
-    Transcript $::ediu(MsgNote) [format "Committing pad:  %s" $padName]
-    $newPad Commit
-
-    ediuClosePadstackEditor
-
-    ##  Report some time statistics
-    set ::ediu(cTime) [clock format [clock seconds] -format "%m/%d/%Y %T"]
-    Transcript $::ediu(MsgNote) [format "Start Time:  %s" $::ediu(sTime)]
-    Transcript $::ediu(MsgNote) [format "Completion Time:  %s" $::ediu(cTime)]
-
-    ediuUpdateStatus $::ediu(ready)
-}
-
-#
-#  ediuGenerateAIFPadstacks
-#
-#  This subroutine will create die pads based on the "PADS" section
-#  found in the AIF file.  It can optionally replace an existing pad
-#  based on the second argument.
-#
-
-proc ediuGenerateAIFPadstacks { } {
-    foreach i [AIFForms::SelectFromList "Select Pad(s)" [padGetAllPads]] {
-        set p [lindex $i 1]
-        set ::padGeom(name) $p
-        set ::padGeom(shape) [Pad::getShape $p]
-        set ::padGeom(width) [Pad::getWidth $p]
-        set ::padGeom(height) [Pad::getHeight $p]
-        set ::padGeom(offsetx) 0.0
-        set ::padGeom(offsety) 0.0
-
-        ediuGenerateAIFPadstack
-    }
-}
-
-#
-#  ediuGenerateAIFPadstack
-#
-proc ediuGenerateAIFPadstack { { mode "-replace" } } {
-    ediuUpdateStatus $::ediu(busy)
-    set ::ediu(sTime) [clock format [clock seconds] -format "%m/%d/%Y %T"]
-
-    ##  Extract pad details from AIF file
-    #ediuPadGeomName
-    #ediuPadGeomShape
-
-    ##  Make sure a Target library or design has been defined
-
-    if {$::ediu(targetPath) == $::ediu(Nothing) && $::ediu(connectMode) != True } {
-        if {$::ediu(mode) == $::ediu(designMode)} {
-            Transcript $::ediu(MsgError) "No Design (PCB) specified, build aborted."
-        } elseif {$::ediu(mode) == $::ediu(libraryMode)} {
-            Transcript $::ediu(MsgError) "No Central Library (LMC) specified, build aborted."
-        } else {
-            Transcript $::ediu(MsgError) "Mode not set, build aborted."
-        }
-
-        ediuUpdateStatus $::ediu(ready)
-        return
-    }
-
-    ##  Rudimentary error checking - need a name, shape, height, and width!
-
-    if { $::padGeom(name) == "" || $::padGeom(shape) == "" || \
-        $::padGeom(height) == "" || $::padGeom(width) == "" } {
-        Transcript $::ediu(MsgError) "Incomplete pad definition, build aborted."
-        ediuUpdateStatus $::ediu(ready)
-        return
-    }
-
-    ##  Define a pad name based on the shape, height and width
-    set padName [format "%s %sx%s" $::padGeom(shape) $::padGeom(height) $::padGeom(width)]
-
-    ##  Invoke the Padstack Editor and open the target
-    ##  Catch any exceptions raised by opening the database
-    set errorCode [catch { ediuOpenPadstackEditor } errorMessage]
-    if {$errorCode != 0} {
-        ediuUpdateStatus $::ediu(ready)
-        return
-    }
-
-    #  Look for the pad that the AIF references
-    set pad [$::ediu(pdstkEdtrDb) FindPad $padName]
-
-    if {$pad == $::ediu(Nothing)} {
-        Transcript $::ediu(MsgError) [format "Pad \"%s\" is not defined, padstack \"%s\" build aborted." $padName $::padGeom(name)]
-        ediuUpdateStatus $::ediu(ready)
-        return
-    }
-
-    #  Does the pad exist?
-
-    set oldPadstackName [$::ediu(pdstkEdtrDb) FindPadstack $::padGeom(name)]
-
-    #  Echo some information about what will happen.
-
-    if {$oldPadstackName == $::ediu(Nothing)} {
-        Transcript $::ediu(MsgNote) [format "Padstack \"%s\" does not exist." $padName]
-    } elseif {$mode == "-replace" } {
-        Transcript $::ediu(MsgWarning) [format "Padstack \"%s\" already exists and will be replaced." $::padGeom(name)]
-        ##  Can't delete a padstack that is referenced by a padstack
-        ##  so need to catch the error if it is raised by the API.
-        set errorCode [catch { $oldPadstackName Delete } errorMessage]
-        if {$errorCode != 0} {
-            Transcript $::ediu(MsgError) [format "API error \"%s\", build aborted." $errorMessage]
-            ediuClosePadstackEditor
-            ediuUpdateStatus $::ediu(ready)
-            return
-        }
-    } else {
-        Transcript $::ediu(MsgWarning) [format "Padstack \"%s\" already exists and will not be replaced." $::padGeom(name)]
-        ediuClosePadstackEditor
-        ediuUpdateStatus $::ediu(ready)
-        return
-    }
-
-    ##  Ready to build the new padstack
-    set newPadstack [$::ediu(pdstkEdtrDb) NewPadstack]
-
-    $newPadstack -set Name $::padGeom(name)
-    $newPadstack -set Type $::PadstackEditorLib::EPsDBPadstackType(epsdbPadstackTypePinSMD)
-    
-    $newPadstack -set Pad [expr $::PadstackEditorLib::EPsDBPadLayer(epsdbPadLayerTopMount)] $pad
-    $newPadstack -set Pad [expr $::PadstackEditorLib::EPsDBPadLayer(epsdbPadLayerBottomMount)] $pad
-
-    $newPadstack Commit
-
-    ediuClosePadstackEditor
-
-    ##  Report some time statistics
-    set ::ediu(cTime) [clock format [clock seconds] -format "%m/%d/%Y %T"]
-    Transcript $::ediu(MsgNote) [format "Start Time:  %s" $::ediu(sTime)]
-    Transcript $::ediu(MsgNote) [format "Completion Time:  %s" $::ediu(cTime)]
-
-    ediuUpdateStatus $::ediu(ready)
-}
-
-#
-#  ediuGenerateAIFCells
-#
-#  This subroutine will create die pads based on the "PADS" section
-#  found in the AIF file.  It can optionally replace an existing pad
-#  based on the second argument.
-#
-
-proc ediuGenerateAIFCells { } {
-    foreach i [AIFForms::SelectFromList "Select Cell(s)" [array names ::devices]] {
-        ediuGenerateAIFCell [lindex $i 1]
-    }
-}
-
-#
-#  Open the Cell Editor
-#
-proc ediuOpenCellEditor { } {
-    ##  Which mode?  Design or Library?
-    if { $::ediu(mode) == $::ediu(designMode) } {
-        ##  Invoke Expedition on the design so the Cell Editor can be started
-        ##  Catch any exceptions raised by opening the database
-        set errorCode [catch { ediuOpenExpedition } errorMessage]
-        if {$errorCode != 0} {
-            ediuUpdateStatus $::ediu(ready)
-            return
-        }
-        set ::ediu(cellEdtr) [$::ediu(pcbDoc) CellEditor]
-        Transcript $::ediu(MsgNote) "Using design database for Cell Editor."
-        set ::ediu(cellEdtrDb) [$::ediu(cellEdtr) ActiveDatabase]
-    } elseif { $::ediu(mode) == $::ediu(libraryMode) } {
-        set ::ediu(cellEdtr) [::tcom::ref createobject "CellEditorAddin.CellEditorDlg"]
-        set ::ediu(pdstkEdtr) [::tcom::ref createobject "MGCPCBLibraries.PadstackEditorDlg"]
-        # Open the database
-        Transcript $::ediu(MsgNote) "Opening library database for Cell Editor."
-
-        set errorCode [catch {set ::ediu(cellEdtrDb) [$::ediu(cellEdtr) \
-            OpenDatabase $::ediu(targetPath) false] } errorMessage]
-        if {$errorCode != 0} {
-            Transcript $::ediu(MsgError) [format "API error \"%s\", build aborted." $errorMessage]
-            return -code return 1
-        }
-    } else {
-        Transcript $::ediu(MsgError) "Mode not set, build aborted."
-        return -code return 1
-    }
-
-    #set ::ediu(cellEdtrDb) [$::ediu(cellEdtr) OpenDatabase $::ediu(targetPath) false]
-    set errorCode [catch { $::ediu(cellEdtr) LockServer } errorMessage]
-    if {$errorCode != 0} {
-        Transcript $::ediu(MsgError) [format "API error \"%s\", build aborted." $errorMessage]
-        return -code return 1
-    }
-
-    # Display the dialog box?  Note this isn't necessary
-    # but done for clarity and useful for debugging purposes.
-    $::ediu(cellEdtr) Visible $::ediu(appVisible)
-}
-
-#
-#  Close Cell Editor Lib
-#
-proc ediuCloseCellEditor {} {
-    #ediuCloseCellEditorDb
-    #Transcript $::ediu(MsgNote) "Closing Cell Editor."
-    #$::ediu(cellEdtr) Quit
-    ##  Which mode?  Design or Library?
-
-    if { $::ediu(mode) == $::ediu(designMode) } {
-        Transcript $::ediu(MsgNote) "Closing database for Cell Editor."
-        set errorCode [catch { $::ediu(cellEdtr) UnlockServer } errorMessage]
-        if {$errorCode != 0} {
-            Transcript $::ediu(MsgError) [format "API error \"%s\", build aborted." $errorMessage]
-            return -code return 1
-        }
-        Transcript $::ediu(MsgNote) "Closing Cell Editor."
-        ##  Close Padstack Editor
-        set errorCode [catch { $::ediu(cellEdtr) SaveActiveDatabase } errorMessage]
-        if {$errorCode != 0} {
-            Transcript $::ediu(MsgError) [format "API error \"%s\", build aborted." $errorMessage]
-            return -code return 1
-        }
-        #$::ediu(cellEdtr) SaveActiveDatabase
-        $::ediu(cellEdtr) Quit
-
-        ##  Save the Expedition Database
-        $::ediu(pcbDoc) Save
-
-        if { !$::ediu(connectMode) } {
-            ##  Close the Expedition Database and terminate Expedition
-            $::ediu(pcbDoc) Close
-            ##  Close Expedition
-            $::ediu(pcbApp) Quit
-        }
-    } elseif { $::ediu(mode) == $::ediu(libraryMode) } {
-        Transcript $::ediu(MsgNote) "Closing database for Cell Editor."
-        set errorCode [catch { $::ediu(cellEdtr) UnlockServer } errorMessage]
-        if {$errorCode != 0} {
-            Transcript $::ediu(MsgError) [format "API error \"%s\", build aborted." $errorMessage]
-            return -code return 1
-        }
-        $::ediu(cellEdtr) CloseActiveDatabase True
-        Transcript $::ediu(MsgNote) "Closing Cell Editor."
-        $::ediu(cellEdtr) Quit
-    } else {
-        Transcript $::ediu(MsgError) "Mode not set, build aborted."
-        return -code return 1
-    }
-}
-
-#
-#  Open the PDB Editor
-#
-proc ediuOpenPDBEditor {} {
-    ##  Which mode?  Design or Library?
-    if { $::ediu(mode) == $::ediu(designMode) } {
-        ##  Invoke Expedition on the design so the PDB Editor can be started
-        ##  Catch any exceptions raised by opening the database
-        set errorCode [catch { ediuOpenExpedition } errorMessage]
-        if {$errorCode != 0} {
-            ediuUpdateStatus $::ediu(ready)
-            return
-        }
-        set ::ediu(partEdtr) [$::ediu(pcbDoc) PartEditor]
-        Transcript $::ediu(MsgNote) "Using design database for PDB Editor."
-        set ::ediu(partEdtrDb) [$::ediu(partEdtr) ActiveDatabase]
-    } elseif { $::ediu(mode) == $::ediu(libraryMode) } {
-        set ::ediu(partEdtr) [::tcom::ref createobject "MGCPCBLibraries.PartsEditorDlg"]
-        # Open the database
-        Transcript $::ediu(MsgNote) "Opening library database for PDB Editor."
-
-        set errorCode [catch {set ::ediu(partEdtrDb) [$::ediu(partEdtr) \
-            OpenDatabaseEx $::ediu(targetPath) false] } errorMessage]
-            puts $errorCode
-        if {$errorCode != 0} {
-            Transcript $::ediu(MsgError) [format "API error \"%s\", build aborted." $errorMessage]
-            return -code return 1
-        }
-        puts "22->  $errorCode"
-        puts "33->  $errorMessage"
-    } else {
-        Transcript $::ediu(MsgError) "Mode not set, build aborted."
-        return -code return 1
-    }
-            puts "OpenPDBEdtr - 1"
-
-    #set ::ediu(partEdtrDb) [$::ediu(partEdtr) OpenDatabase $::ediu(targetPath) false]
-    set errorCode [catch { $::ediu(partEdtr) LockServer } errorMessage]
-    if {$errorCode != 0} {
-        Transcript $::ediu(MsgError) [format "API error \"%s\", build aborted." $errorMessage]
-        return -code return 1
-    }
-        puts "44->  $errorCode"
-        puts "55->  $errorMessage"
-
-    # Display the dialog box?  Note this isn't necessary
-    # but done for clarity and useful for debugging purposes.
-    $::ediu(partEdtr) Visible $::ediu(appVisible)
-
-    #return -code return 0
-}
-
-#
-#  Close PDB Editor Lib
-#
-proc ediuClosePDBEditor { } {
-    ##  Which mode?  Design or Library?
-
-    if { $::ediu(mode) == $::ediu(designMode) } {
-        Transcript $::ediu(MsgNote) "Closing database for PDB Editor."
-        set errorCode [catch { $::ediu(partEdtr) UnlockServer } errorMessage]
-        if {$errorCode != 0} {
-            Transcript $::ediu(MsgError) [format "API error \"%s\", build aborted." $errorMessage]
-            return -code return 1
-        }
-        Transcript $::ediu(MsgNote) "Closing PDB Editor."
-        ##  Close Padstack Editor
-        $::ediu(partEdtr) SaveActiveDatabase
-        $::ediu(partEdtr) Quit
-        ##  Close the Expedition Database
-        ##  Need to save?
-        if { [$::ediu(pcbDoc) IsSaved] == "False" } {
-            $::ediu(pcbDOc) Save
-        }
-        #$::ediu(pcbDoc) Save
-        #$::ediu(pcbDoc) Close
-        ##  Close Expedition
-        #$::ediu(pcbApp) Quit
-
-        if { !$::ediu(connectMode) } {
-            ##  Close the Expedition Database and terminate Expedition
-            $::ediu(pcbDoc) Close
-            ##  Close Expedition
-            $::ediu(pcbApp) Quit
-        }
-    } elseif { $::ediu(mode) == $::ediu(libraryMode) } {
-        Transcript $::ediu(MsgNote) "Closing database for PDB Editor."
-        set errorCode [catch { $::ediu(partEdtr) UnlockServer } errorMessage]
-        if {$errorCode != 0} {
-            Transcript $::ediu(MsgError) [format "API error \"%s\", build aborted." $errorMessage]
-            return -code return 1
-        }
-        $::ediu(partEdtr) CloseActiveDatabase True
-        Transcript $::ediu(MsgNote) "Closing PDB Editor."
-        $::ediu(partEdtr) Quit
-    } else {
-        Transcript $::ediu(MsgError) "Mode not set, build aborted."
-        return -code return 1
-    }
-}
-
-#
-#  ediuOpenExpedition
-#
-#  Open Expedition, open the database, handle licensing.
-#
-proc ediuOpenExpedition {} {
-    #  Crank up Expedition
-
-    if { $::ediu(connectMode) } {
-        Transcript $::ediu(MsgNote) "Connecting to existing Expedition session."
-        set ::ediu(pcbApp) [::tcom::ref getactiveobject "MGCPCB.ExpeditionPCBApplication"]
-
-        #  Use the active PCB document object
-        set errorCode [catch {set ::ediu(pcbDoc) [$::ediu(pcbApp) ActiveDocument] } errorMessage]
-        if {$errorCode != 0} {
-            Transcript $::ediu(MsgError) [format "API error \"%s\", build aborted." $errorMessage]
-            return -code return 1
-        }
-    } else {
-        Transcript $::ediu(MsgNote) "Opening Expedition."
-        set ::ediu(pcbApp) [::tcom::ref createobject "MGCPCB.ExpeditionPCBApplication"]
-
-        # Open the database
-        Transcript $::ediu(MsgNote) "Opening database for Expedition."
-
-        #  Create a PCB document object
-        set errorCode [catch {set ::ediu(pcbDoc) [$::ediu(pcbApp) \
-            OpenDocument $::ediu(targetPath)] } errorMessage]
-        if {$errorCode != 0} {
-            Transcript $::ediu(MsgError) [format "API error \"%s\", build aborted." $errorMessage]
-            return -code return 1
-        }
-    }
-
-    #  Turn off trivial dialog boxes - makes batch operations smoother
-    [$::ediu(pcbApp) Gui] SuppressTrivialDialogs True
-
-    #  Set application visibility
-    $::ediu(pcbApp) Visible $::ediu(appVisible)
-
-    #  Ask Expedition document for the key
-    set key [$::ediu(pcbDoc) Validate "0" ] 
-
-    #  Get token from license server
-    set licenseServer [::tcom::ref createobject "MGCPCBAutomationLicensing.Application"]
-
-    set licenseToken [ $licenseServer GetToken $key ] 
-
-    #  Ask the document to validate the license token
-    $::ediu(pcbDoc) Validate $licenseToken  
-    #$pcbApp LockServer False
-    #  Suppress trivial dialog boxes
-    #[$::ediu(pcbDoc) Gui] SuppressTrivialDialogs True
 }
 
 #
@@ -2690,63 +2019,6 @@ proc ediuAIFName {} {
     } else {
         Transcript $::ediu(MsgError) [format "AIF does not contain section \"%s\"." $::sections(die)]
     }
-}
-
-#
-#  ediuAIFDatabaseSection
-#
-#  Scan the AIF source file for the "DATABASE" section
-#
-proc ediuAIFDatabaseSection {} {
-    set rv 0
-
-    ##  Make sure we have a DATABASE section!
-
-    if { [lsearch -exact $::AIF::sections DATABASE] != -1 } {
-        ##  Load the DATABASE section
-        set vars [AIF::Variables DATABASE]
-
-        foreach v $vars {
-            #puts [format "-->  %s" $v]
-            set ::database([string tolower $v]) [AIF::GetVar $v DATABASE]
-        }
-
-        ##  Make sure file format is AIF!
-
-        if { $::database(type) != "AIF" } {
-            Transcript $::ediu(MsgError) [format "File \"%s\" is not an AIF file." $::ediu(filename)]
-            set rv -1
-        }
-
-        if { ([lsearch [AIF::Variables "DATABASE"] "MCM"] != -1) && ($::database(mcm) == "TRUE") } {
-            Transcript $::ediu(MsgError) [format "File \"%s\" is an MCM-AIF file." $::ediu(filename)]
-            set ::ediu(MCMAIF) 1
-            set ::widgets(AIFType) "File Type:  MCM-AIF"
-        } else {
-            Transcript $::ediu(MsgError) [format "File \"%s\" is an AIF file." $::ediu(filename)]
-            set ::ediu(MCMAIF) 0
-            set ::widgets(AIFType) "File Type:  AIF"
-        }
-
-        ##  Does the AIF file contain a BGA section?
-        set ::ediu(BGA) [expr [lsearch [AIF::Sections] "BGA"] != -1 ? 1 : 0]
- 
-        ##  Check units for legal option - AIF supports UM, MM, CM, INCH, MIL
-
-        if { [lsearch -exact $::units [string tolower $::database(units)]] == -1 } {
-            Transcript $::ediu(MsgError) [format "Units \"%s\" are not supported AIF syntax." $::database(units)]
-            set rv -1
-        }
-
-        foreach i [array names ::database] {
-            Transcript $::ediu(MsgNote) [format "Database \"%s\":  %s" [string toupper $i] $::database($i)]
-        }
-    } else {
-        Transcript $::ediu(MsgError) [format "AIF file \"%s\" does not contain a DATABASE section." $::ediu(filename)]
-        set rv -1
-    }
-
-    return $rv
 }
 
 #
@@ -2845,10 +2117,10 @@ proc ediuAIFNetlistSection {} {
     if { [lsearch -exact $::AIF::sections NETLIST] != -1 } {
         ##  Load the NETLIST section which was previously stored in the netlist text widget
 
-        netlist::load
+        Netlist::Load
 
-        Transcript $::ediu(MsgNote) [format "AIF source file contains %d net %s." [ netlist::getConnectionCount ] [ediuPlural [netlist::getConnectionCount] "connection"]]
-        Transcript $::ediu(MsgNote) [format "AIF source file contains %d unique %s." [netlist::getNetCount] [ediuPlural [netlist::getNetCount] "net"]]
+        Transcript $::ediu(MsgNote) [format "AIF source file contains %d net %s." [ Netlist::GetConnectionCount ] [ediuPlural [Netlist::GetConnectionCount] "connection"]]
+        Transcript $::ediu(MsgNote) [format "AIF source file contains %d unique %s." [Netlist::GetNetCount] [ediuPlural [Netlist::GetNetCount] "net"]]
         
     } else {
         Transcript $::ediu(MsgError) [format "AIF file \"%s\" does not contain a NETLIST section." $::ediu(filename)]
@@ -2856,667 +2128,6 @@ proc ediuAIFNetlistSection {} {
     }
 
     return rv
-}
-
-#
-#  ediuGenerateAIFCell
-#
-proc ediuGenerateAIFCell { device } {
-    ediuUpdateStatus $::ediu(busy)
-    set ::ediu(sTime) [clock format [clock seconds] -format "%m/%d/%Y %T"]
-
-    ##  Make sure a Target library or design has been defined
-
-    if {$::ediu(targetPath) == $::ediu(Nothing) && $::ediu(connectMode) != True } {
-        if {$::ediu(mode) == $::ediu(designMode)} {
-            Transcript $::ediu(MsgError) "No Design (PCB) specified, build aborted."
-        } elseif {$::ediu(mode) == $::ediu(libraryMode)} {
-            Transcript $::ediu(MsgError) "No Central Library (LMC) specified, build aborted."
-        } else {
-            puts $::ediu(mode)
-            Transcript $::ediu(MsgError) "Mode not set, build aborted."
-        }
-
-        ediuUpdateStatus $::ediu(ready)
-        return
-    }
-
-    ##  Invoke the Cell Editor and open the LMC or PCB
-    ##  Catch any exceptions raised by opening the database
-
-    set errorCode [catch { ediuOpenCellEditor } errorMessage]
-    if {$errorCode != 0} {
-        ediuUpdateStatus $::ediu(ready)
-        return
-    }
-
-    ##  Handling existing cells is much different for library
-    ##  mode than it is for design mode.  In design mode there
-    ##  isn't a "partition" so none of the partition logic applies.
-
-    if { $::ediu(mode) == $::ediu(libraryMode) } {
-
-        #  Prompt for the Partition
-
-        set ::ediu(cellEdtrPrtnName) $::die(partition)
-        ediuChooseCellPartitionDialog
-        #return
-
-        #  Does the cell exist?  Before we can check, we need a
-        #  partition.  There isn't a clear name as to what the
-        #  partition name should be so we'll use the name of the
-        #  cell as the name of the partition as well.
-
-        #  Cannot access partition list when application is
-        #  visible so if it is, hide it temporarily.
-        set visibility $::ediu(appVisible)
-
-        $::ediu(cellEdtr) Visible False
-        set partitions [$::ediu(cellEdtrDb) Partitions]
-        $::ediu(cellEdtr) Visible $visibility
-
-        Transcript $::ediu(MsgNote) [format "Found %s cell %s." [$partitions Count] \
-            [ediuPlural [$partitions Count] "partition"]]
-
-        set pNames {}
-        for {set i 1} {$i <= [$partitions Count]} {incr i} {
-            set partition [$partitions Item $i]
-            lappend pNames [$partition Name]
-        }
-
-        #  Does the partition exist?
-
-        if { [lsearch $pNames $::die(partition)] == -1 } {
-            Transcript $::ediu(MsgNote) [format "Creating partition \"%s\" for cell \"%s\"." \
-                $::die(partition) $::die(name)]
-
-            set partition [$::ediu(cellEdtrDb) NewPartition $::die(partition)]
-        } else {
-            Transcript $::ediu(MsgNote) [format "Using existing partition \"%s\" for cell \"%s\"." \
-                $::die(partition) $::die(name)]
-            set partition [$partitions Item [expr [lsearch $pNames $::die(partition)] +1]]
-        }
-
-        #  Now that the partition work is doene, does the cell exist?
-
-        set cells [$partition Cells]
-    } else {
-        set partition [$::ediu(cellEdtrDb) ActivePartition]
-        set cells [$partition Cells]
-    }
-
-    Transcript $::ediu(MsgNote) [format "Found %s %s." [$cells Count] \
-        [ediuPlural [$cells Count] "cell"]]
-
-    set cNames {}
-    for {set i 1} {$i <= [$cells Count]} {incr i} {
-        set cell [$cells Item $i]
-        lappend cNames [$cell Name]
-    }
-
-    #  Does the cell exist?
-
-    if { [lsearch $cNames $::die(name)] == -1 } {
-        Transcript $::ediu(MsgNote) [format "Creating new cell \"%s\"." $::die(name)]
-
-    } else {
-        Transcript $::ediu(MsgNote) [format "Replacing existing cell \"%s.\"" $::die(name)]
-        set cell [$cells Item [expr [lsearch $cNames $::die(name)] +1]]
-
-        ##  Delete the cell and save the database.  The delete
-        ##  isn't committed until the database is actually saved.
-
-        $cell Delete
-        $::ediu(cellEdtr) SaveActiveDatabase
-    }
-
-
-    ##  Build a new cell.  The first part of this is done in
-    ##  in the Cell Editor which is part of the Library Manager.
-    ##  The graphics and pins are then added using the Cell Editor
-    ##  AddIn which sort of looks like a mini version of Expedititon.
-
-    #set txt $::widgets(netlistview)
-    #set devicePinCount [expr {[lindex [split [$txt index end] .] 0] - 1} - 1]
-    set devicePinCount [llength $::devices($device)]
-
-    set newCell [$partition NewCell [expr $::CellEditorAddinLib::ECellDBCellType(ecelldbCellTypePackage)]]
-
-    $newCell -set Name $device
-    $newCell -set Description $device
-    $newCell -set MountType [expr $::CellEditorAddinLib::ECellDBMountType(ecelldbMountTypeSurface)]
-    #$newCell -set LayerCount [expr 2]
-    $newCell -set PinCount [expr $devicePinCount]
-    #puts [format "--->  devicePinCount:  %s" $devicePinCount]
-    #$newCell -set Units [expr $::CellEditorAddinLib::ECellDBUnit(ecelldbUnitUM)]
-    $newCell -set Units [expr [MapEnum::Units $::database(units) "cell"]]
-    $newCell -set PackageGroup [expr $::CellEditorAddinLib::ECellDBPackageGroup(ecelldbPackageGeneral)]
-    ##  Commit the cell to the database so it can
-    ##  be edited using the Cell Editor AddIn.
-    
-    $newCell Commit
-
-    ##  Put the Cell in "Graphical Edit" mode
-    ##  to add the pins and graphics.
-
-    ##  Invoke the Padstack Editor and open the target
-    ##  Catch any exceptions raised by opening the database
-    set errorCode [catch { ediuOpenPadstackEditor -dontopendatabase } errorMessage]
-    if {$errorCode != 0} {
-        ediuUpdateStatus $::ediu(ready)
-        return
-    }
-
-    ##  Open the Cell Editor and turn off prompting
-
-    set cellEditor [$newCell Edit]
-    set cellEditorDoc [$cellEditor Application]
-    [$cellEditorDoc Gui] SuppressTrivialDialogs True
-    
-    ##  Need the Component Document to it can be edited.
-    ##  When using the Cell Editor Addin, the component will
-    ##  always be the first Item.
-
-    set components [$cellEditor Components]
-    set component [$components Item 1]
-    
-    ##  Add the pins
-    
-    #  Doe the pads exist?
-    
-    set pads [netlist::getPads]
-
-    foreach pad $pads {
-        set padstack($pad) [$::ediu(pdstkEdtrDb) FindPadstack $pad]
-    
-        #  Echo some information about what will happen.
-    
-        if {$padstack($pad) == $::ediu(Nothing)} {
-            Transcript $::ediu(MsgError) \
-                [format "Reference Padstack \"%s\" does not exist, build aborted." $pad]
-            $cellEditor Close False
-
-            if { $::ediu(mode) == $::ediu(designMode) } {
-                ediuClosePadstackEditor -dontclosedatabase
-            } else {
-                ediuClosePadstackEditor
-            }
-            ediuCloseCellEditor
-
-            ediuUpdateStatus $::ediu(ready)
-            return -1
-        }
-    }
-
-    ##  To fix Tcom bug?
-    if { $::ediu(mode) == $::ediu(designMode) } {
-        ediuClosePadstackEditor -dontclosedatabase
-    } else {
-        ediuClosePadstackEditor
-    }
-    
-    ##  Need to "Put" the padstack so it can be
-    ##  referenced by the Cell Editor Add Pin process.
-
-    #foreach pad $pads {
-    #    set padstack($pad) [$cellEditor PutPadstack [expr 1] [expr 1] $pad]
-    #}
-        
-    set i 0
-    unset padstack
-
-    set pins [$cellEditor Pins]
-    puts [format "-->  Array Size of pins:  %s" [$pins Count]]
-
-    ##  Start Transations for performance reasons
-    $cellEditor TransactionStart [expr $::MGCPCB::EPcbDRCMode(epcbDRCModeDRC)]
-
-    ##  Loop over the collection of pins
-    ::tcom::foreach pin $pins {
-        ##  Split of the fields extracted from the die file
-
-        set padDefinition [lindex $::devices($device) $i]
-
-        set diePadFields(padname) [lindex $padDefinition 0]
-        set diePadFields(pinnum) [lindex $padDefinition 1]
-        set diePadFields(padx) [lindex $padDefinition 2]
-        set diePadFields(pady) [lindex $padDefinition 3]
-        #set diePadFields(net) [netlist::getNetName $i]
-
-        printArray diePadFields
-    
-        ## Need to handle sparse mode?
-
-        set skip False
-
-if { 0 } {
-        if { $::ediu(sparseMode) } {
-            if { [lsearch $::ediu(sparsepinnames) $diePadFields(pinnum)] == -1 } {
-                set skip True
-            }
-        }
-}
-
-        if { $skip  == False } {
-            Transcript $::ediu(MsgNote) [format "Placing pin \"%s\" using padstack \"%s\"." \
-                $diePadFields(pinnum) $diePadFields(padname)]
-
-            ##  Need to "Put" the padstack so it can be
-            ##  referenced by the Cell Editor Add Pin process.
-
-            set padstack [$cellEditor PutPadstack [expr 1] [expr 1] $diePadFields(padname)]
-        
-            $pin CurrentPadstack $padstack
-            $pin SetName $diePadFields(pinnum)
-
-            set errorCode [catch {
-            $pin Place [expr $diePadFields(padx)] [expr $diePadFields(pady)] [expr 0]
-                } errorMessage]
-            if {$errorCode != 0} {
-                puts [format "Error:  %sPin:  %d  Handle:  %s" $errorMessage $i $pin]
-    
-                puts [$pin IsValid]
-                puts [$pin Name]
-                puts [format "-->  Array Size of pins:  %s" [$pins Count]]
-                puts [$cellEditor Name]
-                break
-            }
-        } else {
-            Transcript $::ediu(MsgNote) [format "Skipping pin \"%s\" using padstack \"%s\", not in Sparse Pin list." \
-                $diePadFields(pinnum) $diePadFields(padname)]
-        }
-
-        set pin ::tcom::null
-
-        incr i
-    }
-
-    ## Define the placement outline
-    
-    set x2 [expr $::die(width) / 2]
-    set x1 [expr -1 * $x2]
-    set y2 [expr $::die(height) / 2]
-    set y1 [expr -1 * $y2]
-
-    ##  PutPlacementOutline expects a Points Array which isn't easily
-    ##  passed via Tcl.  Use the Utility object to create a Points Array
-    ##  Object Rectangle.  A rectangle will have 5 points in the points
-    ##  array - 5 is passed as the number of points to PutPlacemetOutline.
-
-    set ptsArray [[$cellEditorDoc Utility] CreateRectXYR $x1 $y1 $x2 $y2]
-
-    ##  Add the Placment Outline
-    $cellEditor PutPlacementOutline [expr $::MGCPCB::EPcbSide(epcbSideMount)] 5 $ptsArray \
-        [expr 0] [expr 0] $component [expr [MapEnum::Units $::database(units) "cell"]]
-
-    ##  Terminate transactions
-    $cellEditor TransactionEnd True
-
-    ##  Save edits and close the Cell Editor
-    set time [clock format [clock seconds] -format "%m/%d/%Y %T"]
-    Transcript $::ediu(MsgNote) [format "Saving new cell \"%s\" (%s)." $::die(name) $time]
-    $cellEditor Save
-    set time [clock format [clock seconds] -format "%m/%d/%Y %T"]
-    Transcript $::ediu(MsgNote) [format "New cell \"%s\" (%s) saved." $::die(name) $time]
-    $cellEditor Close False
-
-##    if { $::ediu(mode) == $::ediu(designMode) } {
-##        ediuClosePadstackEditor -dontclosedatabase
-##    } else {
-##        ediuClosePadstackEditor
-##    }
-    ediuCloseCellEditor
-
-    ##  Report some time statistics
-    set ::ediu(cTime) [clock format [clock seconds] -format "%m/%d/%Y %T"]
-    Transcript $::ediu(MsgNote) [format "Start Time:  %s" $::ediu(sTime)]
-    Transcript $::ediu(MsgNote) [format "Completion Time:  %s" $::ediu(cTime)]
-
-    ediuUpdateStatus $::ediu(ready)
-}
-
-#
-#  ediuGenerateAIFPDBs
-#
-#  This subroutine will create die pads based on the "PADS" section
-#  found in the AIF file.  It can optionally replace an existing pad
-#  based on the second argument.
-#
-
-proc ediuGenerateAIFPDBs { } {
-    foreach i [AIFForms::SelectFromList "Select PDB(s)" [array names ::devices]] {
-        ediuGenerateAIFPDB [lindex $i 1]
-    }
-}
-
-
-#
-#  ediuGenerateAIFPDB
-#
-proc ediuGenerateAIFPDB { device } {
-    ediuUpdateStatus $::ediu(busy)
-    set ::ediu(sTime) [clock format [clock seconds] -format "%m/%d/%Y %T"]
-
-    ##  Make sure a Target library or design has been defined
-
-    if {$::ediu(targetPath) == $::ediu(Nothing) && $::ediu(connectMode) != True } {
-        if {$::ediu(mode) == $::ediu(designMode)} {
-            Transcript $::ediu(MsgError) "No Design (PCB) specified, build aborted."
-        } elseif {$::ediu(mode) == $::ediu(libraryMode)} {
-            Transcript $::ediu(MsgError) "No Central Library (LMC) specified, build aborted."
-        } else {
-            Transcript $::ediu(MsgError) "Mode not set, build aborted."
-        }
-
-        ediuUpdateStatus $::ediu(ready)
-        return
-    }
-
-    ##  Invoke the PDB Editor and open the database
-    ##  Catch any exceptions raised by opening the database
-
-    set errorCode [catch { ediuOpenPDBEditor } errorMessage]
-    if {$errorCode != 0} {
-        ediuUpdateStatus $::ediu(ready)
-        return
-    }
-
-    ##  Handling existing parts is much different for library
-    ##  mode than it is for design mode.  In design mode there
-    ##  isn't a "partition" so none of the partition logic applies.
-
-    if { $::ediu(mode) == $::ediu(libraryMode) } {
-        #  Does the part exist?  Before we can check, we need a
-        #  partition.  There isn't a clear name as to what the
-        #  partition name should be so we'll use the name of the
-        #  part as the name of the partition as well.
-
-        set partitions [$::ediu(partEdtrDb) Partitions]
-
-        Transcript $::ediu(MsgNote) [format "Found %s part %s." [$partitions Count] \
-            [ediuPlural [$partitions Count] "partition"]]
-
-        set pNames {}
-        for {set i 1} {$i <= [$partitions Count]} {incr i} {
-            set partition [$partitions Item $i]
-            lappend pNames [$partition Name]
-        }
-
-        #  Does the partition exist?
-
-        if { [lsearch $pNames $::die(partition)] == -1 } {
-            Transcript $::ediu(MsgNote) [format "Creating partition \"%s\" for part \"%s\"." \
-                $::die(partition) $::die(name)]
-
-            set partition [$::ediu(partEdtrDb) NewPartition $::die(partition)]
-        } else {
-            Transcript $::ediu(MsgNote) [format "Using existing partition \"%s\" for part \"%s\"." \
-                $::die(partition) $::die(name)]
-            set partition [$partitions Item [expr [lsearch $pNames $::die(partition)] +1]]
-        }
-
-        #  Now that the partition work is doene, does the part exist?
-
-        set parts [$partition Parts]
-    } else {
-        set partition [$::ediu(partEdtrDb) ActivePartition]
-        set parts [$partition Parts]
-    }
-
-    Transcript $::ediu(MsgNote) [format "Found %s %s." [$parts Count] \
-        [ediuPlural [$parts Count] "part"]]
-
-    set cNames {}
-    for {set i 1} {$i <= [$parts Count]} {incr i} {
-        set part [$parts Item $i]
-        lappend cNames [$part Name]
-    }
-
-    #  Does the part exist?
-
-    if { [lsearch $cNames $::die(name)] == -1 } {
-        Transcript $::ediu(MsgNote) [format "Creating new part \"%s\"." $::die(name)]
-
-    } else {
-        Transcript $::ediu(MsgNote) [format "Replacing existing part \"%s.\"" $::die(name)]
-        set part [$parts Item [expr [lsearch $cNames $::die(name)] +1]]
-
-        ##  Delete the part and save the database.  The delete
-        ##  isn't committed until the database is actually saved.
-
-        ##  First delete the Symbol Reference
-
-        #$part
-        puts "----> Part Sym Refs:  [[$part SymbolReferences] Count]"
-
-        set errorCode [catch { $part Delete } errorMessage]
-        if {$errorCode != 0} {
-            Transcript $::ediu(MsgError) [format "API error \"%s\", build aborted." $errorMessage]
-            ediuClosePDBEditor
-            ediuUpdateStatus $::ediu(ready)
-            return
-        }
-    }
-
-    $::ediu(partEdtr) SaveActiveDatabase
-
-    ##  Generate a new part.  The first part of this is done in
-    ##  in the PDB Editor which is part of the Library Manager.
-    ##  The graphics and pins are then added using the PDB Editor
-    ##  AddIn which sort of looks like a mini version of Expediiton.
-
-    set newPart [$partition NewPart]
-
-    $newPart -set Name $device
-    $newPart -set Number $device
-    $newPart -set Type [expr $::MGCPCBPartsEditor::EPDBPartType(epdbPartIC)]
-    $newPart -set RefDesPrefix "U"
-    $newPart -set Description "IC"
-
-    #  Commit the Part so it can be mapped.
-    $newPart Commit
-
-    #  Start doing the pin mapping
-    set mapping [$newPart PinMapping]
-
-    #  Does the part have any symbol references?
-
-    puts "----> Mapping Sym Refs:  [[$mapping SymbolReferences] Count]"
-
-    #  Need to add a symbol reference
-    set symRef [$mapping PutSymbolReference $device]
-
-    puts "----> Mapping Sym Refs:  [[$mapping SymbolReferences] Count]"
-
-    if { [[$mapping SymbolReferences] Count] > 0 } {
-        Transcript $::ediu(MsgWarning) \
-            [format "Mapping has %d preexisting Symbol Reference(s)." \
-                [[$mapping SymbolReferences] Count]]
-
-        for { set i 1 } {$i <= [[$mapping SymbolReferences] Count] } {incr i} {
-            Transcript $::ediu(MsgNote) \
-                [format "Removing prexisting symbol reference #%d" $i]
-            [$mapping SymbolReferences] Remove $i
-        }
-    }
-
-    #  Need to add a cell reference
-    set cellRef [$mapping PutCellReference $device \
-        $::MGCPCBPartsEditor::EPDBCellReferenceType(epdbCellRefTop) $device]
-
-    ##  Define the gate - what to do about swap code?
-    set gate [$mapping PutGate "gate_1" $devicePinCount \
-        $::MGCPCBPartsEditor::EPDBGateType(epdbGateTypeLogical)]
-
-    ##  Add a pin defintition for each pin to the gate
-    for {set i 1} {$i <= $devicePinCount} {incr i} {
-        Transcript $::ediu(MsgNote) [format "Adding Pin Definition %d \"P%s\" %d \"Unknown\"" \
-            $i $i [expr $::MGCPCBPartsEditor::EPDBPinPropertyType(epdbPinPropertyPinType)]]
-        ##$gate PutPinDefinition [expr $i] [format "P%s" $i] \
-        ##    [expr $::MGCPCBPartsEditor::EPDBPinPropertyType(epdbPinPropertyPinType)] "Unknown"
-        $gate PutPinDefinition [expr $i] "P" \
-            [expr $::MGCPCBPartsEditor::EPDBPinPropertyType(epdbPinPropertyPinType)] "Unknown"
-    }
-
-    ##
-
-    puts "--->[[$mapping SymbolReferences] Count]<--"
-
-    if { [[$mapping SymbolReferences] Count] != 0 } {
-        Transcript $::ediu(MsgWarning) \
-            [format "Symbol Reference \"%s\" is already defined." $device]
-
-        set i 1
-        set pinNames [$symRef PinNames]
-        foreach pn $pinNames {
-            puts "2-$i -->  Symbol Pin Name:  $pn"
-            incr i
-        }
-    }
-
-
-    ##  Define the slot
-    set slot [$mapping PutSlot $gate $symRef]
-
-    ##  Add a pin defintition for each pin to the slot
-    for { set i 1 } { $i <= $devicePinCount } { incr i } {
-        ##  Split of the fields extracted from the die file
-
-        Transcript $::ediu(MsgNote) [format "Adding pin \"%s\" to slot." $i]
-
-        #$slot PutPin [expr $i] [format "%s" $i] [format "P%s" $diePadFields(pinnum)]
-        #$slot PutPin [expr $i] [format "%s" $i] [format "%s" $i]
-
-        ## Need to handle sparse mode?
-        if { $::ediu(sparseMode) } {
-            #if { $i in ::ediu(sparsepinnumbers) $i } {
-            #    $slot PutPin [expr $i] [format "%s" $i]
-            #}
-        } else {
-            $slot PutPin [expr $i] [format "%s" $i]
-        }
-    }
-
-    ##  Commit mapping and close the PDB editor
-
-    Transcript $::ediu(MsgNote) [format "Saving PDB \"%s\"." $::die(name)]
-    $mapping Commit
-    Transcript $::ediu(MsgNote) [format "New PDB \"%s\" saved." $::die(name)]
-    ediuClosePDBEditor
-
-    ##  Report some time statistics
-    set ::ediu(cTime) [clock format [clock seconds] -format "%m/%d/%Y %T"]
-    Transcript $::ediu(MsgNote) [format "Start Time:  %s" $::ediu(sTime)]
-    Transcript $::ediu(MsgNote) [format "Completion Time:  %s" $::ediu(cTime)]
-    ediuUpdateStatus $::ediu(ready)
-}
-
-##
-##  Define the netlist namespace and procedure supporting netlist operations
-##  Because net names in the netlist are not guaranteed to be unique (e.g. VSS,
-##  GND, etc.), nets are looked up by index.  The netlist can be traversed with
-##  a traditional FOR loop.
-##
-namespace eval netlist {
-    variable nl [list]
-    variable pads [list]
-    variable connections 0
-}
-
-#  Load the netlist from the text widget
-proc netlist::load { } {
-    variable nl
-    variable pads
-    variable connections
-
-    set txt $::widgets(netlistview)
-    
-    ##  Clean up list, the text widget may
-    ##  return empty stuff we don't want
-
-    foreach n [split [$txt get 1.0 end] '\n'] {
-        if { $n == "" } { continue }
-
-        ##  Extract the net name from the first field (col 1)
-        set netname [lindex [regexp -inline -all -- {\S+} $n] 0]
-        set padname [lindex [regexp -inline -all -- {\S+} $n] 2]
-
-        ##  Check net name for legal syntax, add it to the list
-        ##  of nets if it is valid.  The list contains just unique
-        ##  netnames.  The netlist text widget contains the netlist.
-
-        if { [ regexp {^[[:alpha:][:alnum:]_]*\w} $netname ] == 0 } {
-            Transcript $::ediu(MsgError) [format "Net name \"%s\" is not supported AIF syntax." $netname]
-            set rv -1
-        } else {
-            incr connections
-
-            if { [lsearch -exact $nl $netname ] == -1 } {
-                lappend nl $netname
-                Transcript $::ediu(MsgNote) [format "Found net name \"%s\"." $netname]
-            }
-
-            if { [lsearch -exact $pads $padname ] == -1 && $padname != "-" } {
-                lappend pads $padname
-                Transcript $::ediu(MsgNote) [format "Found reference to pad \"%s\"." $padname]
-            }
-        }
-    }
-}
-
-#  Return all of the parameters for a net
-proc netlist::getParams { index } {
-    set txt $::widgets(netlistview)
-    return [regexp -inline -all -- {\S+} [$txt get [expr $index +1].0 [expr $index +1].end]]
-}
-
-#  Return a specific parameter for a pad (default to first parameter)
-proc netlist::getParam { index { param  0 } } {
-    return [lindex [netlist::getParams $index] $param]
-}
-
-#  Return the shape of the pad
-proc netlist::getNetName { index } {
-    return [netlist::getParam $index]
-}
-
-proc netlist::getNetCount {} {
-    variable nl
-    return [llength $netlist::nl]
-}
-
-proc netlist::getConnectionCount {} {
-    variable connections
-    return $netlist::connections
-}
-
-proc netlist::netParams {} {
-}
-
-proc netlist::getAllNetNames {} {
-    variable nl
-    return $netlist::nl
-}
-
-proc netlist::getPads { } {
-    variable pads
-    return $netlist::pads
-}
-
-proc netlist::getPinNumber { index } {
-    return [netlist::getParam $index 1]
-}
-
-proc netlist::getPadName { index } {
-    return [netlist::getParam $index 2]
-}
-
-proc netlist::getDiePadX { index } {
-    return [netlist::getParam $index 3]
-}
-
-proc netlist::getDiePadY { index } {
-    return [netlist::getParam $index 4]
 }
 
 #
@@ -3796,7 +2407,7 @@ variable IMPORTAIF [pwd]
 cd $pwd
 
 ##  Load various pieces which comprise the application
-foreach script { AIF.tcl Forms.tcl GUI.tcl MapEnum.tcl } {
+foreach script { AIF.tcl Forms.tcl GUI.tcl MapEnum.tcl MGC.tcl Netlist.tcl } {
     source $IMPORTAIF/$script
 }
 
