@@ -100,6 +100,9 @@ namespace eval MGC {
         #$pcbApp LockServer False
         #  Suppress trivial dialog boxes
         #[$::ediu(pcbDoc) Gui] SuppressTrivialDialogs True
+
+        set ::ediu(targetPath) [$::ediu(pcbDoc) Path][$::ediu(pcbDoc) Name]
+        puts [$::ediu(pcbDoc) Name][$::ediu(pcbDoc) Name]
     }
 
     #
@@ -496,7 +499,7 @@ namespace eval MGC {
             set newPad [$::ediu(pdstkEdtrDb) NewPad]
 
             $newPad -set Name $padName
-        puts "------>$padName<----------"
+            #puts "------>$padName<----------"
             $newPad -set Shape [expr $shape]
             $newPad -set Width [expr [MapEnum::Units $::database(units) "pad"]] [expr $::padGeom(width)]
             $newPad -set Height [expr [MapEnum::Units $::database(units) "pad"]] [expr $::padGeom(height)]
@@ -737,8 +740,6 @@ namespace eval MGC {
             ##  The graphics and pins are then added using the Cell Editor
             ##  AddIn which sort of looks like a mini version of Expedititon.
 
-            #set txt $::widgets(netlistview)
-            #set devicePinCount [expr {[lindex [split [$txt index end] .] 0] - 1} - 1]
             set devicePinCount [llength $::devices($device)]
 
             set newCell [$partition NewCell [expr $::CellEditorAddinLib::ECellDBCellType(ecelldbCellTypePackage)]]
@@ -1053,7 +1054,7 @@ namespace eval MGC {
                 ##  First delete the Symbol Reference
 
                 #$part
-                puts "----> Part Sym Refs:  [[$part SymbolReferences] Count]"
+                #puts "----> Part Sym Refs:  [[$part SymbolReferences] Count]"
 
                 set errorCode [catch { $part Delete } errorMessage]
                 if {$errorCode != 0} {
@@ -1087,12 +1088,12 @@ namespace eval MGC {
 
             #  Does the part have any symbol references?
 
-            puts "----> Mapping Sym Refs:  [[$mapping SymbolReferences] Count]"
+            #puts "----> Mapping Sym Refs:  [[$mapping SymbolReferences] Count]"
 
             #  Need to add a symbol reference
             set symRef [$mapping PutSymbolReference $device]
 
-            puts "----> Mapping Sym Refs:  [[$mapping SymbolReferences] Count]"
+            #puts "----> Mapping Sym Refs:  [[$mapping SymbolReferences] Count]"
 
             if { [[$mapping SymbolReferences] Count] > 0 } {
                 Transcript $::ediu(MsgWarning) \
@@ -1110,47 +1111,50 @@ namespace eval MGC {
             set cellRef [$mapping PutCellReference $device \
                 $::MGCPCBPartsEditor::EPDBCellReferenceType(epdbCellRefTop) $device]
 
+            set devicePinCount [llength $::devices($device)]
+
             ##  Define the gate - what to do about swap code?
             set gate [$mapping PutGate "gate_1" $devicePinCount \
                 $::MGCPCBPartsEditor::EPDBGateType(epdbGateTypeLogical)]
 
             ##  Add a pin defintition for each pin to the gate
-            for {set i 1} {$i <= $devicePinCount} {incr i} {
-                Transcript $::ediu(MsgNote) [format "Adding Pin Definition %d \"P%s\" %d \"Unknown\"" \
-                    $i $i [expr $::MGCPCBPartsEditor::EPDBPinPropertyType(epdbPinPropertyPinType)]]
-                ##$gate PutPinDefinition [expr $i] [format "P%s" $i] \
-                ##    [expr $::MGCPCBPartsEditor::EPDBPinPropertyType(epdbPinPropertyPinType)] "Unknown"
-                $gate PutPinDefinition [expr $i] "P" \
+            set pi 1
+            foreach p $::devices($device) {
+                set sc [lindex $p 1]
+                Transcript $::ediu(MsgNote) [format "Adding Pin Definition %d \"%s\" %d \"Unknown\"" \
+                    $pi $sc [expr $::MGCPCBPartsEditor::EPDBPinPropertyType(epdbPinPropertyPinType)]]
+                $gate PutPinDefinition [expr $pi] [format "%s" $sc] \
                     [expr $::MGCPCBPartsEditor::EPDBPinPropertyType(epdbPinPropertyPinType)] "Unknown"
+                incr pi
             }
 
             ##
 
-            puts "--->[[$mapping SymbolReferences] Count]<--"
+            #puts "--->[[$mapping SymbolReferences] Count]<--"
 
             if { [[$mapping SymbolReferences] Count] != 0 } {
                 Transcript $::ediu(MsgWarning) \
                     [format "Symbol Reference \"%s\" is already defined." $device]
 
-                set i 1
-                set pinNames [$symRef PinNames]
-                foreach pn $pinNames {
-                    puts "2-$i -->  Symbol Pin Name:  $pn"
-                    incr i
-                }
+                #set i 1
+                #set pinNames [$symRef PinNames]
+                #puts "----------->$pinNames"
+                #foreach pn $pinNames {
+                    #puts "2-$i -->  Symbol Pin Name:  $pn"
+                    #incr i
+                #}
             }
 
             ##  Define the slot
             set slot [$mapping PutSlot $gate $symRef]
 
             ##  Add a pin defintition for each pin to the slot
-            for { set i 1 } { $i <= $devicePinCount } { incr i } {
-                ##  Split of the fields extracted from the die file
+            set pi 1
+            foreach p $::devices($device) {
+                ##  Get the pin name
+                set sc [lindex $p 1]
 
-                Transcript $::ediu(MsgNote) [format "Adding pin \"%s\" to slot." $i]
-
-                #$slot PutPin [expr $i] [format "%s" $i] [format "P%s" $diePadFields(pinnum)]
-                #$slot PutPin [expr $i] [format "%s" $i] [format "%s" $i]
+                Transcript $::ediu(MsgNote) [format "Adding pin \"%s\" to slot." $sc]
 
                 ## Need to handle sparse mode?
                 if { $::ediu(sparseMode) } {
@@ -1158,8 +1162,9 @@ namespace eval MGC {
                     #    $slot PutPin [expr $i] [format "%s" $i]
                     #}
                 } else {
-                    $slot PutPin [expr $i] [format "%s" $i]
+                    $slot PutPin [expr $pi] [format "%s" $sc] [format "%s" $pi]
                 }
+                incr pi
             }
 
             ##  Commit mapping and close the PDB editor
@@ -1185,12 +1190,12 @@ namespace eval MGC {
         #
 
         proc Pads { } {
-            foreach i [AIFForms::SelectFromList "Select Pad(s)" [Pad::GetAllPads]] {
+            foreach i [AIFForms::SelectFromList "Select Pad(s)" [AIF::Pad::GetAllPads]] {
                 set p [lindex $i 1]
                 set ::padGeom(name) $p
-                set ::padGeom(shape) [Pad::getShape $p]
-                set ::padGeom(width) [Pad::getWidth $p]
-                set ::padGeom(height) [Pad::getHeight $p]
+                set ::padGeom(shape) [AIF::Pad::GetShape $p]
+                set ::padGeom(width) [AIF::Pad::GetWidth $p]
+                set ::padGeom(height) [AIF::Pad::GetHeight $p]
                 set ::padGeom(offsetx) 0.0
                 set ::padGeom(offsety) 0.0
 
@@ -1207,12 +1212,12 @@ namespace eval MGC {
         #
 
         proc Padstacks { } {
-            foreach i [AIFForms::SelectFromList "Select Pad(s)" [Pad::GetAllPads]] {
+            foreach i [AIFForms::SelectFromList "Select Pad(s)" [AIF::Pad::GetAllPads]] {
                 set p [lindex $i 1]
                 set ::padGeom(name) $p
-                set ::padGeom(shape) [Pad::getShape $p]
-                set ::padGeom(width) [Pad::getWidth $p]
-                set ::padGeom(height) [Pad::getHeight $p]
+                set ::padGeom(shape) [AIF::Pad::GetShape $p]
+                set ::padGeom(width) [AIF::Pad::GetWidth $p]
+                set ::padGeom(height) [AIF::Pad::GetHeight $p]
                 set ::padGeom(offsetx) 0.0
                 set ::padGeom(offsety) 0.0
 

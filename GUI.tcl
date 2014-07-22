@@ -211,4 +211,29 @@ namespace eval GUI {
         }
         return $xy
     }
+
+    namespace eval Menus {
+
+        ##
+        ##  GUI::Menus::CentralLibraryMode
+        ##
+        proc CentralLibraryMode {} {
+            $::widgets(setupmenu) entryconfigure  3 -state disabled
+            $::widgets(setupmenu) entryconfigure 4 -state normal
+            $::widgets(setupmenu) entryconfigure 7 -state disabled
+            set ::ediu(targetPath) $::ediu(Nothing)
+            ediuUpdateStatus $::ediu(ready)
+        }
+
+        ##
+        ##  GUI::Menus::DesignMode
+        ##
+        proc DesignMode {} {
+            $::widgets(setupmenu) entryconfigure  3 -state normal
+            $::widgets(setupmenu) entryconfigure 4 -state disabled
+            $::widgets(setupmenu) entryconfigure 7 -state normal
+            set ::ediu(targetPath) $::ediu(Nothing)
+            ediuUpdateStatus $::ediu(ready)
+        }
+    }
 }

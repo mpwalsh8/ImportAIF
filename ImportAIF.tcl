@@ -357,16 +357,10 @@ proc BuildGUI {} {
     $mb add cascade -label "Setup" -menu $sm -underline 0
     $sm add radiobutton -label "Design Mode" -underline 0 \
         -variable ::ediu(mode) -value $::ediu(designMode) \
-        -command { $::widgets(setupmenu) entryconfigure  3 -state normal ; \
-            $::widgets(setupmenu) entryconfigure 4 -state disabled ; \
-            set ::ediu(targetPath) $::ediu(Nothing) ; \
-            ediuUpdateStatus $::ediu(ready) }
+        -command GUI::Menus::DesignMode
     $sm add radiobutton -label "Central Library Mode" -underline 0 \
         -variable ::ediu(mode) -value $::ediu(libraryMode) \
-        -command { $::widgets(setupmenu) entryconfigure  3 -state disabled ; \
-            $::widgets(setupmenu) entryconfigure 4 -state normal ; \
-            set ::ediu(targetPath) $::ediu(Nothing) ; \
-            ediuUpdateStatus $::ediu(ready) }
+        -command GUI::Menus::CentralLibraryMode
     $sm add separator
     $sm add command \
         -label "Target Design ..." -state normal \
@@ -577,7 +571,7 @@ proc BuildGUI {} {
     $nb add $knltf -text "KYN Netlist" -padding 4
 
     #  Hide the netlist tab, it is used but shouldn't be visible
-    $nb hide $nf
+    #$nb hide $nf
 
     #  Define fixed with font used for displaying text
     font create EDIUFont -family Courier -size 10 -weight bold
@@ -991,7 +985,7 @@ proc ediuGraphicViewBuild {} {
     ##  Process the netlist looking for the pads
 
     foreach n [split $nl '\n'] {
-        #puts "==>  $n"
+        puts "==>  $n"
         incr line_no
         ##  Skip blank or empty lines
         if { [string length $n] == 0 } { continue }
@@ -1071,7 +1065,7 @@ proc ediuGraphicViewBuild {} {
                 set padnum [lindex [split $nlr(PADNUM) "."] 1]
             }
 
-            #puts "---------------------> Die Pad:  $ref-$padnum"
+            puts "---------------------> Die Pad:  $ref-$padnum"
 
             ##  Record the pad and location in the device list
             if { $::ediu(MCMAIF) == 1 } {
@@ -1091,15 +1085,16 @@ proc ediuGraphicViewBuild {} {
         ##  Can the BALL pad be placed?
 
         if { $nlr(BALLNAME) != "-" } {
-            #puts "---------------------> Ball"
+            puts "---------------------> Ball"
 
             ##  Record the pad and location in the device list
             lappend ::devices($::bga(name)) [list $nlr(BALLNAME) $nlr(BALLNUM) $nlr(BALL_X) $nlr(BALL_Y)]
+            puts "---------------------> Ball Middle"
 
             ediuGraphicViewAddPin $nlr(BALL_X) $nlr(BALL_Y) $nlr(BALLNUM) $nlr(NETNAME) $nlr(BALLNAME) $line_no "ballpad pad pad-$nlr(BALLNAME)" "white" "red"
-            #puts "---------------------> Ball Middle"
+            puts "---------------------> Ball Middle"
             dict lappend ::padtypes $nlr(PADNAME) "ballpad"
-            #puts "---------------------> Ball End"
+            puts "---------------------> Ball End"
         } else {
             Transcript $::ediu(MsgWarning) [format "Skipping ball pad for net \"%s\" on line %d, no ball assignment." $netname, $line_no]
         }
@@ -1107,7 +1102,7 @@ proc ediuGraphicViewBuild {} {
         ##  Can the Finger pad be placed?
 
         if { $nlr(FINNAME) != "-" } {
-            #puts "---------------------> Finger"
+            puts "---------------------> Finger"
             ediuGraphicViewAddPin $nlr(FIN_X) $nlr(FIN_Y) $nlr(FINNUM) $nlr(NETNAME) $nlr(FINNAME) $line_no "bondpad pad pad-$nlr(FINNAME)" "purple" "white" $nlr(ANGLE)
             dict lappend ::padtypes $nlr(PADNAME) "bondpad"
         } else {
@@ -1134,7 +1129,6 @@ proc ediuGraphicViewBuild {} {
 
         ##  Add any connections to the netlist
 
-        $nlt insert end $net
         if { $nlr(BALL_X) != "-"  && $nlr(BALL_Y) != "-" } {
             if { $nlr(PAD_X) != "-"  && $nlr(PAD_Y) != "-" } {
                 lappend ::netlist [list $nlr(NETNAME) $nlr(PADNUM) [format "%s.%s" $::bga(refdes) $nlr(BALLNUM)]]
@@ -1142,6 +1136,14 @@ proc ediuGraphicViewBuild {} {
                 lappend ::netlist [list $nlr(NETNAME) [format "%s.%s" $::bga(refdes) $nlr(BALLNUM)]]
             }
         }
+    }
+
+    ##  Due to the structure of the AIF file, it is possible to have
+    ##  replicated pins in our device list.  Need to roll through them
+    ##  and make sure all of the stored lists are unique.
+
+    foreach d [array names ::devices] {
+        set ::devices($d) [lsort -unique $::devices($d)]
     }
 
     #  Generate KYN Netlist
@@ -1277,12 +1279,12 @@ proc ediuGraphicViewAddPin { x y pin net pad line_no { tags "diepad" } { color "
     #puts [format "Pad Text:  %s (Pin:  %s  Pad:  %s" $padtxt $pin $pad]
 
     ##  Figure out the pad shape
-    set shape [AIF::Pad::getShape $pad]
+    set shape [AIF::Pad::GetShape $pad]
 
     switch -regexp -- $shape {
         "SQ" -
         "SQUARE" {
-            set pw [AIF::Pad::getWidth $pad]
+            set pw [AIF::Pad::GetWidth $pad]
             $cnvs create rectangle [expr {$x-($pw/2.0)}] [expr {$y-($pw/2.0)}] \
                 [expr {$x + ($pw/2.0)}] [expr {$y + ($pw/2.0)}] -outline $outline \
                 -fill $color -tags "$tags" 
@@ -1294,7 +1296,7 @@ proc ediuGraphicViewAddPin { x y pin net pad line_no { tags "diepad" } { color "
         }
         "CIRCLE" -
         "ROUND" {
-            set pw [AIF::Pad::getWidth $pad]
+            set pw [AIF::Pad::GetWidth $pad]
             $cnvs create oval [expr {$x-($pw/2.0)}] [expr {$y-($pw/2.0)}] \
                 [expr {$x + ($pw/2.0)}] [expr {$y + ($pw/2.0)}] -outline $outline \
                 -fill $color -tags "$tags" 
@@ -1307,8 +1309,8 @@ proc ediuGraphicViewAddPin { x y pin net pad line_no { tags "diepad" } { color "
         "OBLONG" -
         "OBROUND" {
             puts [format "OBLONG PAD on line:  %d" $line_no]
-            set pw [AIF::Pad::getWidth $pad]
-            set ph [AIF::Pad::getHeight $pad]
+            set pw [AIF::Pad::GetWidth $pad]
+            set ph [AIF::Pad::GetHeight $pad]
 
             set x1 [expr $x-($pw/2.0)]
             set y1 [expr $y-($ph/2.0)]
@@ -1381,8 +1383,8 @@ proc ediuGraphicViewAddPin { x y pin net pad line_no { tags "diepad" } { color "
         }
         "RECT" -
         "RECTANGLE" {
-            set pw [AIF::Pad::getWidth $pad]
-            set ph [AIF::Pad::getHeight $pad]
+            set pw [AIF::Pad::GetWidth $pad]
+            set ph [AIF::Pad::GetHeight $pad]
 
             set x1 [expr $x-($pw/2.0)]
             set y1 [expr $y-($ph/2.0)]
@@ -1404,6 +1406,7 @@ proc ediuGraphicViewAddPin { x y pin net pad line_no { tags "diepad" } { color "
             #puts $line
         }
     }
+    puts "12345"
 
     #$cnvs scale "pads" 0 0 100 100
 
@@ -1652,6 +1655,7 @@ puts [format "Here:  %s" [incr zzz]]
             return -1
         }
 
+puts [format "Here:  %s" [incr zzz]]
         ##  Draw the Graphic View
 
         ediuGraphicViewBuild
@@ -1659,6 +1663,7 @@ puts [format "Here:  %s" [incr zzz]]
         Transcript $::ediu(MsgWarning) "No AIF file selected."
     }
 
+puts [format "Here:  %s" [incr zzz]]
     ediuUpdateStatus $::ediu(ready)
 }
 

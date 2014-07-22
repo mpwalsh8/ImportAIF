@@ -308,39 +308,39 @@ namespace eval AIF {
         }
 
         #  Return all of the parameters for a pad
-        proc getParams { pad } {
+        proc GetParams { pad } {
             return [regexp -inline -all -- {\S+} [lindex [dict get $::pads $pad] 0]]
         }
 
         #  Return a specific parameter for a pad (default to first parameter)
-        proc getParam { pad { param  0 } } {
-            return [lindex [getParams $pad] $param]
+        proc GetParam { pad { param  0 } } {
+            return [lindex [GetParams $pad] $param]
         }
 
         #  Return the shape of the pad
-        proc getShape { pad } {
-            return [getParam $pad]
+        proc GetShape { pad } {
+            return [GetParam $pad]
         }
 
         #  Return the width of the pad
-        proc getWidth { pad } {
-            return [getParam $pad 1]
+        proc GetWidth { pad } {
+            return [GetParam $pad 1]
         }
 
         #  Return the height of the pad
-        proc getHeight { pad } {
-            switch -exact -- [getShape $pad] {
+        proc GetHeight { pad } {
+            switch -exact -- [GetShape $pad] {
                 "CIRCLE" -
                 "ROUND" -
                 "SQ" -
                 "SQUARE" {
-                    return [getParam $pad 1]
+                    return [GetParam $pad 1]
                 }
                 "OBLONG" -
                 "OBROUND" -
                 "RECT" -
                 "RECTANGLE" {
-                    return [getParam $pad 2]
+                    return [GetParam $pad 2]
                 }
                 default {
                     return 0
