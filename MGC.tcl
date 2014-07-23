@@ -651,6 +651,7 @@ namespace eval MGC {
             set errorCode [catch { MGC::OpenCellEditor } errorMessage]
             if {$errorCode != 0} {
                 Transcript $::ediu(MsgError) [format "API error \"%s\", build aborted." $errorMessage]
+                MGC::CloseCellEditor
                 ediuUpdateStatus $::ediu(ready)
                 return
             }
@@ -663,9 +664,17 @@ namespace eval MGC {
 
                 #  Prompt for the Partition
 
-                set ::ediu(cellEdtrPrtnName) $::die(partition)
-                ediuChooseCellPartitionDialog
-                #return
+                set ::ediu(cellEdtrPrtnName) \
+                    [AIFForms::SelectOneFromList "Select Target Cell Partition" $::ediu(cellEdtrPrtnNames)]
+
+                if { $::ediu(cellEdtrPrtnName) == "" } {
+                    Transcript $::ediu(MsgError) "No Cell Partition selected, build aborted."
+                    MGC::CloseCellEditor
+                    ediuUpdateStatus $::ediu(ready)
+                    return
+                } else {
+                    set ::ediu(cellEdtrPrtnName) [lindex $::ediu(cellEdtrPrtnName) 1]
+                }
 
                 #  Does the cell exist?  Before we can check, we need a
                 #  partition.  There isn't a clear name as to what the
@@ -691,15 +700,15 @@ namespace eval MGC {
 
                 #  Does the partition exist?
 
-                if { [lsearch $pNames $::die(partition)] == -1 } {
+                if { [lsearch $pNames $::ediu(cellEdtrPrtnName)] == -1 } {
                     Transcript $::ediu(MsgNote) [format "Creating partition \"%s\" for cell \"%s\"." \
                         $::die(partition) $device]
 
-                    set partition [$::ediu(cellEdtrDb) NewPartition $::die(partition)]
+                    set partition [$::ediu(cellEdtrDb) NewPartition $::ediu(cellEdtrPrtnName)]
                 } else {
                     Transcript $::ediu(MsgNote) [format "Using existing partition \"%s\" for cell \"%s\"." \
-                        $::die(partition) $device]
-                    set partition [$partitions Item [expr [lsearch $pNames $::die(partition)] +1]]
+                        $::ediu(cellEdtrPrtnName) $device]
+                    set partition [$partitions Item [expr [lsearch $pNames $::ediu(cellEdtrPrtnName)] +1]]
                 }
 
                 #  Now that the partition work is doene, does the cell exist?
@@ -998,6 +1007,20 @@ namespace eval MGC {
                 #  partition name should be so we'll use the name of the
                 #  part as the name of the partition as well.
 
+                #  Prompt for the Partition
+
+                set ::ediu(partEdtrPrtnName) \
+                    [AIFForms::SelectOneFromList "Select Target Part Partition" $::ediu(partEdtrPrtnNames)]
+
+                if { $::ediu(partEdtrPrtnName) == "" } {
+                    Transcript $::ediu(MsgError) "No Part Partition selected, build aborted."
+                    MGC::CloseCellEditor
+                    ediuUpdateStatus $::ediu(ready)
+                    return
+                } else {
+                    set ::ediu(partEdtrPrtnName) [lindex $::ediu(partEdtrPrtnName) 1]
+                }
+
                 set partitions [$::ediu(partEdtrDb) Partitions]
 
                 Transcript $::ediu(MsgNote) [format "Found %s part %s." [$partitions Count] \
@@ -1011,15 +1034,15 @@ namespace eval MGC {
 
                 #  Does the partition exist?
 
-                if { [lsearch $pNames $::die(partition)] == -1 } {
+                if { [lsearch $pNames $::ediu(partEdtrPrtnName)] == -1 } {
                     Transcript $::ediu(MsgNote) [format "Creating partition \"%s\" for part \"%s\"." \
-                        $::die(partition) $device]
+                        $::ediu(partEdtrPrtnName) $device]
 
-                    set partition [$::ediu(partEdtrDb) NewPartition $::die(partition)]
+                    set partition [$::ediu(partEdtrDb) NewPartition $::ediu(partEdtrPrtnName)]
                 } else {
                     Transcript $::ediu(MsgNote) [format "Using existing partition \"%s\" for part \"%s\"." \
-                        $::die(partition) $device]
-                    set partition [$partitions Item [expr [lsearch $pNames $::die(partition)] +1]]
+                        $::ediu(partEdtrPrtnName) $device]
+                    set partition [$partitions Item [expr [lsearch $pNames $::ediu(partEdtrPrtnName)] +1]]
                 }
 
                 #  Now that the partition work is doene, does the part exist?
@@ -1118,13 +1141,21 @@ namespace eval MGC {
                 $::MGCPCBPartsEditor::EPDBGateType(epdbGateTypeLogical)]
 
             ##  Add a pin defintition for each pin to the gate
+            ##  The swap code for all of the pins is set to "1"
+            ##  which ensures the pins are swappable within Expedition.
+
             set pi 1
             foreach p $::devices($device) {
                 set sc [lindex $p 1]
                 Transcript $::ediu(MsgNote) [format "Adding Pin Definition %d \"%s\" %d \"Unknown\"" \
                     $pi $sc [expr $::MGCPCBPartsEditor::EPDBPinPropertyType(epdbPinPropertyPinType)]]
-                $gate PutPinDefinition [expr $pi] [format "%s" $sc] \
-                    [expr $::MGCPCBPartsEditor::EPDBPinPropertyType(epdbPinPropertyPinType)] "Unknown"
+                #set pd [$gate PutPinDefinition [expr $pi] [format "%s" $sc] \
+                #    [expr $::MGCPCBPartsEditor::EPDBPinPropertyType(epdbPinPropertyPinType)] "Unknown"]
+                set pd [$gate PutPinDefinition [expr $pi] "1" \
+                    [expr $::MGCPCBPartsEditor::EPDBPinPropertyType(epdbPinPropertyPinType)] "Unknown"]
+#puts $pd
+                #set [$pd SwapIdentifier] [format "%s" $sc]
+                #set [$pd SwapIdentifier] "1"
                 incr pi
             }
 
@@ -1147,6 +1178,7 @@ namespace eval MGC {
 
             ##  Define the slot
             set slot [$mapping PutSlot $gate $symRef]
+#puts [format "Swap Code:  %s" [$slot SwapCode]]
 
             ##  Add a pin defintition for each pin to the slot
             set pi 1
@@ -1154,7 +1186,6 @@ namespace eval MGC {
                 ##  Get the pin name
                 set sc [lindex $p 1]
 
-                Transcript $::ediu(MsgNote) [format "Adding pin \"%s\" to slot." $sc]
 
                 ## Need to handle sparse mode?
                 if { $::ediu(sparseMode) } {
@@ -1162,6 +1193,7 @@ namespace eval MGC {
                     #    $slot PutPin [expr $i] [format "%s" $i]
                     #}
                 } else {
+                    Transcript $::ediu(MsgNote) [format "Adding pin %d (\"%s\") to slot." $pi $sc]
                     $slot PutPin [expr $pi] [format "%s" $sc] [format "%s" $pi]
                 }
                 incr pi
