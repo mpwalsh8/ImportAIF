@@ -102,7 +102,9 @@ namespace eval MGC {
         #[$::ediu(pcbDoc) Gui] SuppressTrivialDialogs True
 
         set ::ediu(targetPath) [$::ediu(pcbDoc) Path][$::ediu(pcbDoc) Name]
-        puts [$::ediu(pcbDoc) Name][$::ediu(pcbDoc) Name]
+        #puts [$::ediu(pcbDoc) Path][$::ediu(pcbDoc) Name]
+        Transcript $::ediu(MsgNote) [format "Connected to design database:  %s%s" \
+            [$::ediu(pcbDoc) Path] [$::ediu(pcbDoc) Name]]
     }
 
     #
@@ -258,9 +260,6 @@ namespace eval MGC {
     #  Close Cell Editor Lib
     #
     proc CloseCellEditor {} {
-        #ediuCloseCellEditorDb
-        #Transcript $::ediu(MsgNote) "Closing Cell Editor."
-        #$::ediu(cellEdtr) Quit
         ##  Which mode?  Design or Library?
 
         if { $::ediu(mode) == $::ediu(designMode) } {
@@ -470,7 +469,7 @@ namespace eval MGC {
             #  Does the pad exist?
 
             set oldPadName [$::ediu(pdstkEdtrDb) FindPad $padName]
-            puts "Old Pad Name:  ----->$oldPadName<>$padName<-------"
+            #puts "Old Pad Name:  ----->$oldPadName<>$padName<-------"
 
             #  Echo some information about what will happen.
 
@@ -501,10 +500,14 @@ namespace eval MGC {
             $newPad -set Name $padName
             #puts "------>$padName<----------"
             $newPad -set Shape [expr $shape]
-            $newPad -set Width [expr [MapEnum::Units $::database(units) "pad"]] [expr $::padGeom(width)]
-            $newPad -set Height [expr [MapEnum::Units $::database(units) "pad"]] [expr $::padGeom(height)]
-            $newPad -set OriginOffsetX [expr [MapEnum::Units $::database(units) "pad"]] [expr $::padGeom(offsetx)]
-            $newPad -set OriginOffsetY [expr [MapEnum::Units $::database(units) "pad"]] [expr $::padGeom(offsety)]
+            $newPad -set Width \
+                [expr [MapEnum::Units $::database(units) "pad"]] [expr $::padGeom(width)]
+            $newPad -set Heigh\
+                t [expr [MapEnum::Units $::database(units) "pad"]] [expr $::padGeom(height)]
+            $newPad -set OriginOffset\
+                X [expr [MapEnum::Units $::database(units) "pad"]] [expr $::padGeom(offsetx)]
+            $newPad -set OriginOffset\
+                Y [expr [MapEnum::Units $::database(units) "pad"]] [expr $::padGeom(offsety)]
 
             Transcript $::ediu(MsgNote) [format "Committing pad:  %s" $padName]
             $newPad Commit
@@ -607,8 +610,10 @@ namespace eval MGC {
             $newPadstack -set Name $::padGeom(name)
             $newPadstack -set Type $::PadstackEditorLib::EPsDBPadstackType(epsdbPadstackTypePinSMD)
 
-            $newPadstack -set Pad [expr $::PadstackEditorLib::EPsDBPadLayer(epsdbPadLayerTopMount)] $pad
-            $newPadstack -set Pad [expr $::PadstackEditorLib::EPsDBPadLayer(epsdbPadLayerBottomMount)] $pad
+            $newPadstack -set Pad \
+                [expr $::PadstackEditorLib::EPsDBPadLayer(epsdbPadLayerTopMount)] $pad
+            $newPadstack -set Pad \
+                [expr $::PadstackEditorLib::EPsDBPadLayer(epsdbPadLayerBottomMount)] $pad
 
             $newPadstack Commit
 
@@ -776,7 +781,15 @@ namespace eval MGC {
             #puts [format "--->  devicePinCount:  %s" $devicePinCount]
             #$newCell -set Units [expr $::CellEditorAddinLib::ECellDBUnit(ecelldbUnitUM)]
             $newCell -set Units [expr [MapEnum::Units $::database(units) "cell"]]
-            $newCell -set PackageGroup [expr $::CellEditorAddinLib::ECellDBPackageGroup(ecelldbPackageGeneral)]
+            #$newCell -set PackageGroup [expr $::CellEditorAddinLib::ECellDBPackageGroup(ecelldbPackageGeneral)]
+
+            ##  Set the package group to Bare Die unless this is the BGA device
+            if { [string equal $::bga(name) $device] } {
+                $newCell -set PackageGroup [expr $::CellEditorAddinLib::ECellDBPackageGroup(ecelldbPackageBGA)]
+            } else {
+                $newCell -set PackageGroup  [expr $::CellEditorAddinLib::ECellDBPackageGroup(ecelldbPackageBareDie)]
+            }
+
             ##  Commit the cell to the database so it can
             ##  be edited using the Cell Editor AddIn.
 
@@ -853,7 +866,7 @@ namespace eval MGC {
             unset padstack
 
             set pins [$cellEditor Pins]
-            puts [format "-->  Array Size of pins:  %s" [$pins Count]]
+            #puts [format "-->  Array Size of pins:  %s" [$pins Count]]
 
             ##  Start Transations for performance reasons
             $cellEditor TransactionStart [expr $::MGCPCB::EPcbDRCMode(epcbDRCModeDRC)]
@@ -870,7 +883,7 @@ namespace eval MGC {
                 set diePadFields(pady) [lindex $padDefinition 3]
                 #set diePadFields(net) [Netlist::GetNetName $i]
 
-                printArray diePadFields
+                #printArray diePadFields
 
                 ## Need to handle sparse mode?
 
@@ -900,12 +913,12 @@ namespace eval MGC {
                         [expr $diePadFields(padx)] [expr $diePadFields(pady)] [expr 0] } errorMessage]
                     if {$errorCode != 0} {
                         Transcript $::ediu(MsgError) [format "API error \"%s\", build aborted." $errorMessage]
-                        puts [format "Error:  %s  Pin:  %d  Handle:  %s" $errorMessage $i $pin]
+                        #puts [format "Error:  %s  Pin:  %d  Handle:  %s" $errorMessage $i $pin]
 
-                        puts [$pin IsValid]
-                        puts [$pin Name]
-                        puts [format "-->  Array Size of pins:  %s" [$pins Count]]
-                        puts [$cellEditor Name]
+                        #puts [$pin IsValid]
+                        #puts [$pin Name]
+                        #puts [format "-->  Array Size of pins:  %s" [$pins Count]]
+                        #puts [$cellEditor Name]
                         break
                     }
                 } else {
