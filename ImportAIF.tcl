@@ -985,7 +985,7 @@ proc ediuGraphicViewBuild {} {
     ##  Process the netlist looking for the pads
 
     foreach n [split $nl '\n'] {
-        puts "==>  $n"
+        #puts "==>  $n"
         incr line_no
         ##  Skip blank or empty lines
         if { [string length $n] == 0 } { continue }
@@ -1065,7 +1065,7 @@ proc ediuGraphicViewBuild {} {
                 set padnum [lindex [split $nlr(PADNUM) "."] 1]
             }
 
-            puts "---------------------> Die Pad:  $ref-$padnum"
+            #puts "---------------------> Die Pad:  $ref-$padnum"
 
             ##  Record the pad and location in the device list
             if { $::ediu(MCMAIF) == 1 } {
@@ -1085,16 +1085,16 @@ proc ediuGraphicViewBuild {} {
         ##  Can the BALL pad be placed?
 
         if { $nlr(BALLNAME) != "-" } {
-            puts "---------------------> Ball"
+            #puts "---------------------> Ball"
 
             ##  Record the pad and location in the device list
             lappend ::devices($::bga(name)) [list $nlr(BALLNAME) $nlr(BALLNUM) $nlr(BALL_X) $nlr(BALL_Y)]
-            puts "---------------------> Ball Middle"
+            #puts "---------------------> Ball Middle"
 
             ediuGraphicViewAddPin $nlr(BALL_X) $nlr(BALL_Y) $nlr(BALLNUM) $nlr(NETNAME) $nlr(BALLNAME) $line_no "ballpad pad pad-$nlr(BALLNAME)" "white" "red"
-            puts "---------------------> Ball Middle"
+            #puts "---------------------> Ball Middle"
             dict lappend ::padtypes $nlr(PADNAME) "ballpad"
-            puts "---------------------> Ball End"
+            #puts "---------------------> Ball End"
         } else {
             Transcript $::ediu(MsgWarning) [format "Skipping ball pad for net \"%s\" on line %d, no ball assignment." $netname, $line_no]
         }
@@ -1102,7 +1102,7 @@ proc ediuGraphicViewBuild {} {
         ##  Can the Finger pad be placed?
 
         if { $nlr(FINNAME) != "-" } {
-            puts "---------------------> Finger"
+            #puts "---------------------> Finger"
             ediuGraphicViewAddPin $nlr(FIN_X) $nlr(FIN_Y) $nlr(FINNUM) $nlr(NETNAME) $nlr(FINNAME) $line_no "bondpad pad pad-$nlr(FINNAME)" "purple" "white" $nlr(ANGLE)
             dict lappend ::padtypes $nlr(PADNAME) "bondpad"
         } else {
@@ -1175,7 +1175,6 @@ proc ediuGraphicViewBuild {} {
                     $kyn insert end [format " \\%s\\-\\%s\\" $::ediu(DIEREF) [lindex $p 0]]
                 }
             }
-            puts "$i"
         }
 
         set p $c
@@ -1308,7 +1307,6 @@ proc ediuGraphicViewAddPin { x y pin net pad line_no { tags "diepad" } { color "
         }
         "OBLONG" -
         "OBROUND" {
-            puts [format "OBLONG PAD on line:  %d" $line_no]
             set pw [AIF::Pad::GetWidth $pad]
             set ph [AIF::Pad::GetHeight $pad]
 
@@ -1316,33 +1314,25 @@ proc ediuGraphicViewAddPin { x y pin net pad line_no { tags "diepad" } { color "
             set y1 [expr $y-($ph/2.0)]
             set x2 [expr $x+($pw/2.0)]
             set y2 [expr $y+($ph/2.0)]
-            #set xx1 $x1
-            #set yy1 $y1
-            #set xx2 $x2
-            #set yy2 $y2
 
             ##  An "oblong" pad is a rectangular pad with rounded ends.  The rounded
             ##  end is circular based on the width of the pad.  Ideally we'd draw this
             ##  as a single polygon but for now the pad is drawn with two round pads
             ##  connected by a rectangular pad.
-            ##
-            ##  @todo:  Draw it as a single object which will also support rotation.
-
-            #puts [format "Pad extents:  X1:  %s  Y1:  %s  X2:  %s  Y2:  %s" $x1 $y1 $x2 $y2]
-
-            #$cnvs create poly [list $xx1 $yy1  $xx1 $yy2 $xx2 $yy2 $xx2 $yy1] -outline $outline -fill "pink" -tags "dummy"
-            #set id [$cnvs create poly [list $x1 $y1  $x1 $y2 $x2 $y2 $x2 $y1] -outline $outline -fill $color -tags "$tags $pad"]
 
             #  Compose the pad - it is four pieces:  Arc, Segment, Arc, Segment
 
             set padxy {}
 
             #  Top arc
-            set arc [GUI::ArcPath [expr {$x-($pw/2.0)}] $y1 [expr {$x + ($pw/2.0)}] [expr {$y1+$pw}] -start 180 -extent 180 -sides 20]
+            set arc [GUI::ArcPath [expr {$x-($pw/2.0)}] $y1 \
+                [expr {$x + ($pw/2.0)}] [expr {$y1+$pw}] -start 180 -extent 180 -sides 20]
             foreach e $arc { lappend padxy $e }
 
             #  Bottom Arc
-            set arc [GUI::ArcPath [expr {$x-($pw/2.0)}] [expr {$y2-$pw}] [expr {$x + ($pw/2.0)}] $y2 -start 0 -extent 180 -sides 20]
+            set arc [GUI::ArcPath [expr {$x-($pw/2.0)}] \
+                [expr {$y2-$pw}] [expr {$x + ($pw/2.0)}] $y2 -start 0 -extent 180 -sides 20]
+
             foreach e $arc { lappend padxy $e }
 
             set id [$cnvs create poly $padxy -outline $outline -fill $color -tags "$tags"]
@@ -1391,7 +1381,7 @@ proc ediuGraphicViewAddPin { x y pin net pad line_no { tags "diepad" } { color "
             set x2 [expr $x+($pw/2.0)]
             set y2 [expr $y+($ph/2.0)]
 
-            puts [format "Pad extents:  X1:  %s  Y1:  %s  X2:  %s  Y2:  %s" $x1 $y1 $x2 $y2]
+            #puts [format "Pad extents:  X1:  %s  Y1:  %s  X2:  %s  Y2:  %s" $x1 $y1 $x2 $y2]
 
             $cnvs create rectangle $x1 $y1 $x2 $y2 -outline $outline -fill $color -tags "$tags $pad"
 
@@ -1406,7 +1396,6 @@ proc ediuGraphicViewAddPin { x y pin net pad line_no { tags "diepad" } { color "
             #puts $line
         }
     }
-    puts "12345"
 
     #$cnvs scale "pads" 0 0 100 100
 
@@ -1425,7 +1414,7 @@ proc ediuGraphicViewAddOutline {} {
     set cnvs $::widgets(graphicview)
     $cnvs create rectangle $x1 $y1 $x2 $y2 -outline blue -tags "outline"
 
-    puts [format "Outline extents:  X1:  %s  Y1:  %s  X2:  %s  Y2:  %s" $x1 $y1 $x2 $y2]:w
+    #puts [format "Outline extents:  X1:  %s  Y1:  %s  X2:  %s  Y2:  %s" $x1 $y1 $x2 $y2]:w
 
     $cnvs configure -scrollregion [$cnvs bbox all]
 }
@@ -1470,7 +1459,7 @@ proc ediuDrawBGAOutline { { color "white" } } {
         #puts $poly
         if { [lindex $poly 1] == 1 } {
             set points [lreplace $poly  0 3 ]
-            puts $points 
+            #puts $points 
         } else {
             Transcript $::ediu(MsgWarning) "Only one polygon supported for BGA outline, reverting to derived outline."
             set x1 [expr -($::bga(width) / 2)]
@@ -1551,7 +1540,7 @@ proc ediuAIFFileOpen { { f "" } } {
     set sectionRegExp ""
     foreach i [array names ::sections] {
         lappend sections $::sections($i)
-        puts $::sections($i)
+        #puts $::sections($i)
         set sectionRegExp [format "%s%s%s%s%s%s%s" $sectionRegExp \
             [expr {$sectionRegExp == "" ? "(" : "|" }] \
             $::ediu(BackSlash) $::ediu(LeftBracket) $::sections($i) $::ediu(BackSlash) $::ediu(RightBracket) ]
@@ -1563,7 +1552,7 @@ proc ediuAIFFileOpen { { f "" } } {
     set ignoreRegExp ""
     foreach i [array names ::ignored] {
         lappend ignored $::ignored($i)
-        puts $::ignored($i)
+        #puts $::ignored($i)
         set ignoreRegExp [format "%s%s%s%s%s%s%s" $ignoreRegExp \
             [expr {$ignoreRegExp == "" ? "(" : "|" }] \
             $::ediu(BackSlash) $::ediu(LeftBracket) $::ignored($i) $::ediu(BackSlash) $::ediu(RightBracket) ]
@@ -1604,8 +1593,6 @@ proc ediuAIFFileOpen { { f "" } } {
 
         ##  Load the DATABASE section ...
 
-set zzz 0
-puts [format "Here:  %s" [incr zzz]]
         if { [ AIF::Database::Section ] == -1 } {
             ediuUpdateStatus $::ediu(ready)
             return -1
@@ -1619,17 +1606,14 @@ puts [format "Here:  %s" [incr zzz]]
                 return -1
             }
         }
-puts [format "2Here:  %s" [incr zzz]]
 
         ##  Load the DIE section ...
 
         if { [ AIF::Die::Section ] == -1 } {
-puts [format "3Here:  %s" [incr zzz]]
             ediuUpdateStatus $::ediu(ready)
             return -1
         }
 
-puts [format "Here:  %s" [incr zzz]]
         ##  Load the optional BGA section ...
 
         if { $::ediu(BGA) == 1 } {
@@ -1639,7 +1623,6 @@ puts [format "Here:  %s" [incr zzz]]
             }
         }
 
-puts [format "Here:  %s" [incr zzz]]
         ##  Load the PADS section ...
 
         if { [ ediuAIFPadsSection ] == -1 } {
@@ -1647,7 +1630,6 @@ puts [format "Here:  %s" [incr zzz]]
             return -1
         }
 
-puts [format "Here:  %s" [incr zzz]]
         ##  Load the NETLIST section ...
 
         if { [ ediuAIFNetlistSection ] == -1 } {
@@ -1655,7 +1637,6 @@ puts [format "Here:  %s" [incr zzz]]
             return -1
         }
 
-puts [format "Here:  %s" [incr zzz]]
         ##  Draw the Graphic View
 
         ediuGraphicViewBuild
@@ -1663,7 +1644,6 @@ puts [format "Here:  %s" [incr zzz]]
         Transcript $::ediu(MsgWarning) "No AIF file selected."
     }
 
-puts [format "Here:  %s" [incr zzz]]
     ediuUpdateStatus $::ediu(ready)
 }
 
@@ -1699,7 +1679,7 @@ proc ediuFileExportKYN { { kyn "" } } {
         
     #  Write the KYN netlist content to the file
     set f [open $kyn "w+"]
-    puts $f [$txt get 1.0 end]
+    #puts $f [$txt get 1.0 end]
     close $f
 
     Transcript $::ediu(MsgNote) [format "KYN netlist successfully exported to file \"%s\"." $kyn]

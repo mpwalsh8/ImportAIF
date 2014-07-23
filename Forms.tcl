@@ -77,7 +77,7 @@ namespace eval AIFForms {
         set lblist $l
         set selectmode single
         SelectFromListBoxDialog $p
-        return $rv
+        return [lindex $rv 0]
     }
 
     ##  Select From List Box
@@ -85,6 +85,7 @@ namespace eval AIFForms {
         variable rv
         variable widgets
 
+        set rv [list]
         set dlg $widgets(lb)
 
         ##  If there is a selection, capture value and index
@@ -96,7 +97,7 @@ namespace eval AIFForms {
 
         ##  Clean up and return
         destroy $dlg
-        return $rv
+        #return $rv
     }
 
     #

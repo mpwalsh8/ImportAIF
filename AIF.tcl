@@ -278,7 +278,7 @@ namespace eval AIF {
                     set refs [split [AIF::GetVar $v MCM_DIE] ","]
 
                     foreach ref $refs {
-                        puts [format "Device:  %s  Ref:  %s" $v [string  trim $ref]]
+                        Transcript $::ediu(MsgNote) [format "Device:  %s  Ref:  %s" $v [string  trim $ref]]
                         #dict lappend ::mcmdie [string trim $ref] [AIF::GetVar $v MCM_DIE]
                         dict lappend ::mcmdie [string trim $ref] $v
                     }

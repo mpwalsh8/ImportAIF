@@ -625,7 +625,15 @@ namespace eval MGC {
         #
         #  MGC::Generate::Cell
         #
-        proc Cell { device } {
+        proc Cell { device args } {
+            ##  Process command arguments
+            array set V { -partition "" } ;# Default values
+            foreach {a value} $args {
+                if {! [info exists V($a)]} {error "unknown option $a"}
+                if {$value == {}} {error "value of \"$a\" missing"}
+                set V($a) $value
+            }
+
             ediuUpdateStatus $::ediu(busy)
             set ::ediu(sTime) [clock format [clock seconds] -format "%m/%d/%Y %T"]
 
@@ -662,18 +670,22 @@ namespace eval MGC {
 
             if { $::ediu(mode) == $::ediu(libraryMode) } {
 
-                #  Prompt for the Partition
+                #  Prompt for the Partition if not supplied with -partition
 
-                set ::ediu(cellEdtrPrtnName) \
-                    [AIFForms::SelectOneFromList "Select Target Cell Partition" $::ediu(cellEdtrPrtnNames)]
+                if { [string equal $V(-partition) ""] } {
+                    set ::ediu(cellEdtrPrtnName) \
+                        [AIFForms::SelectOneFromList "Select Target Cell Partition" $::ediu(cellEdtrPrtnNames)]
 
-                if { $::ediu(cellEdtrPrtnName) == "" } {
-                    Transcript $::ediu(MsgError) "No Cell Partition selected, build aborted."
-                    MGC::CloseCellEditor
-                    ediuUpdateStatus $::ediu(ready)
-                    return
+                    if { [string equal $::ediu(cellEdtrPrtnName) ""] } {
+                        Transcript $::ediu(MsgError) "No Cell Partition selected, build aborted."
+                        MGC::CloseCellEditor
+                        ediuUpdateStatus $::ediu(ready)
+                        return
+                    } else {
+                        set ::ediu(cellEdtrPrtnName) [lindex $::ediu(cellEdtrPrtnName) 1]
+                    }
                 } else {
-                    set ::ediu(cellEdtrPrtnName) [lindex $::ediu(cellEdtrPrtnName) 1]
+                    set ::ediu(cellEdtrPrtnName) $V(-partition)
                 }
 
                 #  Does the cell exist?  Before we can check, we need a
@@ -715,6 +727,9 @@ namespace eval MGC {
 
                 set cells [$partition Cells]
             } else {
+                if { [expr { $V(-partition) ne "" }] } {
+                    Transcript $::ediu(MsgWarning) "-partition switch is ignored in Design Mode."
+                }
                 set partition [$::ediu(cellEdtrDb) ActivePartition]
                 set cells [$partition Cells]
             }
@@ -968,7 +983,15 @@ namespace eval MGC {
         #
         #  MGC::Generate::PDB
         #
-        proc PDB { device } {
+        proc PDB { device args } {
+            ##  Process command arguments
+            array set V { -partition "" } ;# Default values
+            foreach {a value} $args {
+                if {! [info exists V($a)]} {error "unknown option $a"}
+                if {$value == {}} {error "value of \"$a\" missing"}
+                set V($a) $value
+            }
+
             ediuUpdateStatus $::ediu(busy)
             set ::ediu(sTime) [clock format [clock seconds] -format "%m/%d/%Y %T"]
 
@@ -1007,19 +1030,24 @@ namespace eval MGC {
                 #  partition name should be so we'll use the name of the
                 #  part as the name of the partition as well.
 
-                #  Prompt for the Partition
+                #  Prompt for the Partition if not supplied with -partition
 
-                set ::ediu(partEdtrPrtnName) \
-                    [AIFForms::SelectOneFromList "Select Target Part Partition" $::ediu(partEdtrPrtnNames)]
+                if { [string equal $V(-partition) ""] } {
+                    set ::ediu(partEdtrPrtnName) \
+                        [AIFForms::SelectOneFromList "Select Target Part Partition" $::ediu(partEdtrPrtnNames)]
 
-                if { $::ediu(partEdtrPrtnName) == "" } {
-                    Transcript $::ediu(MsgError) "No Part Partition selected, build aborted."
-                    MGC::CloseCellEditor
-                    ediuUpdateStatus $::ediu(ready)
-                    return
+                    if { [string equal $::ediu(partEdtrPrtnName) ""] } {
+                        Transcript $::ediu(MsgError) "No Part Partition selected, build aborted."
+                        MGC::CloseCellEditor
+                        ediuUpdateStatus $::ediu(ready)
+                        return
+                    } else {
+                        set ::ediu(partEdtrPrtnName) [lindex $::ediu(partEdtrPrtnName) 1]
+                    }
                 } else {
-                    set ::ediu(partEdtrPrtnName) [lindex $::ediu(partEdtrPrtnName) 1]
+                    set ::ediu(partEdtrPrtnName) $V(-partition)
                 }
+
 
                 set partitions [$::ediu(partEdtrDb) Partitions]
 
@@ -1049,6 +1077,9 @@ namespace eval MGC {
 
                 set parts [$partition Parts]
             } else {
+                if { [expr { $V(-partition) ne "" }] } {
+                    Transcript $::ediu(MsgWarning) "-partition switch is ignored in Design Mode."
+                }
                 set partition [$::ediu(partEdtrDb) ActivePartition]
                 set parts [$partition Parts]
             }
@@ -1075,9 +1106,6 @@ namespace eval MGC {
                 ##  isn't committed until the database is actually saved.
 
                 ##  First delete the Symbol Reference
-
-                #$part
-                #puts "----> Part Sym Refs:  [[$part SymbolReferences] Count]"
 
                 set errorCode [catch { $part Delete } errorMessage]
                 if {$errorCode != 0} {
@@ -1110,13 +1138,8 @@ namespace eval MGC {
             set mapping [$newPart PinMapping]
 
             #  Does the part have any symbol references?
-
-            #puts "----> Mapping Sym Refs:  [[$mapping SymbolReferences] Count]"
-
-            #  Need to add a symbol reference
+            #  Need to remove existing reference before adding a symbol reference
             set symRef [$mapping PutSymbolReference $device]
-
-            #puts "----> Mapping Sym Refs:  [[$mapping SymbolReferences] Count]"
 
             if { [[$mapping SymbolReferences] Count] > 0 } {
                 Transcript $::ediu(MsgWarning) \
@@ -1149,19 +1172,12 @@ namespace eval MGC {
                 set sc [lindex $p 1]
                 Transcript $::ediu(MsgNote) [format "Adding Pin Definition %d \"%s\" %d \"Unknown\"" \
                     $pi $sc [expr $::MGCPCBPartsEditor::EPDBPinPropertyType(epdbPinPropertyPinType)]]
-                #set pd [$gate PutPinDefinition [expr $pi] [format "%s" $sc] \
-                #    [expr $::MGCPCBPartsEditor::EPDBPinPropertyType(epdbPinPropertyPinType)] "Unknown"]
-                set pd [$gate PutPinDefinition [expr $pi] "1" \
-                    [expr $::MGCPCBPartsEditor::EPDBPinPropertyType(epdbPinPropertyPinType)] "Unknown"]
-#puts $pd
-                #set [$pd SwapIdentifier] [format "%s" $sc]
-                #set [$pd SwapIdentifier] "1"
+                $gate PutPinDefinition [expr $pi] "1" \
+                    [expr $::MGCPCBPartsEditor::EPDBPinPropertyType(epdbPinPropertyPinType)] "Unknown"
                 incr pi
             }
 
-            ##
-
-            #puts "--->[[$mapping SymbolReferences] Count]<--"
+            ##  Report symbol reference count.  Not sure this is needed ...
 
             if { [[$mapping SymbolReferences] Count] != 0 } {
                 Transcript $::ediu(MsgWarning) \
@@ -1178,7 +1194,6 @@ namespace eval MGC {
 
             ##  Define the slot
             set slot [$mapping PutSlot $gate $symRef]
-#puts [format "Swap Code:  %s" [$slot SwapCode]]
 
             ##  Add a pin defintition for each pin to the slot
             set pi 1
