@@ -11,7 +11,7 @@
 #  This script should be run with "wish" or "tclsh" - it cannot be dragged
 #  onto LM.
 #
-#  This script requres Tcl 8.4.19.  Tcl 8.5.x and 8.6.x are not supported
+#  This script requires Tcl 8.4.19.  Tcl 8.5.x and 8.6.x are not supported
 #  by the Mentor Graphics COM API interface.  You can download Tcl 8.4.19
 #  from ActiveState.com:
 #
@@ -130,6 +130,7 @@ proc ediuInit {} {
         #sparsepinsfile ""
         statusLine ""
         notebook ""
+        dashboard ""
         transcript ""
         sourceview ""
         graphicview ""
@@ -211,6 +212,7 @@ proc ediuInit {} {
         kynnetlistview ""
         #sparsepinsview ""
         statuslight ""
+        progressbar ".ProgressBar"
         design ""
         library ""
         windowSizeX 800
@@ -373,9 +375,12 @@ proc BuildGUI {} {
         #-variable ::ediu(sparseMode) -command ediuToggleSparseMode
     $sm add separator
     $sm add checkbutton -label "Application Visibility" \
-        -variable ::ediu(appVisible) -onvalue True -offvalue False \
+        -variable GUI::Dashboard::Visibility -onvalue On -offvalue Off \
         -command  {Transcript MsgNote [format "Application visibility is now %s." \
-        [expr $::ediu(appVisible) ? "on" : "off"]] }
+        [expr [string is true $GUI::Dashboard::Visibility] ? "on" : "off"]] }
+#        -variable ::ediu(appVisible) -onvalue True -offvalue False \
+#        -command  {Transcript MsgNote [format "Application visibility is now %s." \
+#        [expr $::ediu(appVisible) ? "on" : "off"]] }
     $sm add checkbutton -label "Connect to Running Application" \
         -variable ::ediu(connectMode) -onvalue True -offvalue False \
         -command  {Transcript MsgNote [format "Application Connect mode is now %s." \
@@ -547,6 +552,8 @@ proc BuildGUI {} {
     set nb [ttk::notebook .notebook]
     set ::ediu(notebook) $nb
 
+    set dbf [ttk::frame $nb.dashboard]
+    set ::ediu(dashboard) $dbf
     set tf [ttk::frame $nb.transcript]
     set ::ediu(transcript) $tf
     set sf [ttk::frame $nb.sourceview]
@@ -562,7 +569,8 @@ proc BuildGUI {} {
     set knltf [ttk::frame $nb.kynnetlist]
     set ::ediu(kynnetlist) $knltf
 
-    $nb add $gf -text "Graphic View" -padding 4
+    $nb add $dbf -text "Dashboard" -padding 4
+    $nb add $gf -text "Layout" -padding 4
     $nb add $tf -text "Transcript" -padding 4
     $nb add $sf -text "AIF Source File" -padding 4
     $nb add $nf -text "Netlist" -padding 4
@@ -571,10 +579,14 @@ proc BuildGUI {} {
     $nb add $knltf -text "KYN Netlist" -padding 4
 
     #  Hide the netlist tab, it is used but shouldn't be visible
-    #$nb hide $nf
+    $nb hide $nf
 
     #  Define fixed with font used for displaying text
     font create EDIUFont -family Courier -size 10 -weight bold
+
+    ##  Build the Dashboard
+    set ::widgets(dashboard) $dbf
+    GUI::Dashboard::Build
 
     #  Text frame for Transcript
 
@@ -856,7 +868,18 @@ proc ediuGraphicViewBuild {} {
     set txt $::widgets(netlistview)
     set nlt $::widgets(netlisttable)
     set kyn $::widgets(kynnetlistview)
+    set pb $::widgets(progressbar)
     
+    #puts "1A - $pb"
+    #toplevel $pb
+    #puts "1B"
+    #ttk::progressbar $pb.pb -orient horizontal -mode indeterminate
+    #puts "1C"
+    #grid $pb.pb
+    #puts "1D"
+    #update idletasks
+    #puts "1E"
+
     $cnvs delete all
 
     ##  Add the outline
@@ -1077,7 +1100,9 @@ proc ediuGraphicViewBuild {} {
             lappend ::devices($name) [list $nlr(PADNAME) $padnum $nlr(PAD_X) $nlr(PAD_Y)]
 
             ediuGraphicViewAddPin $nlr(PAD_X) $nlr(PAD_Y) $nlr(PADNUM) $nlr(NETNAME) $nlr(PADNAME) $line_no "diepad pad pad-$nlr(PADNAME) $ref"
-            dict lappend ::padtypes $nlr(PADNAME) "diepad"
+            if { ![dict exists $::padtypes $nlr(PADNAME)] } {
+                dict lappend ::padtypes $nlr(PADNAME) "diepad"
+            }
         } else {
             Transcript $::ediu(MsgWarning) [format "Skipping die pad for net \"%s\" on line %d, no pad assignment." $netname, $line_no]
         }
@@ -1093,7 +1118,9 @@ proc ediuGraphicViewBuild {} {
 
             ediuGraphicViewAddPin $nlr(BALL_X) $nlr(BALL_Y) $nlr(BALLNUM) $nlr(NETNAME) $nlr(BALLNAME) $line_no "ballpad pad pad-$nlr(BALLNAME)" "white" "red"
             #puts "---------------------> Ball Middle"
-            dict lappend ::padtypes $nlr(PADNAME) "ballpad"
+            if { ![dict exists $::padtypes $nlr(BALLNAME)] } {
+                dict lappend ::padtypes $nlr(BALLNAME) "ballpad"
+            }
             #puts "---------------------> Ball End"
         } else {
             Transcript $::ediu(MsgWarning) [format "Skipping ball pad for net \"%s\" on line %d, no ball assignment." $netname, $line_no]
@@ -1104,7 +1131,9 @@ proc ediuGraphicViewBuild {} {
         if { $nlr(FINNAME) != "-" } {
             #puts "---------------------> Finger"
             ediuGraphicViewAddPin $nlr(FIN_X) $nlr(FIN_Y) $nlr(FINNUM) $nlr(NETNAME) $nlr(FINNAME) $line_no "bondpad pad pad-$nlr(FINNAME)" "purple" "white" $nlr(ANGLE)
-            dict lappend ::padtypes $nlr(PADNAME) "bondpad"
+            if { ![dict exists $::padtypes $nlr(FINNAME)] } {
+                dict lappend ::padtypes $nlr(FINNAME) "bondpad"
+            }
         } else {
             Transcript $::ediu(MsgWarning) [format "Skipping finger for net \"%s\" on line %d, no finger assignment." $netname, $line_no]
         }
@@ -1265,6 +1294,8 @@ proc ediuGraphicViewBuild {} {
         #  Set the initial view
         zoom $cnvs 25
     }
+
+    #destroy $pb
 
     return $rv
 }
@@ -2413,7 +2444,7 @@ Transcript $::ediu(MsgNote) "$::ediu(EDIU) ready."
 #catch { ediuAIFFileOpen "c:/users/mike/desktop/ImportAIF/data/BGA_w2_Dies.aif" } retString
 ##catch { ediuAIFFileOpen "c:/users/mike/desktop/ImportAIF/data/BGA_w2_Dies-2.aif" } retString
 #catch { ediuAIFFileOpen "c:/users/mike/desktop/ImportAIF/data/BGA_w2_Dies-3.aif" } retString
-catch { ediuAIFFileOpen "c:/users/mike/desktop/ImportAIF/data/Test2.aif" } retString
+#catch { ediuAIFFileOpen "c:/users/mike/desktop/ImportAIF/data/Test2.aif" } retString
 GUI::Visibility text -all true -mode off
 #set ::ediu(cellEdtrPrtnNames) { a b c d e f }
 #ediuAIFFileOpen

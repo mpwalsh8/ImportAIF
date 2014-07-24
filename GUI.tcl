@@ -45,6 +45,9 @@
 #                 separate file and namespace to ease code maintenance.
 #
 
+##
+##  Define the GUI namespace and procedure supporting operations
+##
 namespace eval GUI {
     #variable objects
     variable text
@@ -212,6 +215,8 @@ namespace eval GUI {
         return $xy
     }
 
+    ##
+    ##  Menus
     namespace eval Menus {
 
         ##
@@ -221,7 +226,7 @@ namespace eval GUI {
             $::widgets(setupmenu) entryconfigure  3 -state disabled
             $::widgets(setupmenu) entryconfigure 4 -state normal
             $::widgets(setupmenu) entryconfigure 7 -state disabled
-            set ::ediu(targetPath) $::ediu(Nothing)
+            #set ::ediu(targetPath) $::ediu(Nothing)
             ediuUpdateStatus $::ediu(ready)
         }
 
@@ -232,8 +237,146 @@ namespace eval GUI {
             $::widgets(setupmenu) entryconfigure  3 -state normal
             $::widgets(setupmenu) entryconfigure 4 -state disabled
             $::widgets(setupmenu) entryconfigure 7 -state normal
-            set ::ediu(targetPath) $::ediu(Nothing)
+            #set ::ediu(targetPath) $::ediu(Nothing)
             ediuUpdateStatus $::ediu(ready)
+        }
+    }
+
+    ##
+    ##  Define the GUI::Dashboard namespace and procedure supporting operations
+    ##
+    namespace eval Dashboard {
+        variable Mode Design
+        variable AIFFile ""
+        variable FileType
+        variable DesignPath ""
+        variable LibraryPath ""
+        variable CellPartition ""
+        variable PartPartition ""
+        variable ConnectMode On
+        variable Visibility On
+
+        ##
+        ##  GUI::Dashboard::Build
+        ##
+        proc Build {} {
+            set db $::widgets(dashboard)
+
+            ##  Mode
+            labelframe $db.mode -pady 2 -text "Mode" -padx 2
+            foreach i { "Design" "Central Library" } {
+                radiobutton $db.mode.b$i -text "$i" -variable GUI::Dashboard::Mode \
+	            -relief flat -value $i
+                pack $db.mode.b$i  -side top -pady 2 -anchor w
+            }
+            
+            ##  Visibility
+            labelframe $db.visibility -pady 2 -text "Application Visibility" -padx 2
+            foreach i { On Off } {
+                radiobutton $db.visibility.b$i -text "$i" -variable GUI::Dashboard::Visibility \
+	            -relief flat -value $i
+                pack $db.visibility.b$i  -side top -pady 2 -anchor w
+            }
+            
+            ##  Connection
+            labelframe $db.connection -pady 2 -text "Application Connection" -padx 2
+            foreach i { On Off } {
+                radiobutton $db.connection.b$i -text "$i" -variable GUI::Dashboard::ConnectMode \
+	            -relief flat -value $i
+                pack $db.connection.b$i  -side top -pady 2 -anchor w
+            }
+
+            ##  AIF File
+            labelframe $db.aiffile -pady 5 -text "AIF File" -padx 5
+            entry $db.aiffile.e -width 65 -relief sunken -bd 2 -textvariable GUI::Dashboard::AIFFile
+            button $db.aiffile.b -text "AIF File ..." -command \
+                { set GUI::Dashboard::AIFFile [tk_getOpenFile -filetypes {{AIF .aif} {Txt .txt} {All *}}] }
+            grid $db.aiffile.e -row 0 -column 0 -pady 5 -padx 5 -sticky w
+            grid $db.aiffile.b -row 0 -column 1 -pady 5 -padx 5 -sticky ew
+
+            ##  Design Path
+            labelframe $db.design -pady 5 -text "Design" -padx 5
+            entry $db.design.e -width 65 -relief sunken -bd 2 -textvariable GUI::Dashboard::DesignPath
+            button $db.design.b -text "Design ..." -command \
+                { set GUI::Dashboard::DesignPath [tk_getOpenFile -filetypes {{PCB .pcb}}] }
+            grid $db.design.e -row 0 -column 0 -pady 5 -padx 5 -sticky w
+            grid $db.design.b -row 0 -column 1 -pady 5 -padx 5 -sticky ew
+
+            ##  Library Path
+            labelframe $db.library -pady 5 -text "Central Library" -padx 5
+            entry $db.library.le -width 65 -relief sunken -bd 2 -textvariable GUI::Dashboard::LibraryPath
+            button $db.library.lb -text "Library ..." -command GUI::Dashboard::SelectCentralLibrary
+            entry $db.library.ce -width 35 -relief sunken -bd 2 -textvariable GUI::Dashboard::CellPartition
+            button $db.library.cb -text "Cell Partition ..." -state disabled -command GUI::Dashboard::SelectCellPartition
+            entry $db.library.pe -width 35 -relief sunken -bd 2 -textvariable GUI::Dashboard::PartPartition
+            button $db.library.pb -text "PDB Partition ..." -state disabled -command GUI::Dashboard::SelectPartPartition
+
+            grid $db.library.le -row 0 -column 0 -pady 5 -padx 5 -sticky w
+            grid $db.library.ce -row 1 -column 0 -pady 5 -padx 5 -sticky w
+            grid $db.library.pe -row 2 -column 0 -pady 5 -padx 5 -sticky w
+            grid $db.library.lb -row 0 -column 1 -pady 5 -padx 5 -sticky ew
+            grid $db.library.cb -row 1 -column 1 -pady 5 -padx 5 -sticky ew
+            grid $db.library.pb -row 2 -column 1 -pady 5 -padx 5 -sticky ew
+
+            ##  Place all of the widgets
+            grid $db.aiffile    -row 0 -column 0 -sticky ew -padx 10 -pady 10
+            grid $db.design     -row 1 -column 0 -sticky ew -padx 10 -pady 10
+            grid $db.library    -row 2 -column 0 -sticky ew -padx 10 -pady 10
+            grid $db.mode       -row 0 -column 1 -sticky ew -padx 10 -pady 10
+            grid $db.visibility -row 1 -column 1 -sticky ew -padx 10 -pady 10
+            grid $db.connection -row 2 -column 1 -sticky ew -padx 10 -pady 10
+        }
+
+        ##
+        ##  GUI::Dashboard::SelectCentralLibrary
+        ##
+        proc SelectCentralLibrary {} {
+            set db $::widgets(dashboard)
+            set GUI::Dashboard::LibraryPath [tk_getOpenFile -filetypes {{LMC .lmc}}]
+
+            ##  Valid LMC selected?  If so, enable the buttons and load the partitions
+            if { [expr { $GUI::Dashboard::LibraryPath ne "" }] } {
+                $db.library.cb configure -state normal
+                $db.library.pb configure -state normal
+
+                ##  Open the LMC and get the partition names
+                MGC::SetupLMC $GUI::Dashboard::LibraryPath
+            }
+        }
+
+        ##
+        ##  GUI::Dashboard::SelectCellPartition
+        ##
+        proc SelectCellPartition {} {
+            set GUI::Dashboard::CellPartition \
+                [AIFForms::SelectOneFromList "Select Target Cell Partition" $::ediu(cellEdtrPrtnNames)]
+
+            if { [string equal $GUI::Dashboard::CellPartition ""] } {
+                Transcript $::ediu(MsgError) "No Cell Partition selected."
+            } else {
+                set GUI::Dashboard::CellPartition [lindex $GUI::Dashboard::CellPartition 1]
+            }
+        }
+
+        ##
+        ##  GUI::Dashboard::SelectPartPartition
+        ##
+        proc SelectPartPartition {} {
+            set GUI::Dashboard::PartPartition \
+                [AIFForms::SelectOneFromList "Select Target Part Partition" $::ediu(partEdtrPrtnNames)]
+
+            if { [string equal $GUI::Dashboard::PartPartition ""] } {
+                Transcript $::ediu(MsgError) "No Part Partition selected."
+            } else {
+                set GUI::Dashboard::PartPartition [lindex $GUI::Dashboard::PartPartition 1]
+            }
+        }
+
+        ##
+        ##  GUI::Dashboard::SetApplicationVisibility
+        ##
+        proc SetApplicationVisibility {} {
+            set ::ediu(appVisible) [expr [string is true $GUI::Dashboard::Visibility] ? on : off]
         }
     }
 }

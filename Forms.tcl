@@ -77,7 +77,12 @@ namespace eval AIFForms {
         set lblist $l
         set selectmode single
         SelectFromListBoxDialog $p
-        return [lindex $rv 0]
+
+        if { [info exists rv] > 0 } {
+            return [lindex $rv 0]
+        } else {
+            return
+        }
     }
 
     ##  Select From List Box

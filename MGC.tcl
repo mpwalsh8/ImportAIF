@@ -406,6 +406,90 @@ namespace eval MGC {
     }
 
     ##
+    ##  MGC::SetupLMC
+    ##
+    proc SetupLMC { { f "" } } {
+        ediuUpdateStatus $::ediu(busy)
+
+        ##  Prompt the user for a Central Library database if not supplied
+
+        if { $f != $::ediu(Nothing) } {
+            set ::ediu(targetPath) $f
+        } else {
+            set ::ediu(targetPath) [tk_getOpenFile -filetypes {{LMC .lmc}}]
+        }
+
+        if {$::ediu(targetPath) == "" } {
+            Transcript $::ediu(MsgWarning) "No Central Library selected."
+        } else {
+            Transcript $::ediu(MsgNote) [format "Central Library \"%s\" set as library target." $::ediu(targetPath)]
+        }
+
+        ##  Invoke the Cell Editor and open the LMC
+        ##  Catch any exceptions raised by opening the database
+
+        set errorCode [catch { MGC::OpenCellEditor } errorMessage]
+        if {$errorCode != 0} {
+            set ::ediu(targetPath) ""
+            ediuUpdateStatus $::ediu(ready)
+            return -code return 1
+        }
+
+        ##  Need to prompt for Cell partition
+
+        puts "cellEdtrDb:  ------>$::ediu(cellEdtrDb)<-----"
+        ##  Can't list partitions when application is visible so if it is,
+        ##  hide it temporarily while the list of partitions is queried.
+
+        set visbility $::ediu(appVisible)
+
+        $::ediu(cellEdtr) Visible False
+        set partitions [$::ediu(cellEdtrDb) Partitions]
+        $::ediu(cellEdtr) Visible $visbility
+
+        Transcript $::ediu(MsgNote) [format "Found %s cell %s." [$partitions Count] \
+            [ediuPlural [$partitions Count] "partition"]]
+
+        set ::ediu(cellEdtrPrtnNames) {}
+        for {set i 1} {$i <= [$partitions Count]} {incr i} {
+            set partition [$partitions Item $i]
+            lappend ::ediu(cellEdtrPrtnNames) [$partition Name]
+            Transcript $::ediu(MsgNote) [format "Found cell partition \"%s.\"" [$partition Name]]
+        }
+    
+        MGC::CloseCellEditor
+
+        ##  Invoke the PDB Editor and open the database
+        ##  Catch any exceptions raised by opening the database
+
+        set errorCode [catch { MGC::OpenPDBEditor } errorMessage]
+        if {$errorCode != 0} {
+            set ::ediu(targetPath) ""
+            ediuUpdateStatus $::ediu(ready)
+            return -code return 1
+        }
+
+        ##  Need to prompt for PDB partition
+
+        set partitions [$::ediu(partEdtrDb) Partitions]
+
+        Transcript $::ediu(MsgNote) [format "Found %s part %s." [$partitions Count] \
+            [ediuPlural [$partitions Count] "partition"]]
+
+        set ::ediu(partEdtrPrtnNames) {}
+        for {set i 1} {$i <= [$partitions Count]} {incr i} {
+            set partition [$partitions Item $i]
+            lappend ::ediu(partEdtrPrtnNames) [$partition Name]
+            Transcript $::ediu(MsgNote) [format "Found part partition \"%s.\"" [$partition Name]]
+        }
+
+        MGC::ClosePDBEditor
+
+        ediuUpdateStatus $::ediu(ready)
+    }
+
+
+    ##
     ##  Define the Generate namespace and procedure supporting operations
     ##
     namespace eval Generate {
@@ -608,7 +692,30 @@ namespace eval MGC {
             set newPadstack [$::ediu(pdstkEdtrDb) NewPadstack]
 
             $newPadstack -set Name $::padGeom(name)
-            $newPadstack -set Type $::PadstackEditorLib::EPsDBPadstackType(epsdbPadstackTypePinSMD)
+
+            ##  Need to handle various pad types which are inferred while processing
+            ##  the netlist.  If for some reason the pad doesn't appear in the netlist
+
+            if { ![dict exist $::padtypes $::padGeom(name)] } {
+                dict lappend ::padtypes $::padGeom(name) "diepad"
+            }
+
+            switch -exact [dict get $::padtypes $::padGeom(name)] {
+                "bondpad" {
+                    $newPadstack -set Type $::PadstackEditorLib::EPsDBPadstackType(epsdbPadstackTypeBondPin)
+                }
+                "ballpad" {
+                    $newPadstack -set Type $::PadstackEditorLib::EPsDBPadstackType(epsdbPadstackTypePinSMD)
+                }
+                "diepad" {
+                    $newPadstack -set Type $::PadstackEditorLib::EPsDBPadstackType(epsdbPadstackTypePartStackPin)
+                }
+                default {
+                    $newPadstack -set Type $::PadstackEditorLib::EPsDBPadstackType(epsdbPadstackTypePinSMD)
+                }
+            }
+
+            #$newPadstack -set PinClass $::MGCPCB::EPcbPinClassType(epcbPinClassDie)
 
             $newPadstack -set Pad \
                 [expr $::PadstackEditorLib::EPsDBPadLayer(epsdbPadLayerTopMount)] $pad
