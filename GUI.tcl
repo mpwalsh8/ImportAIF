@@ -250,6 +250,8 @@ namespace eval GUI {
         variable AIFFile ""
         variable FileType
         variable DesignPath ""
+        variable DesignName ""
+        variable FullDesignPath ""
         variable LibraryPath ""
         variable CellPartition ""
         variable PartPartition ""
@@ -289,16 +291,15 @@ namespace eval GUI {
             ##  AIF File
             labelframe $db.aiffile -pady 5 -text "AIF File" -padx 5
             entry $db.aiffile.e -width 65 -relief sunken -bd 2 -textvariable GUI::Dashboard::AIFFile
-            button $db.aiffile.b -text "AIF File ..." -command \
-                { set GUI::Dashboard::AIFFile [tk_getOpenFile -filetypes {{AIF .aif} {Txt .txt} {All *}}] }
+            button $db.aiffile.b -text "AIF File ..." -command GUI::Dashboard::SelectAIFFile
             grid $db.aiffile.e -row 0 -column 0 -pady 5 -padx 5 -sticky w
             grid $db.aiffile.b -row 0 -column 1 -pady 5 -padx 5 -sticky ew
 
             ##  Design Path
             labelframe $db.design -pady 5 -text "Design" -padx 5
-            entry $db.design.e -width 65 -relief sunken -bd 2 -textvariable GUI::Dashboard::DesignPath
+            entry $db.design.e -width 65 -relief sunken -bd 2 -textvariable GUI::Dashboard::FullDesignPath
             button $db.design.b -text "Design ..." -command \
-                { set GUI::Dashboard::DesignPath [tk_getOpenFile -filetypes {{PCB .pcb}}] }
+                { set GUI::Dashboard::FullDesignPath [tk_getOpenFile -filetypes {{PCB .pcb}}] }
             grid $db.design.e -row 0 -column 0 -pady 5 -padx 5 -sticky w
             grid $db.design.b -row 0 -column 1 -pady 5 -padx 5 -sticky ew
 
@@ -323,8 +324,21 @@ namespace eval GUI {
             grid $db.design     -row 1 -column 0 -sticky ew -padx 10 -pady 10
             grid $db.library    -row 2 -column 0 -sticky ew -padx 10 -pady 10
             grid $db.mode       -row 0 -column 1 -sticky ew -padx 10 -pady 10
-            grid $db.visibility -row 1 -column 1 -sticky ew -padx 10 -pady 10
-            grid $db.connection -row 2 -column 1 -sticky ew -padx 10 -pady 10
+            grid $db.connection -row 1 -column 1 -sticky ew -padx 10 -pady 10
+            grid $db.visibility -row 2 -column 1 -sticky ew -padx 10 -pady 10
+        }
+
+        ##
+        ##  GUI::Dashboard::SelectAIFFile
+        ##
+        proc SelectAIFFile {} {
+            set GUI::Dashboard::AIFFile [tk_getOpenFile -filetypes {{AIF .aif} {Txt .txt} {All *}}]
+        
+            if { [string equal $GUI::Dashboard::AIFFile ""] } {
+                Transcript $::ediu(MsgError) "No AIF File selected."
+            } else {
+                ediuAIFFileOpen $GUI::Dashboard::AIFFile
+            }
         }
 
         ##

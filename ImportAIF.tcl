@@ -330,12 +330,14 @@ proc BuildGUI {} {
     $mb add cascade -label "File" -menu $mb.file -underline 0
     $fm add command -label "Open AIF ..." \
          -accelerator "F5" -underline 0 \
-         -command ediuAIFFileOpen
+         -command GUI::Dashboard::SelectAIFFile
     $fm add command -label "Close AIF" \
          -accelerator "F6" -underline 0 \
          -command ediuAIFFileClose
     $fm add command -label "Export KYN ..." \
-         -underline 7 -command ediuFileExportKYN
+         -underline 7 -command Netlist::Export::KYN
+    $fm add command -label "Export Placement ..." \
+         -underline 7 -command Netlist::Export::Placement
     #$fm add separator
     #$fm add command -label "Open Sparse Pins ..." \
          -underline 1 -command ediuSparsePinsFileOpen
@@ -385,22 +387,6 @@ proc BuildGUI {} {
         -variable ::ediu(connectMode) -onvalue True -offvalue False \
         -command  {Transcript MsgNote [format "Application Connect mode is now %s." \
         [expr $::ediu(connectMode) ? "on" : "off"]] ; ediuUpdateStatus $::ediu(ready) }
-
-    #  Define the Generate menu
-    set bm [menu $mb.build -tearoff 0]
-    $mb add cascade -label "Generate" -menu $mb.build -underline 0
-    $bm add command -label "Pads ..." \
-         -underline 0 \
-         -command MGC::Generate::Pads
-    $bm add command -label "Padstacks ..." \
-         -underline 0 \
-         -command MGC::Generate::Padstacks
-    $bm add command -label "Cells ..." \
-         -underline 0 \
-         -command MGC::Generate::Cells
-    $bm add command -label "PDBs ..." \
-         -underline 1 \
-         -command MGC::Generate::PDBs
 
     #  Define the View menu
     set vm [menu $mb.zoom -tearoff 0]
@@ -538,6 +524,22 @@ proc BuildGUI {} {
         -variable GUI::guides(dimension) -onvalue on -offvalue off \
         -command  "GUI::Visibility dimension -mode toggle"
 
+    #  Define the Generate menu
+    set bm [menu $mb.build -tearoff 0]
+    $mb add cascade -label "Generate" -menu $mb.build -underline 0
+    $bm add command -label "Pads ..." \
+         -underline 0 \
+         -command MGC::Generate::Pads
+    $bm add command -label "Padstacks ..." \
+         -underline 0 \
+         -command MGC::Generate::Padstacks
+    $bm add command -label "Cells ..." \
+         -underline 0 \
+         -command MGC::Generate::Cells
+    $bm add command -label "PDBs ..." \
+         -underline 1 \
+         -command MGC::Generate::PDBs
+
     # Define the Help menu
     set hm [menu .menubar.help -tearoff 0]
     $mb add cascade -label "Help" -menu $mb.help -underline 0
@@ -636,11 +638,13 @@ proc BuildGUI {} {
     button $bf.zoomin  -text "Zoom In"  -command "zoom $gfcanvas 1.25" -relief groove -padx 3
     button $bf.zoomout -text "Zoom Out" -command "zoom $gfcanvas 0.80" -relief groove -padx 3
     #button $bf.zoomfit -text "Zoom Fit" -command "zoom $gfcanvas 1" -relief groove -padx 3
+    button $bf.zoomin2x  -text "Zoom In 2x"  -command "zoom $gfcanvas 2.00" -relief groove -padx 3
+    button $bf.zoomout2x -text "Zoom Out 2x" -command "zoom $gfcanvas 0.50" -relief groove -padx 3
     button $bf.zoomin5x  -text "Zoom In 5x"  -command "zoom $gfcanvas 5.00" -relief groove -padx 3
     button $bf.zoomout5x -text "Zoom Out 5x" -command "zoom $gfcanvas 0.20" -relief groove -padx 3
     #grid $bf.zoomin $bf.zoomout -sticky ew -columnspan 1
     #grid $bf.zoomin $bf.zoomout $bf.zoomfit
-    grid $bf.zoomin $bf.zoomout $bf.zoomin5x $bf.zoomout5x
+    grid $bf.zoomin $bf.zoomout $bf.zoomin2x $bf.zoomout2x $bf.zoomin5x $bf.zoomout5x
     grid $bf -in $gf -sticky w
 
     grid columnconfigure $gf 0 -weight 1
@@ -753,7 +757,7 @@ proc BuildGUI {} {
 
     #  Bind some function keys
     bind . "<Key F1>" { ediuHelpAbout }
-    bind . "<Key F5>" { ediuAIFFileOpen }
+    bind . "<Key F5>" { GUI::Dashboard::SelectAIFFile }
     bind . "<Key F6>" { ediuAIFFileClose }
 
     ## Update the status fields
@@ -1596,7 +1600,7 @@ proc ediuAIFFileOpen { { f "" } } {
     if { $f != $::ediu(Nothing) } {
         set ::ediu(filename) $f
     } else {
-        set ::ediu(filename) [tk_getOpenFile -filetypes {{AIF .aif} {Txt .txt} {All *}}]
+        set ::ediu(filename) [ GUI::Dashboard::SelectAIFFile]
     }
 
     ##  Process the user supplied file
@@ -1700,7 +1704,8 @@ proc ediuFileExportKYN { { kyn "" } } {
     set txt $::widgets(kynnetlistview)
 
     if { $kyn == "" } {
-        set kyn [tk_getSaveFile -filetypes {{KYN .kyn} {Txt .txt} {All *}}]
+        set kyn [tk_getSaveFile -filetypes {{KYN .kyn} {Txt .txt} {All *}} \
+            -initialfile "netlist.kyn" -defaultextension ".kyn"]
     }
 
     if { $kyn == "" } {
@@ -1710,10 +1715,37 @@ proc ediuFileExportKYN { { kyn "" } } {
         
     #  Write the KYN netlist content to the file
     set f [open $kyn "w+"]
-    #puts $f [$txt get 1.0 end]
+    puts $f [$txt get 1.0 end]
     close $f
 
     Transcript $::ediu(MsgNote) [format "KYN netlist successfully exported to file \"%s\"." $kyn]
+
+    return
+}
+
+#
+#  ediuFileExportPlacement
+#
+proc ediuFileExportPlacement { { plcmnt "" } } {
+
+    set txt [array names ::devices]
+
+    if { $plcmnt == "" } {
+        set plcmnt [tk_getSaveFile -filetypes {{Txt .txt} {All *}} \
+            -initialfile "place.txt" -defaultextension ".txt"]
+    }
+
+    if { $plcmnt == "" } {
+        Transcript $::ediu(MsgWarning) "No Placement file specified, Export aborted."
+        return
+    }
+        
+    #  Write the placement content to the file
+    set f [open $plcmnt "w+"]
+    puts $f $txt
+    close $f
+
+    Transcript $::ediu(MsgNote) [format "Placement successfully exported to file \"%s\"." $plcmnt]
 
     return
 }
@@ -2444,7 +2476,7 @@ Transcript $::ediu(MsgNote) "$::ediu(EDIU) ready."
 #catch { ediuAIFFileOpen "c:/users/mike/desktop/ImportAIF/data/BGA_w2_Dies.aif" } retString
 ##catch { ediuAIFFileOpen "c:/users/mike/desktop/ImportAIF/data/BGA_w2_Dies-2.aif" } retString
 #catch { ediuAIFFileOpen "c:/users/mike/desktop/ImportAIF/data/BGA_w2_Dies-3.aif" } retString
-#catch { ediuAIFFileOpen "c:/users/mike/desktop/ImportAIF/data/Test2.aif" } retString
+catch { ediuAIFFileOpen "c:/users/mike/desktop/ImportAIF/data/Test2.aif" } retString
 GUI::Visibility text -all true -mode off
 #set ::ediu(cellEdtrPrtnNames) { a b c d e f }
 #ediuAIFFileOpen

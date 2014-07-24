@@ -102,6 +102,7 @@ namespace eval MGC {
         #[$::ediu(pcbDoc) Gui] SuppressTrivialDialogs True
 
         set ::ediu(targetPath) [$::ediu(pcbDoc) Path][$::ediu(pcbDoc) Name]
+        set GUI::Dashboard::DesignPath [$::ediu(pcbDoc) Path][$::ediu(pcbDoc) Name]
         #puts [$::ediu(pcbDoc) Path][$::ediu(pcbDoc) Name]
         Transcript $::ediu(MsgNote) [format "Connected to design database:  %s%s" \
             [$::ediu(pcbDoc) Path] [$::ediu(pcbDoc) Name]]
@@ -586,12 +587,12 @@ namespace eval MGC {
             $newPad -set Shape [expr $shape]
             $newPad -set Width \
                 [expr [MapEnum::Units $::database(units) "pad"]] [expr $::padGeom(width)]
-            $newPad -set Heigh\
-                t [expr [MapEnum::Units $::database(units) "pad"]] [expr $::padGeom(height)]
-            $newPad -set OriginOffset\
-                X [expr [MapEnum::Units $::database(units) "pad"]] [expr $::padGeom(offsetx)]
-            $newPad -set OriginOffset\
-                Y [expr [MapEnum::Units $::database(units) "pad"]] [expr $::padGeom(offsety)]
+            $newPad -set Height \
+                [expr [MapEnum::Units $::database(units) "pad"]] [expr $::padGeom(height)]
+            $newPad -set OriginOffsetX \
+                [expr [MapEnum::Units $::database(units) "pad"]] [expr $::padGeom(offsetx)]
+            $newPad -set OriginOffsetY \
+                [expr [MapEnum::Units $::database(units) "pad"]] [expr $::padGeom(offsety)]
 
             Transcript $::ediu(MsgNote) [format "Committing pad:  %s" $padName]
             $newPad Commit
@@ -1045,11 +1046,17 @@ namespace eval MGC {
                 ##  for that possibility before trying to extract
                 ##  the height and width from a non-existant section
 
-                if { [lsearch [dict keys $::mcmdie] $device] == -1 } {
+                foreach i [dict keys $::mcmdie] {
+                    if { [string equal [dict get $::mcmdie $i] $device] } {
+                        set section [format "MCM_%s_%s" [dict get $::mcmdie $i] $i]
+                        puts "-->  Section:  $section"
+                    }
+                }
+
+                if { [lsearch [AIF::Sections] $section] != -1 } {
                     set width [AIF::GetVar WIDTH BGA]
                     set height [AIF::GetVar HEIGHT BGA]
                 } else {
-                    set section [format "MCM_%s_%s" [dict get $::mcmdie $device] $device]
                     set width [AIF::GetVar WIDTH $section]
                     set height [AIF::GetVar HEIGHT $section]
                 }

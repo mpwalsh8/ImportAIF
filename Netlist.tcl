@@ -152,4 +152,84 @@ namespace eval Netlist {
     proc GetDiePadY { index } {
         return [GetParam $index 4]
     }
+
+    ##
+    ##  Define the netlist export namespace and procedure supporting netlist operations
+    ##
+    namespace eval Export {
+        ##
+        ##  Netlist::Export::KYN
+        ##
+        proc KYN { { kyn "" } } {
+            set txt $::widgets(kynnetlistview)
+
+            if { $kyn == "" } {
+                set kyn [tk_getSaveFile -filetypes {{KYN .kyn} {Txt .txt} {All *}} \
+                    -initialfile "netlist.kyn" -defaultextension ".kyn"]
+            }
+
+            if { $kyn == "" } {
+                Transcript $::ediu(MsgWarning) "No KYN file specified, Export aborted."
+                return
+            }
+        
+            #  Write the KYN netlist content to the file
+            set f [open $kyn "w+"]
+            puts $f [$txt get 1.0 end]
+            close $f
+
+            Transcript $::ediu(MsgNote) [format "KYN netlist successfully exported to file \"%s\"." $kyn]
+
+            return
+        }
+
+        ##
+        ##  Netlist::Export::Placement
+        ##
+        proc Placement { { plcmnt "" } } {
+
+            if { $plcmnt == "" } {
+                set plcmnt [tk_getSaveFile -filetypes {{Dat .dat} {All *}} \
+                    -initialfile "xyplace.dat" -defaultextension ".dat"]
+            }
+
+            if { $plcmnt == "" } {
+                Transcript $::ediu(MsgWarning) "No Placement file specified, Export aborted."
+                return
+            }
+        
+            #  Write the placement content to the file
+
+            set txt [format ".%s\n" [AIF::GetVar UNITS DATABASE]]
+
+            foreach i [dict keys $::mcmdie] {
+                set ctr "0,0"
+                set sect [format "MCM_%s_%s" [dict get $::mcmdie $i] $i]
+
+                ##  If the device has a section, extract the CENTER keyword
+                if { [lsearch [AIF::Sections] $sect] != -1 } {
+                    set ctr [AIF::GetVar CENTER $sect]
+                }
+
+                ##  Split the CENTER keyword into an X and Y, handle space or comma
+                if { [string first , $ctr] != -1 } {
+                    set X [string trim [lindex [split $ctr ,] 0]]
+                    set Y [string trim [lindex [split $ctr ,] 1]]
+                } else {
+                    set X [string trim [lindex [split $ctr] 0]]
+                    set Y [string trim [lindex [split $ctr] 1]]
+                }
+
+                append txt [format ".REF %s %s,%s 0 top\n" $i $X $Y]
+            }
+
+            set f [open $plcmnt "w+"]
+            puts $f $txt
+            close $f
+
+            Transcript $::ediu(MsgNote) [format "Placement successfully exported to file \"%s\"." $plcmnt]
+
+            return
+        }
+    }
 }
