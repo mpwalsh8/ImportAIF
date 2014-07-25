@@ -1434,17 +1434,29 @@ namespace eval MGC {
         }
     }
 
-    proc Test {} {
-        MGC::OpenCellEditor
-        #Utility.ConvertUnit(500.0, epcbUnitMils, doc.CurrentUnit)
-            #set ptsArray [[$cellEditorDoc Utility] CreateRectXYR $x1 $y1 $x2 $y2]
-        
-        set u [$::ediu(cellEdtr) Utility]
-        set t [$u Convert [expr 50.0] \
-            [expr $::CellEditorAddinLib::ECellDBUnit(ecelldbUnitMils)] \
-            [expr $::CellEditorAddinLib::ECellDBUnit(ecelldbUnitUM)]]
+    ##
+    ##  Define the Bond Wire namespace and procedures supporting bond wire and pad operations
+    ##
+    namespace eval WireBond {
+        ##
+        ##  MGC::WireBond::Setup
+        ##
+        proc Setup {} {
+            puts "MGC::WireBond::Setup"
+        }
 
-        puts $t
-        MGC::CloseCellEditor
+        ##
+        ##  MGC::WireBond::PlaceBondPads
+        ##
+        proc PlaceBondPads {} {
+            puts "MGC::WireBond::PlaceBondPads"
+        }
+
+        ##
+        ##  MGC::BondWire::PlaceBondWires
+        ##
+        proc PlaceBondWires {} {
+            puts "MGC::WireBond::PlaceBondWires"
+        }
     }
 }
