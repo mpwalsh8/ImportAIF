@@ -887,9 +887,7 @@ namespace eval MGC {
             #$newCell -set LayerCount [expr 2]
             $newCell -set PinCount [expr $devicePinCount]
             #puts [format "--->  devicePinCount:  %s" $devicePinCount]
-            #$newCell -set Units [expr $::CellEditorAddinLib::ECellDBUnit(ecelldbUnitUM)]
             $newCell -set Units [expr [MapEnum::Units $::database(units) "cell"]]
-            #$newCell -set PackageGroup [expr $::CellEditorAddinLib::ECellDBPackageGroup(ecelldbPackageGeneral)]
 
             ##  Set the package group to Bare Die unless this is the BGA device
             if { [string equal $::bga(name) $device] } {
@@ -920,6 +918,7 @@ namespace eval MGC {
             set cellEditor [$newCell Edit]
             set cellEditorDoc [$cellEditor Application]
             [$cellEditorDoc Gui] SuppressTrivialDialogs True
+
 
             ##  Need the Component Document to it can be edited.
             ##  When using the Cell Editor Addin, the component will
@@ -1077,9 +1076,16 @@ namespace eval MGC {
 
             set ptsArray [[$cellEditorDoc Utility] CreateRectXYR $x1 $y1 $x2 $y2]
 
+            ##  Need some sort of a thickness value - there isn't one in the AIF file
+            ##  We'll assume 50 microns for now, may offer user ability to define later.
+
+            set th [[$cellEditorDoc Utility] ConvertUnit [expr 50.0] \
+                [expr $::CellEditorAddinLib::ECellDBUnit(ecelldbUnitUM)] \
+                [expr [MapEnum::Units $::database(units) "cell"]]]
+
             ##  Add the Placment Outline
             $cellEditor PutPlacementOutline [expr $::MGCPCB::EPcbSide(epcbSideMount)] 5 $ptsArray \
-                [expr 0] [expr 0] $component [expr [MapEnum::Units $::database(units) "cell"]]
+                [expr $th] [expr 0] $component [expr [MapEnum::Units $::database(units) "cell"]]
 
             ##  Terminate transactions
             $cellEditor TransactionEnd True
@@ -1426,5 +1432,19 @@ namespace eval MGC {
                 MGC::Generate::PDB [lindex $i 1]
             }
         }
+    }
+
+    proc Test {} {
+        MGC::OpenCellEditor
+        #Utility.ConvertUnit(500.0, epcbUnitMils, doc.CurrentUnit)
+            #set ptsArray [[$cellEditorDoc Utility] CreateRectXYR $x1 $y1 $x2 $y2]
+        
+        set u [$::ediu(cellEdtr) Utility]
+        set t [$u Convert [expr 50.0] \
+            [expr $::CellEditorAddinLib::ECellDBUnit(ecelldbUnitMils)] \
+            [expr $::CellEditorAddinLib::ECellDBUnit(ecelldbUnitUM)]]
+
+        puts $t
+        MGC::CloseCellEditor
     }
 }
