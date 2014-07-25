@@ -525,20 +525,34 @@ proc BuildGUI {} {
         -command  "GUI::Visibility dimension -mode toggle"
 
     #  Define the Generate menu
-    set bm [menu $mb.build -tearoff 0]
-    $mb add cascade -label "Generate" -menu $mb.build -underline 0
-    $bm add command -label "Pads ..." \
+    set gm [menu $mb.generate -tearoff 0]
+    $mb add cascade -label "Generate" -menu $mb.generate -underline 0
+    $gm add command -label "Pads ..." \
          -underline 0 \
          -command MGC::Generate::Pads
-    $bm add command -label "Padstacks ..." \
+    $gm add command -label "Padstacks ..." \
          -underline 0 \
          -command MGC::Generate::Padstacks
-    $bm add command -label "Cells ..." \
+    $gm add command -label "Cells ..." \
          -underline 0 \
          -command MGC::Generate::Cells
-    $bm add command -label "PDBs ..." \
+    $gm add command -label "PDBs ..." \
          -underline 1 \
          -command MGC::Generate::PDBs
+
+    #  Define the Wire Bond menu
+    set wbm [menu $mb.wirebond -tearoff 0]
+    $mb add cascade -label "Wire Bond" -menu $mb.wirebond -underline 0
+    $wbm add command -label "Setup ..." \
+         -underline 0 \
+         -command MGC::WireBond::Setup
+    $wbm add separator
+    $wbm add command -label "Place Bond Pads ..." \
+         -underline 0 \
+         -command MGC::WireBond::PlaceBondPads
+    $wbm add command -label "Place Bond Wires ..." \
+         -underline 0 \
+         -command MGC::WireBond::PlaceBondWires
 
     # Define the Help menu
     set hm [menu .menubar.help -tearoff 0]

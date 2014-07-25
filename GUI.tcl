@@ -240,6 +240,17 @@ namespace eval GUI {
             #set ::ediu(targetPath) $::ediu(Nothing)
             ediuUpdateStatus $::ediu(ready)
         }
+
+        ##
+        ##  GUI::Menus::BondWireEditMode
+        ##
+        proc BondWireEditMode {} {
+            $::widgets(setupmenu) entryconfigure  3 -state normal
+            $::widgets(setupmenu) entryconfigure 4 -state disabled
+            $::widgets(setupmenu) entryconfigure 7 -state normal
+            #set ::ediu(targetPath) $::ediu(Nothing)
+            ediuUpdateStatus $::ediu(ready)
+        }
     }
 
     ##
@@ -257,11 +268,22 @@ namespace eval GUI {
         variable PartPartition ""
         variable ConnectMode On
         variable Visibility On
+        variable CellGeneration
+        variable CellVersioning none
+
+        array set CellGeneration {
+            MirrorNone on
+            MirrorX off
+            MirroyY off
+            MirrorXY off
+        }
 
         ##
         ##  GUI::Dashboard::Build
         ##
         proc Build {} {
+            variable CellGeneration
+
             set db $::widgets(dashboard)
 
             ##  Mode
@@ -270,6 +292,22 @@ namespace eval GUI {
                 radiobutton $db.mode.b$i -text "$i" -variable GUI::Dashboard::Mode \
 	            -relief flat -value $i
                 pack $db.mode.b$i  -side top -pady 2 -anchor w
+            }
+            
+            ##  Cell Versioning
+            labelframe $db.cellversioning -pady 2 -text "Cell Versioning (suffix)" -padx 2
+            foreach { i  j } { none "None" numeric "Numeric (-1, -2, -3, etc.)" alpha "Alpha (-A, -B, -C, etc.)" } {
+                radiobutton $db.cellversioning.b$i -text "$j" -variable GUI::Dashboard::CellVersioning \
+	            -relief flat -value $i
+                pack $db.cellversioning.b$i  -side top -pady 2 -anchor w
+            }
+            
+            ##  Cell Generation
+            labelframe $db.cellgeneration -pady 2 -text "Cell Generation" -padx 2
+            foreach { i j } { MirrorNone "Default" MirrorX "Mirror X Coordinates" MirrorY "Mirror Y Coordinates" MirrorXY "Mirror X and Y Coordinates" } {
+                checkbutton $db.cellgeneration.b$i -text "$j" -variable GUI::Dashboard::CellGeneration($i) \
+	            -relief flat -onvalue on -offvalue off
+                pack $db.cellgeneration.b$i  -side top -pady 2 -anchor w
             }
             
             ##  Visibility
@@ -320,12 +358,14 @@ namespace eval GUI {
             grid $db.library.pb -row 2 -column 1 -pady 5 -padx 5 -sticky ew
 
             ##  Place all of the widgets
-            grid $db.aiffile    -row 0 -column 0 -sticky ew -padx 10 -pady 10
-            grid $db.design     -row 1 -column 0 -sticky ew -padx 10 -pady 10
-            grid $db.library    -row 2 -column 0 -sticky ew -padx 10 -pady 10
-            grid $db.mode       -row 0 -column 1 -sticky ew -padx 10 -pady 10
-            grid $db.connection -row 1 -column 1 -sticky ew -padx 10 -pady 10
-            grid $db.visibility -row 2 -column 1 -sticky ew -padx 10 -pady 10
+            grid $db.aiffile        -row 0 -column 0 -sticky ew -padx 10 -pady 10 -columnspan 2
+            grid $db.design         -row 1 -column 0 -sticky ew -padx 10 -pady 10 -columnspan 2
+            grid $db.library        -row 2 -column 0 -sticky ew -padx 10 -pady 10 -columnspan 2
+            grid $db.mode           -row 0 -column 2 -sticky ew -padx 10 -pady 10
+            grid $db.connection     -row 1 -column 2 -sticky ew -padx 10 -pady 10
+            grid $db.visibility     -row 2 -column 2 -sticky ew -padx 10 -pady 10
+            grid $db.cellgeneration -row 3 -column 0 -sticky ew -padx 10 -pady 10
+            grid $db.cellversioning -row 3 -column 1 -sticky ew -padx 10 -pady 10
         }
 
         ##
