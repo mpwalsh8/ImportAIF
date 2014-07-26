@@ -90,6 +90,44 @@ namespace eval GUI {
         dimension on
     }
 
+    ##
+    ##  GUI::Build
+    ##
+    proc Build {} {
+        #  Define fixed with font used for displaying text
+        font create EDIUFont -family Courier -size 10 -weight bold
+
+        ##  Build menus and notebook structure
+        GUI::Build::Menus
+        GUI::Build::Notebook
+
+        ##  Build the status bar
+        GUI::Build::StatusBar
+
+        ##  Build the Dashboard
+        GUI::Build::Dashboard
+
+        ##  Arrange the top level widgets
+        grid $GUI::widgets(notebook) -row 0 -column 0 -sticky nsew -padx 4 -pady 4
+        grid $GUI::widgets(statusframe) -row 1 -column 0 -sticky sew -padx 4 -pady 4
+
+        grid columnconfigure . 0 -weight 1
+        grid    rowconfigure . 0 -weight 1
+
+        #  Configure the main window
+        wm title . $::ediu(EDIU).
+        wm geometry . 1024x768
+        . configure -menu .menubar -width 200 -height 150
+
+        #  Bind some function keys
+        bind . "<Key F1>" { ediuHelpAbout }
+        bind . "<Key F5>" { GUI::Dashboard::SelectAIFFile }
+        bind . "<Key F6>" { ediuAIFFileClose }
+
+        ## Update the status fields
+        GUI::StatusBar::UpdateStatus -busy off
+    }
+
     #
     #  Visibility
     #
@@ -217,7 +255,7 @@ namespace eval GUI {
     }
 
     ##
-    ##  Build
+    ##  Define the GUI::Build namespace and procedure supporting operations
     ##
     namespace eval Build {
 
@@ -727,77 +765,11 @@ if { 0 } {
                 grid    rowconfigure $knltf 0 -weight 1
             }
         }
-    }
-
-    ##
-    ##  Menus
-    ##
-    namespace eval Menus {
-        ##
-        ##  GUI::Menus::CentralLibraryMode
-        ##
-        proc CentralLibraryMode {} {
-            $GUI::widgets(setupmenu) entryconfigure  3 -state disabled
-            $GUI::widgets(setupmenu) entryconfigure 4 -state normal
-            $GUI::widgets(setupmenu) entryconfigure 7 -state disabled
-            #set ::ediu(targetPath) $::ediu(Nothing)
-            GUI::StatusBar::UpdateStatus -busy off
-        }
 
         ##
-        ##  GUI::Menus::DesignMode
+        ##  GUI::Build::Dashboard
         ##
-        proc DesignMode {} {
-            $GUI::widgets(setupmenu) entryconfigure  3 -state normal
-            $GUI::widgets(setupmenu) entryconfigure 4 -state disabled
-            $GUI::widgets(setupmenu) entryconfigure 7 -state normal
-            #set ::ediu(targetPath) $::ediu(Nothing)
-            GUI::StatusBar::UpdateStatus -busy off
-        }
-
-        ##
-        ##  GUI::Menus::BondWireEditMode
-        ##
-        proc BondWireEditMode {} {
-            $GUI::widgets(setupmenu) entryconfigure  3 -state normal
-            $GUI::widgets(setupmenu) entryconfigure 4 -state disabled
-            $GUI::widgets(setupmenu) entryconfigure 7 -state normal
-            #set ::ediu(targetPath) $::ediu(Nothing)
-            GUI::StatusBar::UpdateStatus -busy off
-        }
-    }
-
-    ##
-    ##  Define the GUI::Dashboard namespace and procedure supporting operations
-    ##
-    namespace eval Dashboard {
-        variable Mode Design
-        variable AIFFile ""
-        variable FileType
-        variable DesignPath ""
-        variable DesignName ""
-        variable FullDesignPath ""
-        variable LibraryPath ""
-        variable CellPartition ""
-        variable PartPartition ""
-        variable ConnectMode on
-        variable Visibility on
-        variable CellGeneration
-        variable CellSuffix none
-
-        array set CellGeneration {
-            MirrorNone on
-            MirrorX off
-            MirrorY off
-            MirrorXY off
-        }
-
-        ##
-        ##  GUI::Dashboard::Build
-        ##
-        proc Build {} {
-            variable CellGeneration
-
+        proc Dashboard {} {
             set db $GUI::widgets(dashboard)
             set dbf [frame $db.frame -borderwidth 5 -relief ridge]
 
@@ -894,6 +866,70 @@ if { 0 } {
             grid $dbf.cellsuffix     -row 3 -column 1 -sticky new -padx 10 -pady 10
 
             grid $dbf -row 0 -column 0 -sticky nw -padx 10 -pady 10
+        }
+    }
+
+    ##
+    ##  Define the GUI::Menus namespace and procedure supporting operations
+    ##
+    namespace eval Menus {
+        ##
+        ##  GUI::Menus::CentralLibraryMode
+        ##
+        proc CentralLibraryMode {} {
+            $GUI::widgets(setupmenu) entryconfigure  3 -state disabled
+            $GUI::widgets(setupmenu) entryconfigure 4 -state normal
+            $GUI::widgets(setupmenu) entryconfigure 7 -state disabled
+            #set ::ediu(targetPath) $::ediu(Nothing)
+            GUI::StatusBar::UpdateStatus -busy off
+        }
+
+        ##
+        ##  GUI::Menus::DesignMode
+        ##
+        proc DesignMode {} {
+            $GUI::widgets(setupmenu) entryconfigure  3 -state normal
+            $GUI::widgets(setupmenu) entryconfigure 4 -state disabled
+            $GUI::widgets(setupmenu) entryconfigure 7 -state normal
+            #set ::ediu(targetPath) $::ediu(Nothing)
+            GUI::StatusBar::UpdateStatus -busy off
+        }
+
+        ##
+        ##  GUI::Menus::BondWireEditMode
+        ##
+        proc BondWireEditMode {} {
+            $GUI::widgets(setupmenu) entryconfigure  3 -state normal
+            $GUI::widgets(setupmenu) entryconfigure 4 -state disabled
+            $GUI::widgets(setupmenu) entryconfigure 7 -state normal
+            #set ::ediu(targetPath) $::ediu(Nothing)
+            GUI::StatusBar::UpdateStatus -busy off
+        }
+    }
+
+    ##
+    ##  Define the GUI::Dashboard namespace and procedure supporting operations
+    ##
+    namespace eval Dashboard {
+        variable Mode Design
+        variable AIFFile ""
+        variable FileType
+        variable DesignPath ""
+        variable DesignName ""
+        variable FullDesignPath ""
+        variable LibraryPath ""
+        variable CellPartition ""
+        variable PartPartition ""
+        variable ConnectMode on
+        variable Visibility on
+        variable CellGeneration
+        variable CellSuffix none
+
+        array set CellGeneration {
+            MirrorNone on
+            MirrorX off
+            MirrorY off
+            MirrorXY off
         }
 
         ##
