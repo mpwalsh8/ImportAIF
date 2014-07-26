@@ -740,11 +740,39 @@ namespace eval MGC {
         #
         proc Cell { device args } {
             ##  Process command arguments
-            array set V { -partition "" } ;# Default values
+            array set V { -partition "" -mirror none } ;# Default values
             foreach {a value} $args {
                 if {! [info exists V($a)]} {error "unknown option $a"}
                 if {$value == {}} {error "value of \"$a\" missing"}
-                set V($a) $value
+                if { [string compare $a -mirror] } {
+                    set V($a) [string tolower $value]
+                } else {
+                    set V($a) $value
+                }
+            }
+
+            ##  Check mirror option, make sure it is valid
+            if { [lsearch [list none x y xy] $V(-mirror)] == -1 } {
+                Transcript $::ediu(MsgError) "Illegal seeting for -mirror switch, must be one of none, x, y, or xy."
+                ediuUpdateStatus $::ediu(ready)
+                return
+            }
+
+            ##  Set the target cell name based on the mirror switch
+            switch -exact $V(-mirror) {
+                x {
+                    set target [format "%s-mirror-x" $device]
+                }
+                y {
+                    set target [format "%s-mirror-y" $device]
+                }
+                xy {
+                    set target [format "%s-mirror-xy" $device]
+                }
+                none -
+                default {
+                    set target $device
+                }
             }
 
             ediuUpdateStatus $::ediu(busy)
@@ -827,12 +855,12 @@ namespace eval MGC {
 
                 if { [lsearch $pNames $::ediu(cellEdtrPrtnName)] == -1 } {
                     Transcript $::ediu(MsgNote) [format "Creating partition \"%s\" for cell \"%s\"." \
-                        $::die(partition) $device]
+                        $::die(partition) $target]
 
                     set partition [$::ediu(cellEdtrDb) NewPartition $::ediu(cellEdtrPrtnName)]
                 } else {
                     Transcript $::ediu(MsgNote) [format "Using existing partition \"%s\" for cell \"%s\"." \
-                        $::ediu(cellEdtrPrtnName) $device]
+                        $::ediu(cellEdtrPrtnName) $target]
                     set partition [$partitions Item [expr [lsearch $pNames $::ediu(cellEdtrPrtnName)] +1]]
                 }
 
@@ -856,19 +884,69 @@ namespace eval MGC {
                 lappend cNames [$cell Name]
             }
 
-            #  Does the cell exist?
+            #  Does the cell exist?  Are we using Name suffixes?
 
-            if { [lsearch $cNames $device] == -1 } {
-                Transcript $::ediu(MsgNote) [format "Creating new cell \"%s\"." $device]
+            if { [string equal $GUI::Dashboard::CellSuffix numeric] } {
+                set suffixes [lsearch -all -inline -regexp  $cNames $target-\[0-9\]+]
+                if { [string equal $suffixes ""] } {
+                    set suffix "-1"
+                } else {
+                    ##  Get the suffix with the highest number
+                    set suffix [string trim [string trimleft \
+                        [lindex [lsort -increasing -integer $suffixes] end] $target] -]
+                }
+                ##  Add the suffix to the target
+                append target [incr $suffix]
+            } elseif { [string equal $GUI::Dashboard::CellSuffix alpha] } {
+                ##  This is limited to 26 matches for now ...
+                set suffixes [lsearch -all -inline -regexp  $cNames $target-\[A-Z\]+]
+                if { [string equal $suffixes ""] } {
+                    set suffix "-A"
+                } else {
+                    ##  Get the suffix with the highest letter
+                    set suffix [string trim [string trimleft \
+                        [lindex [lsort -increasing -ascii $suffixes] end] $target] -]
 
+                    ##  Make sure the end of the alphabet hasn't been reached
+                    if { [string equal $suffix Z] } {
+                        Transcript $::ediu(MsgNote) [format "Cell suffixes (\"%s\") exhausted, aborted." $suffix]
+                        MGC::CloseCellEditor
+                        return
+                    }
+
+                    ##  Increment the suffix
+                    set suffix [format "-%c" [expr [scan $suffix %c] +1]]
+                }
+                ##  Add the suffix to the target
+                append target $suffix
+            } elseif { [string equal $GUI::Dashboard::CellSuffix datestamp] } {
+                set suffix [clock format [clock seconds] -format {-%Y-%m-%d}]
+                append target $suffix
+            } elseif { [string equal $GUI::Dashboard::CellSuffix timestamp] } {
+                set suffix [clock format [clock seconds] -format {-%Y-%m-%d-%H-%M-%S}]
+                append target $suffix
             } else {
-                Transcript $::ediu(MsgNote) [format "Replacing existing cell \"%s.\"" $device]
-                set cell [$cells Item [expr [lsearch $cNames $device] +1]]
+            }
+
+            ##  If cell already exists, try and delete it.
+            ##  This can fail if the cell is being referenced by the design.
+
+            if { [lsearch $cNames $target] == -1 } {
+                Transcript $::ediu(MsgNote) [format "Creating new cell \"%s\"." $target]
+            } else {
+                Transcript $::ediu(MsgNote) [format "Replacing existing cell \"%s.\"" $target]
+                set cell [$cells Item [expr [lsearch $cNames $target] +1]]
 
                 ##  Delete the cell and save the database.  The delete
                 ##  isn't committed until the database is actually saved.
 
-                $cell Delete
+                set errorCode [catch { $cell Delete } errorMessage]
+                if {$errorCode != 0} {
+                    Transcript $::ediu(MsgError) [format "API error \"%s\", build aborted." $errorMessage]
+                    MGC::CloseCellEditor
+                    return
+                }
+
                 $::ediu(cellEdtr) SaveActiveDatabase
             }
 
@@ -881,8 +959,8 @@ namespace eval MGC {
 
             set newCell [$partition NewCell [expr $::CellEditorAddinLib::ECellDBCellType(ecelldbCellTypePackage)]]
 
-            $newCell -set Name $device
-            $newCell -set Description $device
+            $newCell -set Name $target
+            $newCell -set Description $target
             $newCell -set MountType [expr $::CellEditorAddinLib::ECellDBMountType(ecelldbMountTypeSurface)]
             #$newCell -set LayerCount [expr 2]
             $newCell -set PinCount [expr $devicePinCount]
@@ -986,8 +1064,26 @@ namespace eval MGC {
 
                 set diePadFields(padname) [lindex $padDefinition 0]
                 set diePadFields(pinnum) [lindex $padDefinition 1]
-                set diePadFields(padx) [lindex $padDefinition 2]
-                set diePadFields(pady) [lindex $padDefinition 3]
+
+                switch -exact $V(-mirror) {
+                    x {
+                        set diePadFields(padx) [expr - [lindex $padDefinition 2]]
+                        set diePadFields(pady) [lindex $padDefinition 3]
+                    }
+                    y {
+                        set diePadFields(padx) [lindex $padDefinition 2]
+                        set diePadFields(pady) [expr - [lindex $padDefinition 3]]
+                    }
+                    xy {
+                        set diePadFields(padx) [expr - [lindex $padDefinition 2]]
+                        set diePadFields(pady) [expr - [lindex $padDefinition 3]]
+                    }
+                    none -
+                    default {
+                        set diePadFields(padx) [lindex $padDefinition 2]
+                        set diePadFields(pady) [lindex $padDefinition 3]
+                    }
+                }
                 #set diePadFields(net) [Netlist::GetNetName $i]
 
                 #printArray diePadFields
@@ -1092,10 +1188,10 @@ namespace eval MGC {
 
             ##  Save edits and close the Cell Editor
             set time [clock format [clock seconds] -format "%m/%d/%Y %T"]
-            Transcript $::ediu(MsgNote) [format "Saving new cell \"%s\" (%s)." $device $time]
+            Transcript $::ediu(MsgNote) [format "Saving new cell \"%s\" (%s)." $target $time]
             $cellEditor Save
             set time [clock format [clock seconds] -format "%m/%d/%Y %T"]
-            Transcript $::ediu(MsgNote) [format "New cell \"%s\" (%s) saved." $device $time]
+            Transcript $::ediu(MsgNote) [format "New cell \"%s\" (%s) saved." $target $time]
             $cellEditor Close False
 
         ##    if { $::ediu(mode) == $::ediu(designMode) } {
@@ -1415,7 +1511,13 @@ namespace eval MGC {
 
         proc Cells { } {
             foreach i [AIFForms::SelectFromList "Select Cell(s)" [array names ::devices]] {
-                MGC::Generate::Cell [lindex $i 1]
+                puts "i:  $i"
+                foreach j [array names GUI::Dashboard::CellGeneration] {
+                    puts "j:  $j"
+                    if { [string is true $GUI::Dashboard::CellGeneration($j)] } {
+                        MGC::Generate::Cell [lindex $i 1] -mirror [string tolower [string trimleft $j Mirror]]
+                    }
+                }
             }
         }
 

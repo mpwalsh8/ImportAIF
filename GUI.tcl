@@ -269,12 +269,12 @@ namespace eval GUI {
         variable ConnectMode On
         variable Visibility On
         variable CellGeneration
-        variable CellVersioning none
+        variable CellSuffix none
 
         array set CellGeneration {
             MirrorNone on
             MirrorX off
-            MirroyY off
+            MirrorY off
             MirrorXY off
         }
 
@@ -294,12 +294,19 @@ namespace eval GUI {
                 pack $db.mode.b$i  -side top -pady 2 -anchor w
             }
             
-            ##  Cell Versioning
-            labelframe $db.cellversioning -pady 2 -text "Cell Versioning (suffix)" -padx 2
-            foreach { i  j } { none "None" numeric "Numeric (-1, -2, -3, etc.)" alpha "Alpha (-A, -B, -C, etc.)" } {
-                radiobutton $db.cellversioning.b$i -text "$j" -variable GUI::Dashboard::CellVersioning \
-	            -relief flat -value $i
-                pack $db.cellversioning.b$i  -side top -pady 2 -anchor w
+            ##  Cell Suffix
+            set suffixes { \
+                none "None" \
+                numeric "Numeric (-1, -2, -3, etc.)" \
+                alpha "Alpha (-A, -B, -C, etc.)" \
+                datestamp "Date Stamp (YYYY-MM-DD)" \
+                timestamp "Time Stamp (YYYY-MM-DD-HH:MM:SS)" \
+            }
+            labelframe $db.cellsuffix -pady 2 -text "Cell Name Suffix (aka Version)" -padx 2
+            foreach { i  j } $suffixes {
+                radiobutton $db.cellsuffix.b$i -text "$j" \
+                    -variable GUI::Dashboard::CellSuffix -relief flat -value $i
+                pack $db.cellsuffix.b$i  -side top -pady 2 -anchor w
             }
             
             ##  Cell Generation
@@ -358,14 +365,14 @@ namespace eval GUI {
             grid $db.library.pb -row 2 -column 1 -pady 5 -padx 5 -sticky ew
 
             ##  Place all of the widgets
-            grid $db.aiffile        -row 0 -column 0 -sticky ew -padx 10 -pady 10 -columnspan 2
-            grid $db.design         -row 1 -column 0 -sticky ew -padx 10 -pady 10 -columnspan 2
-            grid $db.library        -row 2 -column 0 -sticky ew -padx 10 -pady 10 -columnspan 2
-            grid $db.mode           -row 0 -column 2 -sticky ew -padx 10 -pady 10
-            grid $db.connection     -row 1 -column 2 -sticky ew -padx 10 -pady 10
-            grid $db.visibility     -row 2 -column 2 -sticky ew -padx 10 -pady 10
-            grid $db.cellgeneration -row 3 -column 0 -sticky ew -padx 10 -pady 10
-            grid $db.cellversioning -row 3 -column 1 -sticky ew -padx 10 -pady 10
+            grid $db.aiffile        -row 0 -column 0 -sticky new -padx 10 -pady 10 -columnspan 2
+            grid $db.design         -row 1 -column 0 -sticky new -padx 10 -pady 10 -columnspan 2
+            grid $db.library        -row 2 -column 0 -sticky new -padx 10 -pady 10 -columnspan 2
+            grid $db.mode           -row 0 -column 2 -sticky new -padx 10 -pady 10
+            grid $db.connection     -row 1 -column 2 -sticky new -padx 10 -pady 10
+            grid $db.visibility     -row 2 -column 2 -sticky new -padx 10 -pady 10
+            grid $db.cellgeneration -row 3 -column 0 -sticky new -padx 10 -pady 10
+            grid $db.cellsuffix     -row 3 -column 1 -sticky new -padx 10 -pady 10
         }
 
         ##
