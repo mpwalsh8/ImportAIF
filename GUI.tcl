@@ -480,6 +480,45 @@ if { 0 } {
         }
 
         ##
+        ##  GUI::Build::StatusBar
+        ##
+        proc StatusBar { } {
+            set sf [ttk::frame .status -borderwidth 5 -relief sunken]
+
+            set slf [ttk::frame .statuslightframe -width 20 -borderwidth 3 -relief raised]
+            set sl [frame $slf.statuslight -width 15 -background green]
+            set GUI::widgets(statusframe) $sf
+            set GUI::widgets(statuslight) $sl
+            pack $sl -in $slf -fill both -expand yes
+            $sl configure -background green
+
+            set pbf [ttk::frame .progressbarframe -width 20 -borderwidth 3 -relief raised]
+            #set pb [frame $pbf.progressbar -width 15 -background green]
+            set pb [ttk::progressbar $pbf.progressbar -orient horizontal -mode indeterminate]
+            set GUI::widgets(progressframe) $sf
+            set GUI::widgets(progressbar) $pb
+            pack $pb -in $pbf -fill both -expand yes
+
+            #set mode [ttk::label .mode \
+            #    -padding 5 -textvariable ::widgets(mode)]
+            #set AIFfile [ttk::label .aifFile \
+            #    -padding 5 -textvariable ::widgets(AIFFile)]
+            #set AIFType [ttk::label .aifType \
+            #    -padding 5 -textvariable ::widgets(AIFType)]
+            #set targetpath [ttk::label .targetPath \
+            #    -padding 5 -textvariable ::widgets(targetPath)]
+
+            set lastmsg [ttk::label .lastmsg \
+                -padding 5 -textvariable GUI::widgets(lastmsg)]
+
+            pack $slf -side left -in $sf -fill both
+            pack $pbf -side right -in $sf -fill both
+            #pack $mode $AIFfile $AIFType $targetpath -side left -in $sf -fill both -padx 10
+            pack $lastmsg -side left -in $sf -fill both -padx 10
+            grid $sf -sticky sew -padx 4 -pady 4
+        }
+
+        ##
         ##  GUI::Build::Notebook
         ##
         proc Notebook { } {
@@ -940,12 +979,16 @@ if { 0 } {
             }
 
             ##  Set the color of the status light
-            set slf $::widgets(statuslight)
+            set slf $GUI::widgets(statuslight)
             if { [string is true $V(-busy)] } {
                 $slf configure -background red
+                $GUI::widgets(progressbar) start
             } else {
                 $slf configure -background green
+                $GUI::widgets(progressbar) stop
             } 
+
+            update idletasks
         }
     }
 }
