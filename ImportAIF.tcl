@@ -310,6 +310,7 @@ proc Transcript {severity messagetext} {
     $txt insert end "$msg\n"
     $txt see end
     $txt configure -state disabled
+    set GUI::widgets(lastmsg) $msg
     update idletasks
 
     if { $::ediu(consoleEcho) } {
@@ -322,188 +323,18 @@ proc Transcript {severity messagetext} {
 #
 proc BuildGUI {} {
 
-    GUI::Build::Menus
-
-if { 0 } {
-    ##  Build the notebook UI
-    set nb [ttk::notebook .notebook]
-    set ::ediu(notebook) $nb
-
-    set dbf [ttk::frame $nb.dashboard]
-    set ::ediu(dashboard) $dbf
-    set tf [ttk::frame $nb.transcript]
-    set ::ediu(transcript) $tf
-    set sf [ttk::frame $nb.sourceview]
-    set ::ediu(sourceview) $sf
-    set gf [ttk::frame $nb.layoutview]
-    set ::ediu(layoutview) $gf
-    set nf [ttk::frame $nb.netlistview]
-    set ::ediu(netlistview) $nf
-    #set ssf [ttk::frame $nb.sparsepinsview]
-    #set ::ediu(sparsepinsview) $ssf
-    set nltf [ttk::frame $nb.netlisttable]
-    set ::ediu(netlisttable) $nltf
-    set knltf [ttk::frame $nb.kynnetlist]
-    set ::ediu(kynnetlist) $knltf
-
-    $nb add $dbf -text "Dashboard" -padding 4
-    $nb add $gf -text "Layout" -padding 4
-    $nb add $tf -text "Transcript" -padding 4
-    $nb add $sf -text "AIF Source File" -padding 4
-    $nb add $nf -text "Netlist" -padding 4
-    #$nb add $ssf -text "Sparse Pins" -padding 4
-    $nb add $nltf -text "AIF Netlist" -padding 4
-    $nb add $knltf -text "KYN Netlist" -padding 4
-
-    #  Hide the netlist tab, it is used but shouldn't be visible
-    $nb hide $nf
-
-    #  Text frame for Transcript
-
-    set tftext [ctext $tf.text -wrap none \
-        -xscrollcommand [list $tf.tftextscrollx set] \
-        -yscrollcommand [list $tf.tftextscrolly set]]
-    $tftext configure -font EDIUFont -state disabled
-    set ::widgets(transcript) $tftext
-    ttk::scrollbar $tf.tftextscrolly -orient vertical -command [list $tftext yview]
-    ttk::scrollbar $tf.tftextscrollx -orient horizontal -command [list $tftext xview]
-    grid $tftext -row 0 -column 0 -in $tf -sticky nsew
-    grid $tf.tftextscrolly -row 0 -column 1 -in $tf -sticky ns
-    grid $tf.tftextscrollx x -row 1 -column 0 -in $tf -sticky ew
-    grid columnconfigure $tf 0 -weight 1
-    grid    rowconfigure $tf 0 -weight 1
-
-    #  Text frame for Source View
-
-    set sftext [ctext $sf.text -wrap none \
-        -xscrollcommand [list $sf.sftextscrollx set] \
-        -yscrollcommand [list $sf.sftextscrolly set]]
-    $sftext configure -font EDIUFont -state disabled
-    set ::widgets(sourceview) $sftext
-    ttk::scrollbar $sf.sftextscrolly -orient vertical -command [list $sftext yview]
-    ttk::scrollbar $sf.sftextscrollx -orient horizontal -command [list $sftext xview]
-    grid $sftext -row 0 -column 0 -in $sf -sticky nsew
-    grid $sf.sftextscrolly -row 0 -column 1 -in $sf -sticky ns
-    grid $sf.sftextscrollx x -row 1 -column 0 -in $sf -sticky ew
-    grid columnconfigure $sf 0 -weight 1
-    grid    rowconfigure $sf 0 -weight 1
-
-    #  Canvas frame for Graphic View
-    set gfcanvas [canvas $gf.canvas -bg black \
-        -xscrollcommand [list $gf.gfcanvasscrollx set] \
-        -yscrollcommand [list $gf.gfcanvasscrolly set]]
-    set ::widgets(layoutview) $gfcanvas
-    #$gfcanvas configure -background black
-    #$gfcanvas configure -fg white
-    ttk::scrollbar $gf.gfcanvasscrolly -orient v -command [list $gfcanvas yview]
-    ttk::scrollbar $gf.gfcanvasscrollx -orient h -command [list $gfcanvas xview]
-    grid $gfcanvas -row 0 -column 0 -in $gf -sticky nsew
-    grid $gf.gfcanvasscrolly -row 0 -column 1 -in $gf -sticky ns -columnspan 1
-    grid $gf.gfcanvasscrollx -row 1 -column 0 -in $gf -sticky ew -columnspan 1
-
-    #  Add a couple of zooming buttons
-    set bf [frame .buttonframe]
-    button $bf.zoomin  -text "Zoom In"  -command "zoom $gfcanvas 1.25" -relief groove -padx 3
-    button $bf.zoomout -text "Zoom Out" -command "zoom $gfcanvas 0.80" -relief groove -padx 3
-    #button $bf.zoomfit -text "Zoom Fit" -command "zoom $gfcanvas 1" -relief groove -padx 3
-    button $bf.zoomin2x  -text "Zoom In 2x"  -command "zoom $gfcanvas 2.00" -relief groove -padx 3
-    button $bf.zoomout2x -text "Zoom Out 2x" -command "zoom $gfcanvas 0.50" -relief groove -padx 3
-    button $bf.zoomin5x  -text "Zoom In 5x"  -command "zoom $gfcanvas 5.00" -relief groove -padx 3
-    button $bf.zoomout5x -text "Zoom Out 5x" -command "zoom $gfcanvas 0.20" -relief groove -padx 3
-    #grid $bf.zoomin $bf.zoomout -sticky ew -columnspan 1
-    #grid $bf.zoomin $bf.zoomout $bf.zoomfit
-    grid $bf.zoomin $bf.zoomout $bf.zoomin2x $bf.zoomout2x $bf.zoomin5x $bf.zoomout5x
-    grid $bf -in $gf -sticky w
-
-    grid columnconfigure $gf 0 -weight 1
-    grid    rowconfigure $gf 0 -weight 1
-
-    # Set up event bindings for canvas:
-    bind $gfcanvas <3> "zoomMark $gfcanvas %x %y"
-    bind $gfcanvas <B3-Motion> "zoomStroke $gfcanvas %x %y"
-    bind $gfcanvas <ButtonRelease-3> "zoomArea $gfcanvas %x %y"
-
-    #  Text frame for Netlist View
-
-    set nftext [ctext $nf.text -wrap none \
-        -xscrollcommand [list $nf.nftextscrollx set] \
-        -yscrollcommand [list $nf.nftextscrolly set]]
-        
-    $nftext configure -font EDIUFont -state disabled
-    set ::widgets(netlistview) $nftext
-    ttk::scrollbar $nf.nftextscrolly -orient vertical -command [list $nftext yview]
-    ttk::scrollbar $nf.nftextscrollx -orient horizontal -command [list $nftext xview]
-    grid $nftext -row 0 -column 0 -in $nf -sticky nsew
-    grid $nf.nftextscrolly -row 0 -column 1 -in $nf -sticky ns
-    grid $nf.nftextscrollx x -row 1 -column 0 -in $nf -sticky ew
-    grid columnconfigure $nf 0 -weight 1
-    grid    rowconfigure $nf 0 -weight 1
-
-    #  Text frame for Sparse Pins View
-
-    #set ssftext [ctext $ssf.text -wrap none \
-        #-xscrollcommand [list $ssf.ssftextscrollx set] \
-        #-yscrollcommand [list $ssf.ssftextscrolly set]]
-    #$ssftext configure -font EDIUFont -state disabled
-    #set ::widgets(sparsepinsview) $ssftext
-    #ttk::scrollbar $ssf.ssftextscrolly -orient vertical -command [list $ssftext yview]
-    #ttk::scrollbar $ssf.ssftextscrollx -orient horizontal -command [list $ssftext xview]
-    #grid $ssftext -row 0 -column 0 -in $ssf -sticky nsew
-    #grid $ssf.ssftextscrolly -row 0 -column 1 -in $ssf -sticky ns
-    #grid $ssf.ssftextscrollx x -row 1 -column 0 -in $ssf -sticky ew
-    #grid columnconfigure $ssf 0 -weight 1
-    #grid    rowconfigure $ssf 0 -weight 1
-
-    #  Table frame for Netlist Table View
-
-    set nltable [tablelist::tablelist $nltf.tl -stretch all -background white \
-        -xscrollcommand [list $nltf.nltablescrollx set] \
-        -yscrollcommand [list $nltf.nltablescrolly set] \
-        -fullseparators true -stripebackground "#ddd" -showseparators true -columns { \
-        0 "NETNAME" 0 "PADNUM" 0 "PADNAME" 0 "PAD_X" 0 "PAD_Y" 0 "BALLNUM" 0 "BALLNAME" \
-        0 "BALL_X" 0 "BALL_Y" 0 "FINNUM" 0 "FINNAME" 0 "FIN_X" 0 "FIN_Y" 0 "ANGLE" }]
-    $nltable columnconfigure 0 -sortmode ascii
-    $nltable columnconfigure 1 -sortmode ascii
-    $nltable columnconfigure 2 -sortmode ascii
-
-    #$nltable configure -font courier-bold -state disabled
-    set ::widgets(netlisttable) $nltable
-    ttk::scrollbar $nltf.nltablescrolly -orient vertical -command [list $nltable yview]
-    ttk::scrollbar $nltf.nltablescrollx -orient horizontal -command [list $nltable xview]
-    grid $nltable -row 0 -column 0 -in $nltf -sticky nsew
-    grid $nltf.nltablescrolly -row 0 -column 1 -in $nltf -sticky ns
-    grid $nltf.nltablescrollx x -row 1 -column 0 -in $nltf -sticky ew
-    grid columnconfigure $nltf 0 -weight 1
-    grid    rowconfigure $nltf 0 -weight 1
-
-    #  Text frame for Key-in Netlist View
-
-    set knltftext [ctext $knltf.text -wrap none \
-        -xscrollcommand [list $knltf.nftextscrollx set] \
-        -yscrollcommand [list $knltf.nftextscrolly set]]
-        
-    $knltftext configure -font EDIUFont -state disabled
-    set ::widgets(kynnetlistview) $knltftext
-    ttk::scrollbar $knltf.nftextscrolly -orient vertical -command [list $knltftext yview]
-    ttk::scrollbar $knltf.nftextscrollx -orient horizontal -command [list $knltftext xview]
-    grid $knltftext -row 0 -column 0 -in $knltf -sticky nsew
-    grid $knltf.nftextscrolly -row 0 -column 1 -in $knltf -sticky ns
-    grid $knltf.nftextscrollx x -row 1 -column 0 -in $knltf -sticky ew
-    grid columnconfigure $knltf 0 -weight 1
-    grid    rowconfigure $knltf 0 -weight 1
-} else {
-    GUI::Build::Notebook
-}
-
     #  Define fixed with font used for displaying text
     font create EDIUFont -family Courier -size 10 -weight bold
 
+    GUI::Build::Menus
+    GUI::Build::Notebook
+
     ##  Build the Dashboard
-    #set ::widgets(dashboard) $dbf
     GUI::Dashboard::Build
 
     ##  Build the status bar
 
+if { 0 } {
     set sf [ttk::frame .status -borderwidth 5 -relief sunken]
     set slf [ttk::frame .statuslightframe -width 20 -borderwidth 3 -relief raised]
     set sl [frame $slf.statuslight -width 15 -background green]
@@ -521,9 +352,12 @@ if { 0 } {
 
     pack $slf -side left -in $sf -fill both
     pack $mode $AIFfile $AIFType $targetpath -side left -in $sf -fill both -padx 10
+} else {
+    GUI::Build::StatusBar
+}
 
-    grid $GUI::widgets(notebook) -sticky nsew -padx 4 -pady 4
-    grid $sf -sticky sew -padx 4 -pady 4
+    grid $GUI::widgets(notebook) -row 0 -column 0 -sticky nsew -padx 4 -pady 4
+    grid $GUI::widgets(statusframe) -row 1 -column 0 -sticky sew -padx 4 -pady 4
 
     grid columnconfigure . 0 -weight 1
     grid    rowconfigure . 0 -weight 1
@@ -1052,8 +886,8 @@ proc ediuGraphicViewBuild {} {
     ##  This is an estimate based on trying a couple of
     ##  die files.
 
-    set scaleX [expr ($GUI::widgets(windowSizeX) / (2*$::die(width)) * $::ediu(ScaleFactor))]
-    #puts [format "A:  %s  B:  %s  C:  %s" $scaleX $GUI::widgets(windowSizeX) $::die(width)]
+    set scaleX [expr ($::widgets(windowSizeX) / (2*$::die(width)) * $::ediu(ScaleFactor))]
+    #puts [format "A:  %s  B:  %s  C:  %s" $scaleX $::widgets(windowSizeX) $::die(width)]
     if { $scaleX > 0 } {
         #ediuGraphicViewZoom $scaleX
         #ediuGraphicViewZoom 1

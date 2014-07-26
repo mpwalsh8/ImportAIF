@@ -886,6 +886,8 @@ namespace eval MGC {
 
             #  Does the cell exist?  Are we using Name suffixes?
 
+            set ::test $cNames
+
             if { [string equal $GUI::Dashboard::CellSuffix numeric] } {
                 set suffixes [lsearch -all -inline -regexp  $cNames $target-\[0-9\]+]
                 if { [string equal $suffixes ""] } {
@@ -894,9 +896,10 @@ namespace eval MGC {
                     ##  Get the suffix with the highest number
                     set suffix [string trim [string trimleft \
                         [lindex [lsort -increasing -integer $suffixes] end] $target] -]
+                    incr suffix
                 }
                 ##  Add the suffix to the target
-                append target [incr $suffix]
+                append target $suffix
             } elseif { [string equal $GUI::Dashboard::CellSuffix alpha] } {
                 ##  This is limited to 26 matches for now ...
                 set suffixes [lsearch -all -inline -regexp  $cNames $target-\[A-Z\]+]
