@@ -129,7 +129,7 @@ namespace eval MGC {
                 set errorCode [catch { MGC::OpenExpedition } errorMessage]
                 if {$errorCode != 0} {
                     Transcript $::ediu(MsgError) [format "API error \"%s\", build aborted." $errorMessage]
-                    ediuUpdateStatus $::ediu(ready)
+                    GUI::StatusBar::UpdateStatus -busy off
                     return
                 }
             } else {
@@ -222,7 +222,7 @@ namespace eval MGC {
             set errorCode [catch { MGC::OpenExpedition } errorMessage]
             if {$errorCode != 0} {
                 Transcript $::ediu(MsgError) [format "API error \"%s\", build aborted." $errorMessage]
-                ediuUpdateStatus $::ediu(ready)
+                GUI::StatusBar::UpdateStatus -busy off
                 return
             }
             set ::ediu(cellEdtr) [$::ediu(pcbDoc) CellEditor]
@@ -316,7 +316,7 @@ namespace eval MGC {
             set errorCode [catch { MGC::OpenExpedition } errorMessage]
             if {$errorCode != 0} {
                 Transcript $::ediu(MsgError) [format "API error \"%s\", build aborted." $errorMessage]
-                ediuUpdateStatus $::ediu(ready)
+                GUI::StatusBar::UpdateStatus -busy off
                 return
             }
             set ::ediu(partEdtr) [$::ediu(pcbDoc) PartEditor]
@@ -410,7 +410,7 @@ namespace eval MGC {
     ##  MGC::SetupLMC
     ##
     proc SetupLMC { { f "" } } {
-        ediuUpdateStatus $::ediu(busy)
+        GUI::StatusBar::UpdateStatus -busy on
 
         ##  Prompt the user for a Central Library database if not supplied
 
@@ -432,7 +432,7 @@ namespace eval MGC {
         set errorCode [catch { MGC::OpenCellEditor } errorMessage]
         if {$errorCode != 0} {
             set ::ediu(targetPath) ""
-            ediuUpdateStatus $::ediu(ready)
+            GUI::StatusBar::UpdateStatus -busy off
             return -code return 1
         }
 
@@ -466,7 +466,7 @@ namespace eval MGC {
         set errorCode [catch { MGC::OpenPDBEditor } errorMessage]
         if {$errorCode != 0} {
             set ::ediu(targetPath) ""
-            ediuUpdateStatus $::ediu(ready)
+            GUI::StatusBar::UpdateStatus -busy off
             return -code return 1
         }
 
@@ -486,7 +486,7 @@ namespace eval MGC {
 
         MGC::ClosePDBEditor
 
-        ediuUpdateStatus $::ediu(ready)
+        GUI::StatusBar::UpdateStatus -busy off
     }
 
 
@@ -502,7 +502,7 @@ namespace eval MGC {
         #  referenced by a padstack so that scenario must be handled.
         #
         proc Pad { { mode "-replace" } } {
-            ediuUpdateStatus $::ediu(busy)
+            GUI::StatusBar::UpdateStatus -busy on
             set ::ediu(sTime) [clock format [clock seconds] -format "%m/%d/%Y %T"]
 
             ##  Make sure a Target library or design has been defined
@@ -516,7 +516,7 @@ namespace eval MGC {
                     Transcript $::ediu(MsgError) "Mode not set, build aborted."
                 }
 
-                ediuUpdateStatus $::ediu(ready)
+                GUI::StatusBar::UpdateStatus -busy off
                 return
             }
 
@@ -525,7 +525,7 @@ namespace eval MGC {
             if { $::padGeom(name) == "" || $::padGeom(shape) == "" || \
                 $::padGeom(height) == "" || $::padGeom(width) == "" } {
                 Transcript $::ediu(MsgError) "Incomplete pad definition, build aborted."
-                ediuUpdateStatus $::ediu(ready)
+                GUI::StatusBar::UpdateStatus -busy off
                 return
             }
 
@@ -535,7 +535,7 @@ namespace eval MGC {
 
             if { $shape == $::ediu(Nothing) } {
                 Transcript $::ediu(MsgError) "Unsupported pad shape, build aborted."
-                ediuUpdateStatus $::ediu(ready)
+                GUI::StatusBar::UpdateStatus -busy off
                 return
             }
 
@@ -547,7 +547,7 @@ namespace eval MGC {
             set errorCode [catch { MGC::OpenPadstackEditor } errorMessage]
             if {$errorCode != 0} {
                 Transcript $::ediu(MsgError) [format "API error \"%s\", build aborted." $errorMessage]
-                ediuUpdateStatus $::ediu(ready)
+                GUI::StatusBar::UpdateStatus -busy off
                 return
             }
 
@@ -569,13 +569,13 @@ namespace eval MGC {
                 if {$errorCode != 0} {
                     Transcript $::ediu(MsgError) [format "API error \"%s\", build aborted." $errorMessage]
                     MGC::ClosePadstackEditor
-                    ediuUpdateStatus $::ediu(ready)
+                    GUI::StatusBar::UpdateStatus -busy off
                     return
                 }
             } else {
                 Transcript $::ediu(MsgWarning) [format "Pad \"%s\" already exists and will not be replaced." $padName]
                 MGC::ClosePadstackEditor
-                ediuUpdateStatus $::ediu(ready)
+                GUI::StatusBar::UpdateStatus -busy off
                 return
             }
 
@@ -604,14 +604,14 @@ namespace eval MGC {
             Transcript $::ediu(MsgNote) [format "Start Time:  %s" $::ediu(sTime)]
             Transcript $::ediu(MsgNote) [format "Completion Time:  %s" $::ediu(cTime)]
 
-            ediuUpdateStatus $::ediu(ready)
+            GUI::StatusBar::UpdateStatus -busy off
         }
 
         #
         #  MGC::Generate::Padstack
         #
         proc Padstack { { mode "-replace" } } {
-            ediuUpdateStatus $::ediu(busy)
+            GUI::StatusBar::UpdateStatus -busy on
             set ::ediu(sTime) [clock format [clock seconds] -format "%m/%d/%Y %T"]
 
             ##  Extract pad details from AIF file
@@ -629,7 +629,7 @@ namespace eval MGC {
                     Transcript $::ediu(MsgError) "Mode not set, build aborted."
                 }
 
-                ediuUpdateStatus $::ediu(ready)
+                GUI::StatusBar::UpdateStatus -busy off
                 return
             }
 
@@ -638,7 +638,7 @@ namespace eval MGC {
             if { $::padGeom(name) == "" || $::padGeom(shape) == "" || \
                 $::padGeom(height) == "" || $::padGeom(width) == "" } {
                 Transcript $::ediu(MsgError) "Incomplete pad definition, build aborted."
-                ediuUpdateStatus $::ediu(ready)
+                GUI::StatusBar::UpdateStatus -busy off
                 return
             }
 
@@ -650,7 +650,7 @@ namespace eval MGC {
             set errorCode [catch { MGC::OpenPadstackEditor } errorMessage]
             if {$errorCode != 0} {
                 Transcript $::ediu(MsgError) [format "API error \"%s\", build aborted." $errorMessage]
-                ediuUpdateStatus $::ediu(ready)
+                GUI::StatusBar::UpdateStatus -busy off
                 return
             }
 
@@ -659,7 +659,7 @@ namespace eval MGC {
 
             if {$pad == $::ediu(Nothing)} {
                 Transcript $::ediu(MsgError) [format "Pad \"%s\" is not defined, padstack \"%s\" build aborted." $padName $::padGeom(name)]
-                ediuUpdateStatus $::ediu(ready)
+                GUI::StatusBar::UpdateStatus -busy off
                 return
             }
 
@@ -679,13 +679,13 @@ namespace eval MGC {
                 if {$errorCode != 0} {
                     Transcript $::ediu(MsgError) [format "API error \"%s\", build aborted." $errorMessage]
                     MGC::ClosePadstackEditor
-                    ediuUpdateStatus $::ediu(ready)
+                    GUI::StatusBar::UpdateStatus -busy off
                     return
                 }
             } else {
                 Transcript $::ediu(MsgWarning) [format "Padstack \"%s\" already exists and will not be replaced." $::padGeom(name)]
                 MGC::ClosePadstackEditor
-                ediuUpdateStatus $::ediu(ready)
+                GUI::StatusBar::UpdateStatus -busy off
                 return
             }
 
@@ -732,7 +732,7 @@ namespace eval MGC {
             Transcript $::ediu(MsgNote) [format "Start Time:  %s" $::ediu(sTime)]
             Transcript $::ediu(MsgNote) [format "Completion Time:  %s" $::ediu(cTime)]
 
-            ediuUpdateStatus $::ediu(ready)
+            GUI::StatusBar::UpdateStatus -busy off
         }
 
         #
@@ -754,7 +754,7 @@ namespace eval MGC {
             ##  Check mirror option, make sure it is valid
             if { [lsearch [list none x y xy] $V(-mirror)] == -1 } {
                 Transcript $::ediu(MsgError) "Illegal seeting for -mirror switch, must be one of none, x, y, or xy."
-                ediuUpdateStatus $::ediu(ready)
+                GUI::StatusBar::UpdateStatus -busy off
                 return
             }
 
@@ -775,7 +775,7 @@ namespace eval MGC {
                 }
             }
 
-            ediuUpdateStatus $::ediu(busy)
+            GUI::StatusBar::UpdateStatus -busy on
             set ::ediu(sTime) [clock format [clock seconds] -format "%m/%d/%Y %T"]
 
             ##  Make sure a Target library or design has been defined
@@ -790,7 +790,7 @@ namespace eval MGC {
                     Transcript $::ediu(MsgError) "Mode not set, build aborted."
                 }
 
-                ediuUpdateStatus $::ediu(ready)
+                GUI::StatusBar::UpdateStatus -busy off
                 return
             }
 
@@ -801,7 +801,7 @@ namespace eval MGC {
             if {$errorCode != 0} {
                 Transcript $::ediu(MsgError) [format "API error \"%s\", build aborted." $errorMessage]
                 MGC::CloseCellEditor
-                ediuUpdateStatus $::ediu(ready)
+                GUI::StatusBar::UpdateStatus -busy off
                 return
             }
 
@@ -820,7 +820,7 @@ namespace eval MGC {
                     if { [string equal $::ediu(cellEdtrPrtnName) ""] } {
                         Transcript $::ediu(MsgError) "No Cell Partition selected, build aborted."
                         MGC::CloseCellEditor
-                        ediuUpdateStatus $::ediu(ready)
+                        GUI::StatusBar::UpdateStatus -busy off
                         return
                     } else {
                         set ::ediu(cellEdtrPrtnName) [lindex $::ediu(cellEdtrPrtnName) 1]
@@ -987,7 +987,7 @@ namespace eval MGC {
             set errorCode [catch { MGC::OpenPadstackEditor -dontopendatabase } errorMessage]
             if {$errorCode != 0} {
                 Transcript $::ediu(MsgError) [format "API error \"%s\", build aborted." $errorMessage]
-                ediuUpdateStatus $::ediu(ready)
+                GUI::StatusBar::UpdateStatus -busy off
                 return
             }
 
@@ -1028,7 +1028,7 @@ namespace eval MGC {
                     }
                     MGC::CloseCellEditor
 
-                    ediuUpdateStatus $::ediu(ready)
+                    GUI::StatusBar::UpdateStatus -busy off
                     return -1
                 }
             }
@@ -1206,7 +1206,7 @@ namespace eval MGC {
             Transcript $::ediu(MsgNote) [format "Start Time:  %s" $::ediu(sTime)]
             Transcript $::ediu(MsgNote) [format "Completion Time:  %s" $::ediu(cTime)]
 
-            ediuUpdateStatus $::ediu(ready)
+            GUI::StatusBar::UpdateStatus -busy off
         }
 
         #
@@ -1221,7 +1221,7 @@ namespace eval MGC {
                 set V($a) $value
             }
 
-            ediuUpdateStatus $::ediu(busy)
+            GUI::StatusBar::UpdateStatus -busy on
             set ::ediu(sTime) [clock format [clock seconds] -format "%m/%d/%Y %T"]
 
             ##  Make sure a Target library or design has been defined
@@ -1235,7 +1235,7 @@ namespace eval MGC {
                     Transcript $::ediu(MsgError) "Mode not set, build aborted."
                 }
 
-                ediuUpdateStatus $::ediu(ready)
+                GUI::StatusBar::UpdateStatus -busy off
                 return
             }
 
@@ -1245,7 +1245,7 @@ namespace eval MGC {
             set errorCode [catch { MGC::OpenPDBEditor } errorMessage]
             if {$errorCode != 0} {
                 Transcript $::ediu(MsgError) [format "API error \"%s\", build aborted." $errorMessage]
-                ediuUpdateStatus $::ediu(ready)
+                GUI::StatusBar::UpdateStatus -busy off
                 return
             }
 
@@ -1268,7 +1268,7 @@ namespace eval MGC {
                     if { [string equal $::ediu(partEdtrPrtnName) ""] } {
                         Transcript $::ediu(MsgError) "No Part Partition selected, build aborted."
                         MGC::CloseCellEditor
-                        ediuUpdateStatus $::ediu(ready)
+                        GUI::StatusBar::UpdateStatus -busy off
                         return
                     } else {
                         set ::ediu(partEdtrPrtnName) [lindex $::ediu(partEdtrPrtnName) 1]
@@ -1340,7 +1340,7 @@ namespace eval MGC {
                 if {$errorCode != 0} {
                     Transcript $::ediu(MsgError) [format "API error \"%s\", build aborted." $errorMessage]
                     MGC::ClosePDBEditor
-                    ediuUpdateStatus $::ediu(ready)
+                    GUI::StatusBar::UpdateStatus -busy off
                     return
                 }
             }
@@ -1454,7 +1454,7 @@ namespace eval MGC {
             set ::ediu(cTime) [clock format [clock seconds] -format "%m/%d/%Y %T"]
             Transcript $::ediu(MsgNote) [format "Start Time:  %s" $::ediu(sTime)]
             Transcript $::ediu(MsgNote) [format "Completion Time:  %s" $::ediu(cTime)]
-            ediuUpdateStatus $::ediu(ready)
+            GUI::StatusBar::UpdateStatus -busy off
         }
 
         #

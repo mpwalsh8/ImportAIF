@@ -133,7 +133,7 @@ proc ediuInit {} {
         dashboard ""
         transcript ""
         sourceview ""
-        graphicview ""
+        layoutview ""
         netlistview ""
         #sparsepinsview ""
         EDIU "Expedition AIF Import Utility"
@@ -207,7 +207,7 @@ proc ediuInit {} {
         viewmenu ""
         transcript ""
         sourceview ""
-        graphicview ""
+        layoutview ""
         netlistview ""
         kynnetlistview ""
         #sparsepinsview ""
@@ -305,7 +305,7 @@ proc Transcript {severity messagetext} {
         set msg [format "# Note:  %s" $messagetext]
     }
 
-    set txt $::widgets(transcript)
+    set txt $GUI::widgets(transcript)
     $txt configure -state normal
     $txt insert end "$msg\n"
     $txt see end
@@ -322,248 +322,9 @@ proc Transcript {severity messagetext} {
 #
 proc BuildGUI {} {
 
-    #  Create the main menu bar
-    set mb [menu .menubar]
+    GUI::Build::Menus
 
-    #  Define the File menu
-    set fm [menu $mb.file -tearoff 0]
-    $mb add cascade -label "File" -menu $mb.file -underline 0
-    $fm add command -label "Open AIF ..." \
-         -accelerator "F5" -underline 0 \
-         -command GUI::Dashboard::SelectAIFFile
-    $fm add command -label "Close AIF" \
-         -accelerator "F6" -underline 0 \
-         -command ediuAIFFileClose
-    $fm add command -label "Export KYN ..." \
-         -underline 7 -command Netlist::Export::KYN
-    $fm add command -label "Export Placement ..." \
-         -underline 7 -command Netlist::Export::Placement
-    #$fm add separator
-    #$fm add command -label "Open Sparse Pins ..." \
-         -underline 1 -command ediuSparsePinsFileOpen
-    #$fm add command -label "Close Sparse Pins " \
-         #-underline 1 -command ediuSparsePinsFileClose
-    if {[llength [info commands console]]} {
-        $fm add separator
-	    $fm add command -label "Show Console" \
-            -underline 0 \
-            -command { console show }
-    }
-
-    $fm add separator
-    $fm add command -label "Exit" \
-         -underline 0 \
-         -command exit
-
-    #  Define the Setup menu
-    set sm [menu $mb.setup -tearoff 0]
-    set ::widgets(setupmenu) $sm
-    $mb add cascade -label "Setup" -menu $sm -underline 0
-    $sm add radiobutton -label "Design Mode" -underline 0 \
-        -variable ::ediu(mode) -value $::ediu(designMode) \
-        -command GUI::Menus::DesignMode
-    $sm add radiobutton -label "Central Library Mode" -underline 0 \
-        -variable ::ediu(mode) -value $::ediu(libraryMode) \
-        -command GUI::Menus::CentralLibraryMode
-    $sm add separator
-    $sm add command \
-        -label "Target Design ..." -state normal \
-        -underline 1 -command ediuSetupOpenPCB
-    $sm add command \
-        -label "Target Central Library ..." -state disabled \
-         -underline 2 -command ediuSetupOpenLMC
-    #$sm add separator
-    #$sm add checkbutton -label "Sparse Mode" -underline 0 \
-        #-variable ::ediu(sparseMode) -command ediuToggleSparseMode
-    $sm add separator
-    $sm add checkbutton -label "Application Visibility" \
-        -variable GUI::Dashboard::Visibility -onvalue On -offvalue Off \
-        -command  {Transcript MsgNote [format "Application visibility is now %s." \
-        [expr [string is true $GUI::Dashboard::Visibility] ? "on" : "off"]] }
-#        -variable ::ediu(appVisible) -onvalue True -offvalue False \
-#        -command  {Transcript MsgNote [format "Application visibility is now %s." \
-#        [expr $::ediu(appVisible) ? "on" : "off"]] }
-    $sm add checkbutton -label "Connect to Running Application" \
-        -variable ::ediu(connectMode) -onvalue True -offvalue False \
-        -command  {Transcript MsgNote [format "Application Connect mode is now %s." \
-        [expr $::ediu(connectMode) ? "on" : "off"]] ; ediuUpdateStatus $::ediu(ready) }
-
-    #  Define the View menu
-    set vm [menu $mb.zoom -tearoff 0]
-    set ::widgets(viewmenu) $vm
-
-    $mb add cascade -label "View" -menu $vm -underline 0
-    $vm add cascade -label "Zoom In" \
-         -underline 5 -menu $vm.in
-    menu $vm.in -tearoff 0
-    $vm.in add cascade -label "2x" \
-         -underline 0 \
-         -command {ediuGraphicViewZoom 2.0}
-    $vm.in add command -label "5x" \
-         -underline 0 \
-         -command {ediuGraphicViewZoom 5.0}
-    $vm.in add command -label "10x" \
-         -underline 0 \
-         -command {ediuGraphicViewZoom 10.0}
-    $vm add cascade -label "Zoom Out" \
-         -underline 5 -menu $vm.out
-    menu $vm.out -tearoff 0
-    $vm.out add cascade -label "2x" \
-         -underline 0 \
-         -command {ediuGraphicViewZoom 0.5}
-    $vm.out add command -label "5x" \
-         -underline 0 \
-         -command {ediuGraphicViewZoom 0.2}
-    $vm.out add command -label "10x" \
-         -underline 0 \
-         -command {ediuGraphicViewZoom 0.1}
-
-    $vm add separator
-
-    if { 0 } {
-    $vm add cascade -label "Objects" \
-         -underline 1 -menu $vm.objects
-    menu $vm.objects -tearoff 0
-    $vm.objects add cascade -label "All On" -underline 5 -command { gui::VisibleObject -all on }
-    $vm.objects add cascade -label "All Off" -underline 5 -command { gui::VisibleObject -all off }
-    $vm.objects add separator
-    $vm.objects add checkbutton -label "Pads" -underline 0 \
-        -variable gui::objects(diepads) -onvalue 1 -offvalue 0 -command gui::VisibleObject
-    $vm.objects add checkbutton -label "Balls" -underline 0 \
-        -variable gui::objects(balls) -onvalue 1 -offvalue 0 -command gui::VisibleObject
-    $vm.objects add checkbutton -label "Fingers" -underline 0 \
-        -variable gui::objects(fingers) -onvalue 1 -offvalue 0 -command gui::VisibleObject
-    $vm.objects add checkbutton -label "Die Outline" -underline 0 \
-        -variable gui::objects(dieoutline) -onvalue 1 -offvalue 0 -command gui::VisibleObject
-    $vm.objects add checkbutton -label "BGA Outline" -underline 0 \
-        -variable gui::objects(bgaoutline) -onvalue 1 -offvalue 0 -command gui::VisibleObject
-    $vm.objects add checkbutton -label "Part Outlines" -underline 5 \
-        -variable gui::objects(partoutline) -onvalue 1 -offvalue 0 -command gui::VisibleObject
-    $vm.objects add checkbutton -label "Rings" -underline 0 \
-        -variable gui::objects(rings) -onvalue 1 -offvalue 0 -command gui::VisibleObject
-    }
-
-    $vm add cascade -label "Text" \
-         -underline 1 -menu $vm.text
-    menu $vm.text -tearoff 0
-    $vm.text add cascade -label "All On" -underline 5 \
-        -command { GUI::Visibility "text" -all true -mode on ; \
-        foreach t [array names GUI::text] { set GUI::text([lindex $t 0]) on }  }
-    $vm.text add cascade -label "All Off" -underline 5 \
-        -command { GUI::Visibility "text" -all true -mode off ; \
-        foreach t [array names GUI::text] { set GUI::text([lindex $t 0]) off }  }
-    $vm.text add separator
-    $vm.text add checkbutton -label "Pad Numbers" -underline 0 \
-        -variable GUI::text(padnumber) -onvalue on -offvalue off \
-        -command  "GUI::Visibility padnumber -mode toggle"
-    $vm.text add checkbutton -label "Ref Designators" -underline 5 \
-        -variable GUI::text(refdes) -onvalue on -offvalue off \
-        -command  "GUI::Visibility refdes -mode toggle"
-
-    $vm add cascade -label "Devices" \
-         -underline 0 -menu $vm.devices
-    menu $vm.devices -tearoff 0
-    $vm.devices add cascade -label "All On" -underline 5 \
-        -command { GUI::Visibility {bga device} -mode on ; \
-        foreach d $::mcmdie { set GUI::devices($d) on } }
-    $vm.devices add cascade -label "All Off" -underline 5 \
-        -command { GUI::Visibility {bga device} -mode off ; \
-        foreach d $::mcmdie { set GUI::devices($d) off } }
-    $vm.devices add separator
-
-    $vm add cascade -label "Bond Wires" \
-         -underline 0 -menu $vm.bondwires
-    menu $vm.bondwires -tearoff 0
-    $vm.bondwires add cascade -label "All On" -underline 5 \
-        -command { GUI::Visibility "bondwire" -all true -mode on ; \
-        foreach bw $::bondwires { set GUI::bondwires([lindex $bw 0]) on }  }
-    $vm.bondwires add cascade -label "All Off" -underline 5 \
-        -command { GUI::Visibility "bondwire" -all true -mode off ; \
-        foreach bw $::bondwires { set GUI::bondwires([lindex $bw 0]) off }  }
-    $vm.bondwires add separator
-
-    $vm add cascade -label "Net Lines" \
-         -underline 0 -menu $vm.netlines
-    menu $vm.netlines -tearoff 0
-    $vm.netlines add cascade -label "All On" -underline 5 \
-        -command { GUI::Visibility "netline" -all true -mode on ; \
-        foreach nl $::netlines { set GUI::netlines([lindex $nl 0]) on }  }
-    $vm.netlines add cascade -label "All Off" -underline 5 \
-        -command { GUI::Visibility "netline" -all true -mode off ; \
-        foreach nl $::netlines { set GUI::netlines([lindex $nl 0]) off }  }
-    $vm.netlines add separator
-
-    $vm add cascade -label "Pads" \
-         -underline 0 -menu $vm.pads
-    menu $vm.pads -tearoff 0
-    $vm.pads add cascade -label "All On" -underline 5 \
-        -command { GUI::Visibility "pad" -all true -mode on ; \
-        foreach p $::pads { set GUI::pads([lindex $p 0]) on }  }
-    $vm.pads add cascade -label "All Off" -underline 5 \
-        -command { GUI::Visibility "pad" -all true -mode off ; \
-        foreach p $::pads { set GUI::pads([lindex $p 0]) off }  }
-    $vm.pads add separator
-
-
-    $vm add separator
-
-    $vm add cascade -label "Guides" \
-         -underline 0 -menu $vm.guides
-    menu $vm.guides -tearoff 0
-    $vm.guides add cascade -label "All On" -underline 5 \
-        -command { GUI::Visibility "guides" -all true -mode on ; \
-        foreach g [array names GUI::guides] { set GUI::guides($g) on }  }
-    $vm.guides add cascade -label "All Off" -underline 5 \
-        -command { GUI::Visibility "guides" -all true -mode off ; \
-        foreach g [array names GUI::guides] { set GUI::guides($g) off }  }
-    $vm.guides add separator
-    $vm.guides add checkbutton -label "XY Axis" \
-        -variable GUI::guides(xyaxis) -onvalue on -offvalue off \
-        -command  "GUI::Visibility xyaxis -mode toggle"
-    $vm.guides add checkbutton -label "Dimensions" \
-        -variable GUI::guides(dimension) -onvalue on -offvalue off \
-        -command  "GUI::Visibility dimension -mode toggle"
-
-    #  Define the Generate menu
-    set gm [menu $mb.generate -tearoff 0]
-    $mb add cascade -label "Generate" -menu $mb.generate -underline 0
-    $gm add command -label "Pads ..." \
-         -underline 0 \
-         -command MGC::Generate::Pads
-    $gm add command -label "Padstacks ..." \
-         -underline 0 \
-         -command MGC::Generate::Padstacks
-    $gm add command -label "Cells ..." \
-         -underline 0 \
-         -command MGC::Generate::Cells
-    $gm add command -label "PDBs ..." \
-         -underline 1 \
-         -command MGC::Generate::PDBs
-
-    #  Define the Wire Bond menu
-    set wbm [menu $mb.wirebond -tearoff 0]
-    $mb add cascade -label "Wire Bond" -menu $mb.wirebond -underline 0
-    $wbm add command -label "Setup ..." \
-         -underline 0 \
-         -command MGC::WireBond::Setup
-    $wbm add separator
-    $wbm add command -label "Place Bond Pads ..." \
-         -underline 0 \
-         -command MGC::WireBond::PlaceBondPads
-    $wbm add command -label "Place Bond Wires ..." \
-         -underline 0 \
-         -command MGC::WireBond::PlaceBondWires
-
-    # Define the Help menu
-    set hm [menu .menubar.help -tearoff 0]
-    $mb add cascade -label "Help" -menu $mb.help -underline 0
-    $hm add command -label "About ..." \
-         -accelerator "F1" -underline 0 \
-         -command ediuHelpAbout
-    $hm add command -label "Version ..." \
-         -underline 0 \
-         -command ediuHelpVersion
-
+if { 0 } {
     ##  Build the notebook UI
     set nb [ttk::notebook .notebook]
     set ::ediu(notebook) $nb
@@ -574,8 +335,8 @@ proc BuildGUI {} {
     set ::ediu(transcript) $tf
     set sf [ttk::frame $nb.sourceview]
     set ::ediu(sourceview) $sf
-    set gf [ttk::frame $nb.graphicview]
-    set ::ediu(graphicview) $gf
+    set gf [ttk::frame $nb.layoutview]
+    set ::ediu(layoutview) $gf
     set nf [ttk::frame $nb.netlistview]
     set ::ediu(netlistview) $nf
     #set ssf [ttk::frame $nb.sparsepinsview]
@@ -596,13 +357,6 @@ proc BuildGUI {} {
 
     #  Hide the netlist tab, it is used but shouldn't be visible
     $nb hide $nf
-
-    #  Define fixed with font used for displaying text
-    font create EDIUFont -family Courier -size 10 -weight bold
-
-    ##  Build the Dashboard
-    set ::widgets(dashboard) $dbf
-    GUI::Dashboard::Build
 
     #  Text frame for Transcript
 
@@ -638,7 +392,7 @@ proc BuildGUI {} {
     set gfcanvas [canvas $gf.canvas -bg black \
         -xscrollcommand [list $gf.gfcanvasscrollx set] \
         -yscrollcommand [list $gf.gfcanvasscrolly set]]
-    set ::widgets(graphicview) $gfcanvas
+    set ::widgets(layoutview) $gfcanvas
     #$gfcanvas configure -background black
     #$gfcanvas configure -fg white
     ttk::scrollbar $gf.gfcanvasscrolly -orient v -command [list $gfcanvas yview]
@@ -737,6 +491,16 @@ proc BuildGUI {} {
     grid $knltf.nftextscrollx x -row 1 -column 0 -in $knltf -sticky ew
     grid columnconfigure $knltf 0 -weight 1
     grid    rowconfigure $knltf 0 -weight 1
+} else {
+    GUI::Build::Notebook
+}
+
+    #  Define fixed with font used for displaying text
+    font create EDIUFont -family Courier -size 10 -weight bold
+
+    ##  Build the Dashboard
+    #set ::widgets(dashboard) $dbf
+    GUI::Dashboard::Build
 
     ##  Build the status bar
 
@@ -758,7 +522,7 @@ proc BuildGUI {} {
     pack $slf -side left -in $sf -fill both
     pack $mode $AIFfile $AIFType $targetpath -side left -in $sf -fill both -padx 10
 
-    grid $nb -sticky nsew -padx 4 -pady 4
+    grid $GUI::widgets(notebook) -sticky nsew -padx 4 -pady 4
     grid $sf -sticky sew -padx 4 -pady 4
 
     grid columnconfigure . 0 -weight 1
@@ -775,14 +539,14 @@ proc BuildGUI {} {
     bind . "<Key F6>" { ediuAIFFileClose }
 
     ## Update the status fields
-    ediuUpdateStatus $::ediu(ready)
+    GUI::StatusBar::UpdateStatus -busy off
 }
 
 #
 #  ediuChooseCellPartition
 #
-proc ediuChooseCellPartition {} {
-    set dlg $::widgets(CellPartnDlg)
+proc ediuChooseCellPartition-deprecated {} {
+    set dlg $GUI::widgets(CellPartnDlg)
 
     puts [$dlg.f.cellpartition.list curselection]
     puts [$dlg.f.cellpartition.list get [$dlg.f.cellpartition.list curselection]]
@@ -801,8 +565,8 @@ proc ediuChooseCellPartition {} {
 #  the user to select from.
 #
 
-proc ediuChooseCellPartitionDialog {} {
-    set dlg $::widgets(CellPartnDlg)
+proc ediuChooseCellPartitionDialog-deprecated {} {
+    set dlg $GUI::widgets(CellPartnDlg)
 
     #  Create the top level window and withdraw it
     toplevel  $dlg
@@ -843,7 +607,7 @@ proc ediuChooseCellPartitionDialog {} {
     ttk::frame $dlg.f.buttons -relief flat
 
     ttk::button $dlg.f.buttons.ok -text "Ok" -command { ediuChooseCellPartition }
-    ttk::button $dlg.f.buttons.cancel -text "Cancel" -command { destroy $::widgets(CellPartnDlg) }
+    ttk::button $dlg.f.buttons.cancel -text "Cancel" -command { destroy $GUI::widgets(CellPartnDlg) }
     
     pack $dlg.f.buttons.ok -side left
     pack $dlg.f.buttons.cancel -side right
@@ -859,7 +623,7 @@ proc ediuChooseCellPartitionDialog {} {
     #  Window manager settings for dialog
     wm title $dlg "Select Cell Partition"
     wm protocol $dlg WM_DELETE_WINDOW {
-        $::widgets(CellPartnDlg).f.buttons.cancel invoke
+        $GUI::widgets(CellPartnDlg).f.buttons.cancel invoke
     }
     wm transient $dlg
 
@@ -879,14 +643,14 @@ proc ediuChooseCellPartitionDialog {} {
 proc ediuGraphicViewBuild {} {
     set rv 0
     set line_no 0
-    set vm $::widgets(viewmenu)
+    set vm $GUI::widgets(viewmenu)
     $vm.devices add separator
 
-    set cnvs $::widgets(graphicview)
-    set txt $::widgets(netlistview)
-    set nlt $::widgets(netlisttable)
-    set kyn $::widgets(kynnetlistview)
-    set pb $::widgets(progressbar)
+    set cnvs $GUI::widgets(layoutview)
+    set txt $GUI::widgets(netlistview)
+    set nlt $GUI::widgets(netlisttable)
+    set kyn $GUI::widgets(kynnetlistview)
+    #set pb $GUI::widgets(progressbar)
     
     #puts "1A - $pb"
     #toplevel $pb
@@ -1288,8 +1052,8 @@ proc ediuGraphicViewBuild {} {
     ##  This is an estimate based on trying a couple of
     ##  die files.
 
-    set scaleX [expr ($::widgets(windowSizeX) / (2*$::die(width)) * $::ediu(ScaleFactor))]
-    #puts [format "A:  %s  B:  %s  C:  %s" $scaleX $::widgets(windowSizeX) $::die(width)]
+    set scaleX [expr ($GUI::widgets(windowSizeX) / (2*$::die(width)) * $::ediu(ScaleFactor))]
+    #puts [format "A:  %s  B:  %s  C:  %s" $scaleX $GUI::widgets(windowSizeX) $::die(width)]
     if { $scaleX > 0 } {
         #ediuGraphicViewZoom $scaleX
         #ediuGraphicViewZoom 1
@@ -1322,7 +1086,7 @@ proc ediuGraphicViewBuild {} {
 #  ediuGraphicViewAddPin
 #
 proc ediuGraphicViewAddPin { x y pin net pad line_no { tags "diepad" } { color "yellow" } { outline "red" } { angle 0 } } {
-    set cnvs $::widgets(graphicview)
+    set cnvs $GUI::widgets(layoutview)
     set padtxt [expr {$pin == "-" ? $pad : $pin}]
     #puts [format "Pad Text:  %s (Pin:  %s  Pad:  %s" $padtxt $pin $pad]
 
@@ -1460,7 +1224,7 @@ proc ediuGraphicViewAddOutline {} {
     set y2 [expr ($::die(height) / 2) * $::ediu(ScaleFactor)]
     set y1 [expr (-1 * $y2) * $::ediu(ScaleFactor)]
 
-    set cnvs $::widgets(graphicview)
+    set cnvs $GUI::widgets(layoutcview)
     $cnvs create rectangle $x1 $y1 $x2 $y2 -outline blue -tags "outline"
 
     #puts [format "Outline extents:  X1:  %s  Y1:  %s  X2:  %s  Y2:  %s" $x1 $y1 $x2 $y2]:w
@@ -1479,7 +1243,7 @@ proc ediuDrawPartOutline { name height width x y { color "green" } { tags "parto
     set y1 [expr $y-($height/2.0)]
     set y2 [expr $y+($height/2.0)]
 
-    set cnvs $::widgets(graphicview)
+    set cnvs $GUI::widgets(layoutview)
     $cnvs create rectangle $x1 $y1 $x2 $y2 -outline $color -tags "device device-$name $tags"
     $cnvs create text $x2 $y2 -text $name -fill $color \
         -anchor sw -font [list arial] -justify right -tags "text device device-$name refdes refdes-$name"
@@ -1493,7 +1257,7 @@ proc ediuDrawPartOutline { name height width x y { color "green" } { tags "parto
 #  ediuDrawBGAOutline
 #
 proc ediuDrawBGAOutline { { color "white" } } {
-    set cnvs $::widgets(graphicview)
+    set cnvs $GUI::widgets(layoutview)
 
     set x1 [expr -($::bga(width) / 2)]
     set x2 [expr +($::bga(width) / 2)]
@@ -1554,7 +1318,7 @@ proc ediuDrawBGAOutline { { color "white" } } {
 #    http://www.tek-tips.com/viewthread.cfm?qid=815783&page=42
 #
 proc ediuGraphicViewZoom {scale} {
-    set cnvs $::widgets(graphicview)
+    set cnvs $GUI::widgets(layoutview)
 
     $cnvs scale all 0 0 $scale $scale
 
@@ -1580,7 +1344,8 @@ proc ediuGraphicViewZoom {scale} {
 #  Source View and update the appropriate status.
 #
 proc ediuAIFFileOpen { { f "" } } {
-    ediuUpdateStatus $::ediu(busy)
+set zzz 0
+    GUI::StatusBar::UpdateStatus -busy on
     ediuAIFInitialState
 
     ##  Set up the sections so they can be highlighted in the AIF source
@@ -1620,7 +1385,7 @@ proc ediuAIFFileOpen { { f "" } } {
     ##  Process the user supplied file
     if {$::ediu(filename) != $::ediu(Nothing) } {
         Transcript $::ediu(MsgNote) [format "Loading AIF file \"%s\"." $::ediu(filename)]
-        set txt $::widgets(sourceview)
+        set txt $GUI::widgets(sourceview)
         $txt configure -state normal
         $txt delete 1.0 end
 
@@ -1643,7 +1408,7 @@ proc ediuAIFFileOpen { { f "" } } {
         ##  Load the DATABASE section ...
 
         if { [ AIF::Database::Section ] == -1 } {
-            ediuUpdateStatus $::ediu(ready)
+            GUI::StatusBar::UpdateStatus -busy off
             return -1
         }
 
@@ -1651,7 +1416,7 @@ proc ediuAIFFileOpen { { f "" } } {
 
         if { $::ediu(MCMAIF) == 1 } {
             if { [ AIF::MCMDie::Section ] == -1 } {
-                ediuUpdateStatus $::ediu(ready)
+                GUI::StatusBar::UpdateStatus -busy off
                 return -1
             }
         }
@@ -1659,7 +1424,7 @@ proc ediuAIFFileOpen { { f "" } } {
         ##  Load the DIE section ...
 
         if { [ AIF::Die::Section ] == -1 } {
-            ediuUpdateStatus $::ediu(ready)
+            GUI::StatusBar::UpdateStatus -busy off
             return -1
         }
 
@@ -1667,7 +1432,7 @@ proc ediuAIFFileOpen { { f "" } } {
 
         if { $::ediu(BGA) == 1 } {
             if { [ AIF::BGA::Section ] == -1 } {
-                ediuUpdateStatus $::ediu(ready)
+                GUI::StatusBar::UpdateStatus -busy off
                 return -1
             }
         }
@@ -1675,14 +1440,14 @@ proc ediuAIFFileOpen { { f "" } } {
         ##  Load the PADS section ...
 
         if { [ ediuAIFPadsSection ] == -1 } {
-            ediuUpdateStatus $::ediu(ready)
+            GUI::StatusBar::UpdateStatus -busy off
             return -1
         }
 
         ##  Load the NETLIST section ...
 
         if { [ ediuAIFNetlistSection ] == -1 } {
-            ediuUpdateStatus $::ediu(ready)
+            GUI::StatusBar::UpdateStatus -busy off
             return -1
         }
 
@@ -1693,7 +1458,7 @@ proc ediuAIFFileOpen { { f "" } } {
         Transcript $::ediu(MsgWarning) "No AIF file selected."
     }
 
-    ediuUpdateStatus $::ediu(ready)
+    GUI::StatusBar::UpdateStatus -busy off
 }
 
 #
@@ -1704,10 +1469,10 @@ proc ediuAIFFileOpen { { f "" } } {
 #  view and the canvas widget for the graphic view.
 #
 proc ediuAIFFileClose {} {
-    ediuUpdateStatus $::ediu(busy)
+    GUI::StatusBar::UpdateStatus -busy on
     Transcript $::ediu(MsgNote) [format "AIF file \"%s\" closed." $::ediu(filename)]
     ediuAIFInitialState
-    ediuUpdateStatus $::ediu(ready)
+    GUI::StatusBar::UpdateStatus -busy off
 }
 
 #
@@ -1715,7 +1480,7 @@ proc ediuAIFFileClose {} {
 #
 proc ediuFileExportKYN { { kyn "" } } {
 
-    set txt $::widgets(kynnetlistview)
+    set txt $GUI::widgets(kynnetlistview)
 
     if { $kyn == "" } {
         set kyn [tk_getSaveFile -filetypes {{KYN .kyn} {Txt .txt} {All *}} \
@@ -1774,33 +1539,33 @@ proc ediuAIFInitialState {} {
     set ::ediu(filename) $::ediu(Nothing)
 
     ##  Remove all content from the AIF source view
-    set txt $::widgets(sourceview)
+    set txt $GUI::widgets(sourceview)
     $txt configure -state normal
     $txt delete 1.0 end
     $txt configure -state disabled
 
     ##  Remove all content from the (hidden) netlist text view
-    set txt $::widgets(netlistview)
+    set txt $GUI::widgets(netlistview)
     $txt configure -state normal
     $txt delete 1.0 end
     $txt configure -state disabled
 
     ##  Remove all content from the keyin netlist text view
-    set txt $::widgets(kynnetlistview)
+    set txt $GUI::widgets(kynnetlistview)
     $txt configure -state normal
     $txt delete 1.0 end
     $txt configure -state disabled
 
     ##  Remove all content from the source graphic view
-    set cnvs $::widgets(graphicview)
+    set cnvs $GUI::widgets(layoutview)
     $cnvs delete all
 
     ##  Remove all content from the AIF Netlist table
-    set nlt $::widgets(netlisttable)
+    set nlt $GUI::widgets(netlisttable)
     $nlt delete 0 end
 
     ##  Clean up menus, remove dynamic content
-    set vm $::widgets(viewmenu)
+    set vm $GUI::widgets(viewmenu)
     $vm.devices delete 3 end
     $vm.pads delete 3 end
 }
@@ -1813,7 +1578,7 @@ proc ediuAIFInitialState {} {
 #  Source View and update the appropriate status.
 #
 proc ediuSparsePinsFileOpen {} {
-    ediuUpdateStatus $::ediu(busy)
+    GUI::StatusBar::UpdateStatus -busy on
 
     ##  Prompt the user for a file
     ##set ::ediu(sparsepinsfile) [tk_getOpenFile -filetypes {{TXT .txt} {CSV .csv} {All *}}]
@@ -1824,7 +1589,7 @@ proc ediuSparsePinsFileOpen {} {
         Transcript $::ediu(MsgWarning) "No Sparse Pins file selected."
     } else {
         Transcript $::ediu(MsgNote) [format "Loading Sparse Pins file \"%s\"." $::ediu(sparsepinsfile)]
-        set txt $::widgets(sparsepinsview)
+        set txt $GUI::widgets(sparsepinsview)
         $txt configure -state normal
         $txt delete 1.0 end
 
@@ -1838,8 +1603,8 @@ proc ediuSparsePinsFileOpen {} {
         Transcript $::ediu(MsgNote) [format "Loaded Sparse Pins file \"%s\"." $::ediu(sparsepinsfile)]
         Transcript $::ediu(MsgNote) [format "Extracting Pin Numbers from Sparse Pins file \"%s\"." $::ediu(sparsepinsfile)]
         
-        #set pins [split $::widgets(sparsepinsview) \n]
-        set txt $::widgets(sparsepinsview)
+        set pins [split $GUI::widgets(sparsepinsview) \n]
+        set txt $GUI::widgets(sparsepinsview)
         set pins [split [$txt get 1.0 end] \n]
 
         set lc 1
@@ -1869,7 +1634,7 @@ proc ediuSparsePinsFileOpen {} {
     $txt yview moveto 0
     $txt xview moveto 0
 
-    ediuUpdateStatus $::ediu(ready)
+    GUI::StatusBar::UpdateStatus -busy off
 }
 
 #
@@ -1880,21 +1645,21 @@ proc ediuSparsePinsFileOpen {} {
 #  rules.
 #
 proc ediuSparsePinsFileClose {} {
-    ediuUpdateStatus $::ediu(busy)
+    GUI::StatusBar::UpdateStatus -busy on
     Transcript $::ediu(MsgNote) [format "Sparse Pins file \"%s\" closed." $::ediu(sparsepinsfile)]
     set ::ediu(sparsepinsfile) $::ediu(Nothing)
-    set txt $::widgets(sparsepinsview)
+    set txt $GUI::widgets(sparsepinsview)
     $txt configure -state normal
     $txt delete 1.0 end
     $txt configure -state disabled
-    ediuUpdateStatus $::ediu(ready)
+    GUI::StatusBar::UpdateStatus -busy off
 }
 
 #
 #  ediuSetupOpenPCB
 #
 proc ediuSetupOpenPCB { { f "" } } {
-    ediuUpdateStatus $::ediu(busy)
+    GUI::StatusBar::UpdateStatus -busy on
 
     ##  Prompt the user for an Xpedition database
 
@@ -1910,14 +1675,14 @@ proc ediuSetupOpenPCB { { f "" } } {
         Transcript $::ediu(MsgNote) [format "Design File \"%s\" set as design target." $::ediu(targetPath)]
     }
 
-    ediuUpdateStatus $::ediu(ready)
+    GUI::StatusBar::UpdateStatus -busy off
 }
 
 #
 #  ediuSetupOpenLMC
 #
 proc ediuSetupOpenLMC { { f "" } } {
-    ediuUpdateStatus $::ediu(busy)
+    GUI::StatusBar::UpdateStatus -busy on
 
     ##  Prompt the user for a Central Library database if not supplied
 
@@ -1939,7 +1704,7 @@ proc ediuSetupOpenLMC { { f "" } } {
     set errorCode [catch { MGC::OpenCellEditor } errorMessage]
     if {$errorCode != 0} {
         set ::ediu(targetPath) ""
-        ediuUpdateStatus $::ediu(ready)
+        GUI::StatusBar::UpdateStatus -busy off
         return -code return 1
     }
 
@@ -1973,7 +1738,7 @@ proc ediuSetupOpenLMC { { f "" } } {
     set errorCode [catch { MGC::OpenPDBEditor } errorMessage]
     if {$errorCode != 0} {
         set ::ediu(targetPath) ""
-        ediuUpdateStatus $::ediu(ready)
+        GUI::StatusBar::UpdateStatus -busy off
         return -code return 1
     }
 
@@ -1993,7 +1758,7 @@ proc ediuSetupOpenLMC { { f "" } } {
 
     MGC::ClosePDBEditor
 
-    ediuUpdateStatus $::ediu(ready)
+    GUI::StatusBar::UpdateStatus -busy off
 }
 
 #
@@ -2026,7 +1791,7 @@ proc ediuNotImplemented {} {
 #
 #  Update the status panes with relevant informaiton.
 #
-proc ediuUpdateStatus {mode} {
+proc ediuUpdateStatus-deprecated {mode} {
     if { $::ediu(connectMode) } {
         set ::widgets(mode) [format "Mode:  %s (Connect Mode)" $::ediu(mode)]
     } else {
@@ -2044,7 +1809,7 @@ proc ediuUpdateStatus {mode} {
     }
 
     ##  Set the color of the status light
-    set slf $::widgets(statuslight)
+    set slf $GUI::widgets(statuslight)
     if { $mode == $::ediu(busy) } {
         $slf configure -background red
     } else {
@@ -2062,7 +1827,7 @@ proc ediuAIFName {} {
 
     Transcript $::ediu(MsgNote) [format "Scanning AIF source for \"%s\"." $::sections(die)]
 
-    set txt $::widgets(sourceview)
+    set txt $GUI::widgets(sourceview)
     set dn [$txt search $::sections(die) 1.0 end]
 
     ##  Was the die found?
@@ -2116,7 +1881,7 @@ proc ediuAIFBGASection {} {
 proc ediuAIFPadsSection {} {
 
     set rv 0
-    set vm $::widgets(viewmenu)
+    set vm $GUI::widgets(viewmenu)
     $vm.pads add separator
 
     ##  Make sure we have a PADS section!
@@ -2173,10 +1938,11 @@ proc ediuAIFPadsSection {} {
 #
 proc ediuAIFNetlistSection {} {
     set rv 0
-    set txt $::widgets(netlistview)
+    set txt $GUI::widgets(netlistview)
 
     ##  Make sure we have a NETLIST section!
     if { [lsearch -exact $::AIF::sections NETLIST] != -1 } {
+
         ##  Load the NETLIST section which was previously stored in the netlist text widget
 
         Netlist::Load
@@ -2476,8 +2242,8 @@ foreach script { AIF.tcl Forms.tcl GUI.tcl MapEnum.tcl MGC.tcl Netlist.tcl } {
 console show
 ediuInit
 BuildGUI
-ediuUpdateStatus $::ediu(ready)
-Transcript $::ediu(MsgNote) "$::ediu(EDIU) ready."
+GUI::StatusBar::UpdateStatus -busy off
+#Transcript $::ediu(MsgNote) "$::ediu(EDIU) ready."
 #ediuChooseCellPartitionDialog
 #puts $retString
 #set ::ediu(mode) $::ediu(libraryMode)
@@ -2491,6 +2257,6 @@ Transcript $::ediu(MsgNote) "$::ediu(EDIU) ready."
 ##catch { ediuAIFFileOpen "c:/users/mike/desktop/ImportAIF/data/BGA_w2_Dies-2.aif" } retString
 #catch { ediuAIFFileOpen "c:/users/mike/desktop/ImportAIF/data/BGA_w2_Dies-3.aif" } retString
 catch { ediuAIFFileOpen "c:/users/mike/desktop/ImportAIF/data/Test2.aif" } retString
-GUI::Visibility text -all true -mode off
+#GUI::Visibility text -all true -mode off
 #set ::ediu(cellEdtrPrtnNames) { a b c d e f }
 #ediuAIFFileOpen

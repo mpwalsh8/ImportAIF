@@ -120,7 +120,7 @@ namespace eval AIF {
         Init
 
         #  Reset Netlist tab
-        set txt $::widgets(netlistview)
+        set txt $GUI::widgets(netlistview)
         $txt configure -state normal
         $txt delete 1.0 end
 
@@ -382,11 +382,11 @@ namespace eval AIF {
                 if { ([lsearch [AIF::Variables "DATABASE"] "MCM"] != -1) && ($::database(mcm) == "TRUE") } {
                     Transcript $::ediu(MsgError) [format "File \"%s\" is an MCM-AIF file." $::ediu(filename)]
                     set ::ediu(MCMAIF) 1
-                    set ::widgets(AIFType) "File Type:  MCM-AIF"
+                    set GUI::widgets(AIFType) "File Type:  MCM-AIF"
                 } else {
                     Transcript $::ediu(MsgError) [format "File \"%s\" is an AIF file." $::ediu(filename)]
                     set ::ediu(MCMAIF) 0
-                    set ::widgets(AIFType) "File Type:  AIF"
+                    set GUI::widgets(AIFType) "File Type:  AIF"
                 }
 
                 ##  Does the AIF file contain a BGA section?

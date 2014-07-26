@@ -63,7 +63,7 @@ namespace eval Netlist {
         variable pads
         variable connections
     
-        set txt $::widgets(netlistview)
+        set txt $GUI::widgets(netlistview)
         
         ##  Clean up list, the text widget may
         ##  return empty stuff we don't want
@@ -100,7 +100,7 @@ namespace eval Netlist {
     
     #  Return all of the parameters for a net
     proc GetParams { index } {
-        set txt $::widgets(netlistview)
+        set txt $GUI::widgets(netlistview)
         return [regexp -inline -all -- {\S+} [$txt get [expr $index +1].0 [expr $index +1].end]]
     }
     
@@ -161,7 +161,7 @@ namespace eval Netlist {
         ##  Netlist::Export::KYN
         ##
         proc KYN { { kyn "" } } {
-            set txt $::widgets(kynnetlistview)
+            set txt $GUI::widgets(kynnetlistview)
 
             if { $kyn == "" } {
                 set kyn [tk_getSaveFile -filetypes {{KYN .kyn} {Txt .txt} {All *}} \
