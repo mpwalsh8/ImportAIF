@@ -334,27 +334,7 @@ proc BuildGUI {} {
 
     ##  Build the status bar
 
-if { 0 } {
-    set sf [ttk::frame .status -borderwidth 5 -relief sunken]
-    set slf [ttk::frame .statuslightframe -width 20 -borderwidth 3 -relief raised]
-    set sl [frame $slf.statuslight -width 15 -background green]
-    set ::widgets(statuslight) $sl
-    pack $sl -in $slf -fill both -expand yes
-    $sl configure -background green
-    set mode [ttk::label .mode \
-        -padding 5 -textvariable ::widgets(mode)]
-    set AIFfile [ttk::label .aifFile \
-        -padding 5 -textvariable ::widgets(AIFFile)]
-    set AIFType [ttk::label .aifType \
-        -padding 5 -textvariable ::widgets(AIFType)]
-    set targetpath [ttk::label .targetPath \
-        -padding 5 -textvariable ::widgets(targetPath)]
-
-    pack $slf -side left -in $sf -fill both
-    pack $mode $AIFfile $AIFType $targetpath -side left -in $sf -fill both -padx 10
-} else {
     GUI::Build::StatusBar
-}
 
     grid $GUI::widgets(notebook) -row 0 -column 0 -sticky nsew -padx 4 -pady 4
     grid $GUI::widgets(statusframe) -row 1 -column 0 -sticky sew -padx 4 -pady 4
@@ -2075,7 +2055,7 @@ foreach script { AIF.tcl Forms.tcl GUI.tcl MapEnum.tcl MGC.tcl Netlist.tcl } {
 
 console show
 ediuInit
-BuildGUI
+GUI::Build
 GUI::StatusBar::UpdateStatus -busy off
 #Transcript $::ediu(MsgNote) "$::ediu(EDIU) ready."
 #ediuChooseCellPartitionDialog
