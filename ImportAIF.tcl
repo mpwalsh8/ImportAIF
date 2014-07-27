@@ -319,44 +319,6 @@ proc Transcript {severity messagetext} {
 }
 
 #
-#  Build GUI
-#
-proc BuildGUI {} {
-
-    #  Define fixed with font used for displaying text
-    font create EDIUFont -family Courier -size 10 -weight bold
-
-    GUI::Build::Menus
-    GUI::Build::Notebook
-
-    ##  Build the Dashboard
-    GUI::Dashboard::Build
-
-    ##  Build the status bar
-
-    GUI::Build::StatusBar
-
-    grid $GUI::widgets(notebook) -row 0 -column 0 -sticky nsew -padx 4 -pady 4
-    grid $GUI::widgets(statusframe) -row 1 -column 0 -sticky sew -padx 4 -pady 4
-
-    grid columnconfigure . 0 -weight 1
-    grid    rowconfigure . 0 -weight 1
-
-    #  Configure the main window
-    wm title . $::ediu(EDIU).
-    wm geometry . 1024x768
-    . configure -menu .menubar -width 200 -height 150
-
-    #  Bind some function keys
-    bind . "<Key F1>" { ediuHelpAbout }
-    bind . "<Key F5>" { GUI::Dashboard::SelectAIFFile }
-    bind . "<Key F6>" { ediuAIFFileClose }
-
-    ## Update the status fields
-    GUI::StatusBar::UpdateStatus -busy off
-}
-
-#
 #  ediuChooseCellPartition
 #
 proc ediuChooseCellPartition-deprecated {} {
@@ -869,8 +831,6 @@ proc ediuGraphicViewBuild {} {
     set scaleX [expr ($::widgets(windowSizeX) / (2*$::die(width)) * $::ediu(ScaleFactor))]
     #puts [format "A:  %s  B:  %s  C:  %s" $scaleX $::widgets(windowSizeX) $::die(width)]
     if { $scaleX > 0 } {
-        #ediuGraphicViewZoom $scaleX
-        #ediuGraphicViewZoom 1
         #zoom 1 0 0 
         set extents [$cnvs bbox all]
         #puts $extents
@@ -888,7 +848,7 @@ proc ediuGraphicViewBuild {} {
         #zoomArea $cnvs [lindex $extents 0] [lindex $extents 1]
 
         #  Set the initial view
-        zoom $cnvs 25
+        GUI::View::Zoom $cnvs 25
     }
 
     #destroy $pb
@@ -1122,32 +1082,6 @@ proc ediuDrawBGAOutline { { color "white" } } {
     $cnvs create line 0 [expr $y1 - $::bga(height) / 4] 0 [expr $y2 +$::bga(height) / 4] \
         -fill $color -dash . -tags "guides xyaxis"
 
-    $cnvs configure -scrollregion [$cnvs bbox all]
-}
-
-#
-#  ediuGraphicViewZoom
-#
-#  Adapted from code found here:
-#    http://www.tek-tips.com/viewthread.cfm?qid=815783&page=42
-#
-proc ediuGraphicViewZoom {scale} {
-    set cnvs $GUI::widgets(layoutview)
-
-    $cnvs scale all 0 0 $scale $scale
-
-    foreach item [$cnvs find all] {
-        if {[$cnvs type $item] == "text"} {
-            set font [font actual [$cnvs itemcget $item -font]]
-            set index [lsearch -exact $font -size]
-            incr index
-            set size [lindex $font $index]
-            set size [expr {round($size * $scale)}]
-            set font [lreplace $font $index $index $size]
-            $cnvs itemconfigure $item -font $font
-        }
-    }
-  
     $cnvs configure -scrollregion [$cnvs bbox all]
 }
 
@@ -1783,256 +1717,6 @@ proc ediuPlural { count txt } {
     }
 }
 
-#
-# ediuToggleSparseMode
-#
-proc ediuToggleSparseMode {} {
-    Transcript $::ediu(MsgNote) [format "Sparse Mode:  %s" [expr {$::ediu(sparseMode) ? "On" : "Off"}]]
-}
-
-#
-# ediuToggle
-#
-proc ediuToggle {varName} {
-    upvar 1 $varName var
-    set var [expr {$var ? 0 : 1}]
-}
-
-#
-# ediuNamedArgs
-#
-#  Extract named arguments from a command
-#  @see:  http://wiki.tcl.tk/10702
-#
-proc ediuNamedArgs {args defaults} {
-    upvar 1 "" ""
-    array set "" $defaults
-    foreach {key value} $args {
-        if {![info exists ($key)]} {
-            error "bad option '$key', should be one of: [lsort [array names {}]]"
-        }
-        set ($key) $value
-    }
-}
-
-
-#--------------------------------------------------------
-#
-#  zoomMark
-#
-#  Mark the first (x,y) coordinate for zooming.
-#
-#--------------------------------------------------------
-proc zoomMark {c x y} {
-    global zoomArea
-    set zoomArea(x0) [$c canvasx $x]
-    set zoomArea(y0) [$c canvasy $y]
-    $c create rectangle $x $y $x $y -outline white -tag zoomArea
-    #puts "zoomMark:  $x $y"
-}
-
-#--------------------------------------------------------
-#
-#  zoomStroke
-#
-#  Zoom in to the area selected by itemMark and
-#  itemStroke.
-#
-#--------------------------------------------------------
-proc zoomStroke {c x y} {
-    global zoomArea
-    set zoomArea(x1) [$c canvasx $x]
-    set zoomArea(y1) [$c canvasy $y]
-    $c coords zoomArea $zoomArea(x0) $zoomArea(y0) $zoomArea(x1) $zoomArea(y1)
-    #puts "zoomStroke:  $x $y"
-}
-
-#--------------------------------------------------------
-#
-#  zoomArea
-#
-#  Zoom in to the area selected by itemMark and
-#  itemStroke.
-#
-#--------------------------------------------------------
-proc zoomArea {c x y} {
-    global zoomArea
-
-    #--------------------------------------------------------
-    #  Get the final coordinates.
-    #  Remove area selection rectangle
-    #--------------------------------------------------------
-    set zoomArea(x1) [$c canvasx $x]
-    set zoomArea(y1) [$c canvasy $y]
-    $c delete zoomArea
-
-    #--------------------------------------------------------
-    #  Check for zero-size area
-    #--------------------------------------------------------
-    if {($zoomArea(x0)==$zoomArea(x1)) || ($zoomArea(y0)==$zoomArea(y1))} {
-        return
-    }
-
-    #--------------------------------------------------------
-    #  Determine size and center of selected area
-    #--------------------------------------------------------
-    set areaxlength [expr {abs($zoomArea(x1)-$zoomArea(x0))}]
-    set areaylength [expr {abs($zoomArea(y1)-$zoomArea(y0))}]
-    set xcenter [expr {($zoomArea(x0)+$zoomArea(x1))/2.0}]
-    set ycenter [expr {($zoomArea(y0)+$zoomArea(y1))/2.0}]
-
-    #--------------------------------------------------------
-    #  Determine size of current window view
-    #  Note that canvas scaling always changes the coordinates
-    #  into pixel coordinates, so the size of the current
-    #  viewport is always the canvas size in pixels.
-    #  Since the canvas may have been resized, ask the
-    #  window manager for the canvas dimensions.
-    #--------------------------------------------------------
-    set winxlength [winfo width $c]
-    set winylength [winfo height $c]
-
-    #--------------------------------------------------------
-    #  Calculate scale factors, and choose smaller
-    #--------------------------------------------------------
-    set xscale [expr {$winxlength/$areaxlength}]
-    set yscale [expr {$winylength/$areaylength}]
-    if { $xscale > $yscale } {
-        set factor $yscale
-    } else {
-        set factor $xscale
-    }
-
-    #--------------------------------------------------------
-    #  Perform zoom operation
-    #--------------------------------------------------------
-    zoom $c $factor $xcenter $ycenter $winxlength $winylength
-    #puts "zoomArea:  $x $y"
-}
-
-
-#--------------------------------------------------------
-#
-#  zoom
-#
-#  Zoom the canvas view, based on scale factor 
-#  and centerpoint and size of new viewport.  
-#  If the center point is not provided, zoom 
-#  in/out on the current window center point.
-#
-#  This procedure uses the canvas scale function to
-#  change coordinates of all objects in the canvas.
-#
-#--------------------------------------------------------
-proc zoom { canvas factor \
-        {xcenter ""} {ycenter ""} \
-        {winxlength ""} {winylength ""} } {
-
-    #--------------------------------------------------------
-    #  If (xcenter,ycenter) were not supplied,
-    #  get the canvas coordinates of the center
-    #  of the current view.  Note that canvas
-    #  size may have changed, so ask the window 
-    #  manager for its size
-    #--------------------------------------------------------
-    set winxlength [winfo width $canvas]; # Always calculate [ljl]
-    set winylength [winfo height $canvas]
-    if { [string equal $xcenter ""] } {
-        set xcenter [$canvas canvasx [expr {$winxlength/2.0}]]
-        set ycenter [$canvas canvasy [expr {$winylength/2.0}]]
-    }
-
-    #--------------------------------------------------------
-    #  Scale all objects in the canvas
-    #  Adjust our viewport center point
-    #--------------------------------------------------------
-    $canvas scale all 0 0 $factor $factor
-    set xcenter [expr {$xcenter * $factor}]
-    set ycenter [expr {$ycenter * $factor}]
-
-    #--------------------------------------------------------
-    #  Get the size of all the items on the canvas.
-    #
-    #  This is *really easy* using 
-    #      $canvas bbox all
-    #  but it is also wrong.  Non-scalable canvas
-    #  items like text and windows now have a different
-    #  relative size when compared to all the lines and
-    #  rectangles that were uniformly scaled with the 
-    #  [$canvas scale] command.  
-    #
-    #  It would be better to tag all scalable items,
-    #  and make a single call to [bbox].
-    #  Instead, we iterate through all canvas items and
-    #  their coordinates to compute our own bbox.
-    #--------------------------------------------------------
-    set x0 1.0e30; set x1 -1.0e30 ;
-    set y0 1.0e30; set y1 -1.0e30 ;
-    foreach item [$canvas find all] {
-        switch -exact [$canvas type $item] {
-            "arc" -
-            "line" -
-            "oval" -
-            "polygon" -
-            "rectangle" {
-                set coords [$canvas coords $item]
-                foreach {x y} $coords {
-                    if { $x < $x0 } {set x0 $x}
-                    if { $x > $x1 } {set x1 $x}
-                    if { $y < $y0 } {set y0 $y}
-                    if { $y > $y0 } {set y1 $y}
-                }
-            }
-        }
-    }
-
-    #--------------------------------------------------------
-    #  Now figure the size of the bounding box
-    #--------------------------------------------------------
-    set xlength [expr {$x1-$x0}]
-    set ylength [expr {$y1-$y0}]
-
-    #--------------------------------------------------------
-    #  But ... if we set the scrollregion and xview/yview 
-    #  based on only the scalable items, then it is not 
-    #  possible to zoom in on one of the non-scalable items
-    #  that is outside of the boundary of the scalable items.
-    #
-    #  So expand the [bbox] of scaled items until it is
-    #  larger than [bbox all], but do so uniformly.
-    #--------------------------------------------------------
-    foreach {ax0 ay0 ax1 ay1} [$canvas bbox all] {break}
-
-    while { ($ax0<$x0) || ($ay0<$y0) || ($ax1>$x1) || ($ay1>$y1) } {
-        # triple the scalable area size
-        set x0 [expr {$x0-$xlength}]
-        set x1 [expr {$x1+$xlength}]
-        set y0 [expr {$y0-$ylength}]
-        set y1 [expr {$y1+$ylength}]
-        set xlength [expr {$xlength*3.0}]
-        set ylength [expr {$ylength*3.0}]
-    }
-
-    #--------------------------------------------------------
-    #  Now that we've finally got a region defined with
-    #  the proper aspect ratio (of only the scalable items)
-    #  but large enough to include all items, we can compute
-    #  the xview/yview fractions and set our new viewport
-    #  correctly.
-    #--------------------------------------------------------
-    set newxleft [expr {($xcenter-$x0-($winxlength/2.0))/$xlength}]
-    set newytop  [expr {($ycenter-$y0-($winylength/2.0))/$ylength}]
-    $canvas configure -scrollregion [list $x0 $y0 $x1 $y1]
-    $canvas xview moveto $newxleft 
-    $canvas yview moveto $newytop 
-
-    #--------------------------------------------------------
-    #  Change the scroll region one last time, to fit the
-    #  items on the canvas.
-    #--------------------------------------------------------
-    $canvas configure -scrollregion [$canvas bbox all]
-}
-
 proc printArray { name } {
     upvar $name a
     foreach el [lsort [array names a]] {
@@ -2070,7 +1754,7 @@ GUI::StatusBar::UpdateStatus -busy off
 #catch { ediuAIFFileOpen "c:/users/mike/desktop/ImportAIF/data/BGA_w2_Dies.aif" } retString
 ##catch { ediuAIFFileOpen "c:/users/mike/desktop/ImportAIF/data/BGA_w2_Dies-2.aif" } retString
 #catch { ediuAIFFileOpen "c:/users/mike/desktop/ImportAIF/data/BGA_w2_Dies-3.aif" } retString
-catch { ediuAIFFileOpen "c:/users/mike/desktop/ImportAIF/data/Test2.aif" } retString
+#catch { ediuAIFFileOpen "c:/users/mike/desktop/ImportAIF/data/Test2.aif" } retString
 #GUI::Visibility text -all true -mode off
 #set ::ediu(cellEdtrPrtnNames) { a b c d e f }
 #ediuAIFFileOpen

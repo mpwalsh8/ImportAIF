@@ -627,13 +627,13 @@ if { 0 } {
 
                 #  Add a couple of zooming buttons
                 set bf [frame .buttonframe]
-                button $bf.zoomin  -text "Zoom In"  -command "zoom $lvfcanvas 1.25" -relief groove -padx 3
-                button $bf.zoomout -text "Zoom Out" -command "zoom $lvfcanvas 0.80" -relief groove -padx 3
-                #button $bf.zoomfit -text "Zoom Fit" -command "zoom $lvfcanvas 1" -relief groove -padx 3
-                button $bf.zoomin2x  -text "Zoom In 2x"  -command "zoom $lvfcanvas 2.00" -relief groove -padx 3
-                button $bf.zoomout2x -text "Zoom Out 2x" -command "zoom $lvfcanvas 0.50" -relief groove -padx 3
-                button $bf.zoomin5x  -text "Zoom In 5x"  -command "zoom $lvfcanvas 5.00" -relief groove -padx 3
-                button $bf.zoomout5x -text "Zoom Out 5x" -command "zoom $lvfcanvas 0.20" -relief groove -padx 3
+                button $bf.zoomin  -text "Zoom In"  -command "GUI::View::Zoom $lvfcanvas 1.25" -relief groove -padx 3
+                button $bf.zoomout -text "Zoom Out" -command "GUI::View::Zoom $lvfcanvas 0.80" -relief groove -padx 3
+                #button $bf.zoomfit -text "Zoom Fit" -command "GUI::View::Zoom $lvfcanvas 1" -relief groove -padx 3
+                button $bf.zoomin2x  -text "Zoom In 2x"  -command "GUI::View::Zoom $lvfcanvas 2.00" -relief groove -padx 3
+                button $bf.zoomout2x -text "Zoom Out 2x" -command "GUI::View::Zoom $lvfcanvas 0.50" -relief groove -padx 3
+                button $bf.zoomin5x  -text "Zoom In 5x"  -command "GUI::View::Zoom $lvfcanvas 5.00" -relief groove -padx 3
+                button $bf.zoomout5x -text "Zoom Out 5x" -command "GUI::View::Zoom $lvfcanvas 0.20" -relief groove -padx 3
                 #grid $bf.zoomin $bf.zoomout -sticky ew -columnspan 1
                 #grid $bf.zoomin $bf.zoomout $bf.zoomfit
                 grid $bf.zoomin $bf.zoomout $bf.zoomin2x $bf.zoomout2x $bf.zoomin5x $bf.zoomout5x
@@ -643,9 +643,9 @@ if { 0 } {
                 grid    rowconfigure $lvf 0 -weight 1
 
                 # Set up event bindings for canvas:
-                bind $lvfcanvas <3> "zoomMark $lvfcanvas %x %y"
-                bind $lvfcanvas <B3-Motion> "zoomStroke $lvfcanvas %x %y"
-                bind $lvfcanvas <ButtonRelease-3> "zoomArea $lvfcanvas %x %y"
+                bind $lvfcanvas <3> "GUI::View::ZoomMark $lvfcanvas %x %y"
+                bind $lvfcanvas <B3-Motion> "GUI::View::ZoomStroke $lvfcanvas %x %y"
+                bind $lvfcanvas <ButtonRelease-3> "GUI::View::ZoomArea $lvfcanvas %x %y"
             }
 
             ##
@@ -855,15 +855,39 @@ if { 0 } {
             grid $dbf.library.cb -row 1 -column 1 -pady 5 -padx 5 -sticky ew
             grid $dbf.library.pb -row 2 -column 1 -pady 5 -padx 5 -sticky ew
 
+
+            ##  Bond Wire Setup
+            #labelframe $dbf.bondwireparams -pady 5 -text "Default Bond Wire Setup" -padx 5
+
+            ##  WBParameters
+            labelframe $dbf.wbparameters -pady 5 -text "Wire Bond Parameters" -padx 5
+            entry $dbf.wbparameters.e -width 110 -relief sunken -bd 2 -textvariable GUI::Dashboard::WBParameters
+            grid $dbf.wbparameters.e -row 0 -column 0 -pady 5 -padx 5 -sticky w
+
+            ##  WBDRCProperty
+            labelframe $dbf.wbdrcproperty -pady 5 -text "Wire Bond DRC Property" -padx 5
+            entry $dbf.wbdrcproperty.e -width 110 -relief sunken -bd 2 -textvariable GUI::Dashboard::WBDRCProperty
+            grid $dbf.wbdrcproperty.e -row 0 -column 0 -pady 5 -padx 5 -sticky w
+
+            
+            ttk::separator $dbf.sep1 -orient vertical
+            ttk::separator $dbf.sep2 -orient horizontal
+            ttk::separator $dbf.sep3 -orient horizontal
+
             ##  Place all of the widgets
-            grid $dbf.aiffile        -row 0 -column 0 -sticky new -padx 10 -pady 10 -columnspan 2
-            grid $dbf.design         -row 1 -column 0 -sticky new -padx 10 -pady 10 -columnspan 2
-            grid $dbf.library        -row 2 -column 0 -sticky new -padx 10 -pady 10 -columnspan 2
-            grid $dbf.mode           -row 0 -column 2 -sticky new -padx 10 -pady 10
-            grid $dbf.connection     -row 1 -column 2 -sticky new -padx 10 -pady 10
-            grid $dbf.visibility     -row 2 -column 2 -sticky new -padx 10 -pady 10
-            grid $dbf.cellgeneration -row 3 -column 0 -sticky new -padx 10 -pady 10
-            grid $dbf.cellsuffix     -row 3 -column 1 -sticky new -padx 10 -pady 10
+            grid $dbf.aiffile        -row 0 -column 0 -sticky new -padx 10 -pady 8 -columnspan 2
+            grid $dbf.design         -row 1 -column 0 -sticky new -padx 10 -pady 8 -columnspan 2
+            grid $dbf.library        -row 2 -column 0 -sticky new -padx 10 -pady 8 -columnspan 2
+            grid $dbf.sep1           -row 0 -column 2 -sticky nsew -padx 3 -pady 3 -rowspan 5
+            grid $dbf.mode           -row 0 -column 3 -sticky new -padx 10 -pady 8
+            grid $dbf.connection     -row 1 -column 3 -sticky new -padx 10 -pady 8
+            grid $dbf.visibility     -row 2 -column 3 -sticky new -padx 10 -pady 8
+            grid $dbf.sep2           -row 3 -column 0 -sticky nsew -padx 3 -pady 3 -columnspan 2
+            grid $dbf.cellgeneration -row 4 -column 0 -sticky new -padx 10 -pady 8
+            grid $dbf.cellsuffix     -row 4 -column 1 -sticky new -padx 10 -pady 8
+            grid $dbf.sep3           -row 5 -column 0 -sticky nsew -padx 3 -pady 3 -columnspan 5
+            grid $dbf.wbparameters   -row 6 -column 0 -sticky new -padx 10 -pady 8 -columnspan 5
+            grid $dbf.wbdrcproperty  -row 7 -column 0 -sticky new -padx 10 -pady 8 -columnspan 5
 
             grid $dbf -row 0 -column 0 -sticky nw -padx 10 -pady 10
         }
@@ -924,6 +948,8 @@ if { 0 } {
         variable Visibility on
         variable CellGeneration
         variable CellSuffix none
+        variable WBParameters {[Model=[BallWedgeShared]][Padstack=[BF150x65]][XStart=[0um]][YStart=[0um]][XEnd=[0um]][YEnd=[0um]]}
+        variable WBDRCProperty {[WB2WB=[0um]][WB2Part=[4um]][WB2Metal=[0um]][WB2DieEdge=[4um]][WB2DieSurface=[0um]][WB2Cavity=[4um]][WBAngle=[360deg]][BondSiteMargin=[0um]][Rows=[[[WBMin=[100um]][WBMax=[3000um]]]]]}
 
         array set CellGeneration {
             MirrorNone on
@@ -1025,6 +1051,230 @@ if { 0 } {
             } 
 
             update idletasks
+        }
+    }
+
+    ##
+    ##  Define the GUI::Dashboard namespace and procedure supporting operations
+    ##
+    namespace eval View {
+        variable zoomArea
+
+        #--------------------------------------------------------
+        #
+        #  GUI::View::ZoomMark
+        #
+        #  Mark the first (x,y) coordinate for zooming.
+        #
+        #--------------------------------------------------------
+        proc ZoomMark {c x y} {
+            variable zoomArea
+            set zoomArea(x0) [$c canvasx $x]
+            set zoomArea(y0) [$c canvasy $y]
+            $c create rectangle $x $y $x $y -outline white -tag zoomArea
+            #puts "zoomMark:  $x $y"
+        }
+
+        #--------------------------------------------------------
+        #
+        #  zoomStroke
+        #
+        #  Zoom in to the area selected by itemMark and
+        #  itemStroke.
+        #
+        #--------------------------------------------------------
+        proc ZoomStroke {c x y} {
+            variable zoomArea
+            set zoomArea(x1) [$c canvasx $x]
+            set zoomArea(y1) [$c canvasy $y]
+            $c coords zoomArea $zoomArea(x0) $zoomArea(y0) $zoomArea(x1) $zoomArea(y1)
+            #puts "zoomStroke:  $x $y"
+        }
+
+        #--------------------------------------------------------
+        #
+        #  zoomArea
+        #
+        #  Zoom in to the area selected by itemMark and
+        #  itemStroke.
+        #
+        #--------------------------------------------------------
+        proc ZoomArea {c x y} {
+            variable zoomArea
+
+            #--------------------------------------------------------
+            #  Get the final coordinates.
+            #  Remove area selection rectangle
+            #--------------------------------------------------------
+            set zoomArea(x1) [$c canvasx $x]
+            set zoomArea(y1) [$c canvasy $y]
+            $c delete zoomArea
+
+            #--------------------------------------------------------
+            #  Check for zero-size area
+            #--------------------------------------------------------
+            if {($zoomArea(x0)==$zoomArea(x1)) || ($zoomArea(y0)==$zoomArea(y1))} {
+                return
+            }
+
+            #--------------------------------------------------------
+            #  Determine size and center of selected area
+            #--------------------------------------------------------
+            set areaxlength [expr {abs($zoomArea(x1)-$zoomArea(x0))}]
+            set areaylength [expr {abs($zoomArea(y1)-$zoomArea(y0))}]
+            set xcenter [expr {($zoomArea(x0)+$zoomArea(x1))/2.0}]
+            set ycenter [expr {($zoomArea(y0)+$zoomArea(y1))/2.0}]
+
+            #--------------------------------------------------------
+            #  Determine size of current window view
+            #  Note that canvas scaling always changes the coordinates
+            #  into pixel coordinates, so the size of the current
+            #  viewport is always the canvas size in pixels.
+            #  Since the canvas may have been resized, ask the
+            #  window manager for the canvas dimensions.
+            #--------------------------------------------------------
+            set winxlength [winfo width $c]
+            set winylength [winfo height $c]
+
+            #--------------------------------------------------------
+            #  Calculate scale factors, and choose smaller
+            #--------------------------------------------------------
+            set xscale [expr {$winxlength/$areaxlength}]
+            set yscale [expr {$winylength/$areaylength}]
+            if { $xscale > $yscale } {
+                set factor $yscale
+            } else {
+                set factor $xscale
+            }
+
+            #--------------------------------------------------------
+            #  Perform zoom operation
+            #--------------------------------------------------------
+            GUI::View::Zoom $c $factor $xcenter $ycenter $winxlength $winylength
+            #puts "zoomArea:  $x $y"
+        }
+
+
+        #--------------------------------------------------------
+        #
+        #  GUI::View::Zoom
+        #
+        #  Zoom the canvas view, based on scale factor 
+        #  and centerpoint and size of new viewport.  
+        #  If the center point is not provided, zoom 
+        #  in/out on the current window center point.
+        #
+        #  This procedure uses the canvas scale function to
+        #  change coordinates of all objects in the canvas.
+        #
+        #--------------------------------------------------------
+        proc Zoom { canvas factor \
+                {xcenter ""} {ycenter ""} \
+                {winxlength ""} {winylength ""} } {
+
+            #--------------------------------------------------------
+            #  If (xcenter,ycenter) were not supplied,
+            #  get the canvas coordinates of the center
+            #  of the current view.  Note that canvas
+            #  size may have changed, so ask the window 
+            #  manager for its size
+            #--------------------------------------------------------
+            set winxlength [winfo width $canvas]; # Always calculate [ljl]
+            set winylength [winfo height $canvas]
+            if { [string equal $xcenter ""] } {
+                set xcenter [$canvas canvasx [expr {$winxlength/2.0}]]
+                set ycenter [$canvas canvasy [expr {$winylength/2.0}]]
+            }
+
+            #--------------------------------------------------------
+            #  Scale all objects in the canvas
+            #  Adjust our viewport center point
+            #--------------------------------------------------------
+            $canvas scale all 0 0 $factor $factor
+            set xcenter [expr {$xcenter * $factor}]
+            set ycenter [expr {$ycenter * $factor}]
+
+            #--------------------------------------------------------
+            #  Get the size of all the items on the canvas.
+            #
+            #  This is *really easy* using 
+            #      $canvas bbox all
+            #  but it is also wrong.  Non-scalable canvas
+            #  items like text and windows now have a different
+            #  relative size when compared to all the lines and
+            #  rectangles that were uniformly scaled with the 
+            #  [$canvas scale] command.  
+            #
+            #  It would be better to tag all scalable items,
+            #  and make a single call to [bbox].
+            #  Instead, we iterate through all canvas items and
+            #  their coordinates to compute our own bbox.
+            #--------------------------------------------------------
+            set x0 1.0e30; set x1 -1.0e30 ;
+            set y0 1.0e30; set y1 -1.0e30 ;
+            foreach item [$canvas find all] {
+                switch -exact [$canvas type $item] {
+                    "arc" -
+                    "line" -
+                    "oval" -
+                    "polygon" -
+                    "rectangle" {
+                        set coords [$canvas coords $item]
+                        foreach {x y} $coords {
+                            if { $x < $x0 } {set x0 $x}
+                            if { $x > $x1 } {set x1 $x}
+                            if { $y < $y0 } {set y0 $y}
+                            if { $y > $y0 } {set y1 $y}
+                        }
+                    }
+                }
+            }
+
+            #--------------------------------------------------------
+            #  Now figure the size of the bounding box
+            #--------------------------------------------------------
+            set xlength [expr {$x1-$x0}]
+            set ylength [expr {$y1-$y0}]
+
+            #--------------------------------------------------------
+            #  But ... if we set the scrollregion and xview/yview 
+            #  based on only the scalable items, then it is not 
+            #  possible to zoom in on one of the non-scalable items
+            #  that is outside of the boundary of the scalable items.
+            #
+            #  So expand the [bbox] of scaled items until it is
+            #  larger than [bbox all], but do so uniformly.
+            #--------------------------------------------------------
+            foreach {ax0 ay0 ax1 ay1} [$canvas bbox all] {break}
+
+            while { ($ax0<$x0) || ($ay0<$y0) || ($ax1>$x1) || ($ay1>$y1) } {
+                # triple the scalable area size
+                set x0 [expr {$x0-$xlength}]
+                set x1 [expr {$x1+$xlength}]
+                set y0 [expr {$y0-$ylength}]
+                set y1 [expr {$y1+$ylength}]
+                set xlength [expr {$xlength*3.0}]
+                set ylength [expr {$ylength*3.0}]
+            }
+
+            #--------------------------------------------------------
+            #  Now that we've finally got a region defined with
+            #  the proper aspect ratio (of only the scalable items)
+            #  but large enough to include all items, we can compute
+            #  the xview/yview fractions and set our new viewport
+            #  correctly.
+            #--------------------------------------------------------
+            set newxleft [expr {($xcenter-$x0-($winxlength/2.0))/$xlength}]
+            set newytop  [expr {($ycenter-$y0-($winylength/2.0))/$ylength}]
+            $canvas configure -scrollregion [list $x0 $y0 $x1 $y1]
+            $canvas xview moveto $newxleft 
+            $canvas yview moveto $newytop 
+
+            #--------------------------------------------------------
+            #  Change the scroll region one last time, to fit the
+            #  items on the canvas.
+            #--------------------------------------------------------
+            $canvas configure -scrollregion [$canvas bbox all]
         }
     }
 }
