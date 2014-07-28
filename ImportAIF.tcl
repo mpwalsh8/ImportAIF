@@ -1224,60 +1224,6 @@ proc ediuAIFFileClose {} {
 }
 
 #
-#  ediuFileExportKYN
-#
-proc ediuFileExportKYN { { kyn "" } } {
-
-    set txt $GUI::widgets(kynnetlistview)
-
-    if { $kyn == "" } {
-        set kyn [tk_getSaveFile -filetypes {{KYN .kyn} {Txt .txt} {All *}} \
-            -initialfile "netlist.kyn" -defaultextension ".kyn"]
-    }
-
-    if { $kyn == "" } {
-        Transcript $::ediu(MsgWarning) "No KYN file specified, Export aborted."
-        return
-    }
-        
-    #  Write the KYN netlist content to the file
-    set f [open $kyn "w+"]
-    puts $f [$txt get 1.0 end]
-    close $f
-
-    Transcript $::ediu(MsgNote) [format "KYN netlist successfully exported to file \"%s\"." $kyn]
-
-    return
-}
-
-#
-#  ediuFileExportPlacement
-#
-proc ediuFileExportPlacement { { plcmnt "" } } {
-
-    set txt [array names ::devices]
-
-    if { $plcmnt == "" } {
-        set plcmnt [tk_getSaveFile -filetypes {{Txt .txt} {All *}} \
-            -initialfile "place.txt" -defaultextension ".txt"]
-    }
-
-    if { $plcmnt == "" } {
-        Transcript $::ediu(MsgWarning) "No Placement file specified, Export aborted."
-        return
-    }
-        
-    #  Write the placement content to the file
-    set f [open $plcmnt "w+"]
-    puts $f $txt
-    close $f
-
-    Transcript $::ediu(MsgNote) [format "Placement successfully exported to file \"%s\"." $plcmnt]
-
-    return
-}
-
-#
 #  ediuAIFInitialState
 #
 proc ediuAIFInitialState {} {
