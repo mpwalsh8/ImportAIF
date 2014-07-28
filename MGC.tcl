@@ -886,8 +886,6 @@ namespace eval MGC {
 
             #  Does the cell exist?  Are we using Name suffixes?
 
-            set ::test $cNames
-
             if { [string equal $GUI::Dashboard::CellSuffix numeric] } {
                 set suffixes [lsearch -all -inline -regexp  $cNames $target-\[0-9\]+]
                 if { [string equal $suffixes ""] } {
@@ -1542,12 +1540,107 @@ namespace eval MGC {
     ##
     ##  Define the Bond Wire namespace and procedures supporting bond wire and pad operations
     ##
+    ##  These parameters, provided by Frank Bader, are fairly generic and general purpose.
+    ##
     namespace eval WireBond {
+
+        variable WBParameters
+        variable WBDRCProperty
+        variable WBRule
+        variable Units um
+        variable Angle deg
+
+        array set WBParameters {
+            Model DefaultWireModel
+            Padstack ""
+            XStart 0
+            YStart 0
+            XEnd 0
+            YEnd 0
+        }
+
+        array set WBDRCProperty {
+            WB2WB 0
+            WB2Part 4
+            WB2Metal 0
+            WB2DieEdge 4
+            WB2DieSurface 0
+            WB2Cavity 0
+            WBAngle 360
+            BondSiteMargin 0
+            WBMin 100
+            WBMax 3000
+        }
+
+        array set WBRule {
+            Name DefaultWireModel
+            BWW 25
+            Template {[Name=[DefaultWireModel]][IsMod=[No]][Cs=[[[X=[0]][Y=[0]][Z=[(BWH)]][R=[0]][CT=[Ball]]][[X=[0]][Y=[0]][Z=[(BWH)*1.5]][R=[100um]][CT=[Round]]][[X=[(BWD)/3*2]][Y=[0]][Z=[(BWH)*1.5]][R=[200um]][CT=[Round]]][[X=[(BWD)]][Y=[0]][Z=[(IH)]][R=[0]][CT=[Wedge]]]]][Vs=[[BD=[BWW+15um]][BH=[15um]][BWD=[3000um]][BWH=[300um]][BWW=[%s%s]][IH=[30um]][WL=[30um]]]]}
+            Value ""
+        }
+
+        set WBRule(Value) [format $WBRule(Template) $WBRule(BWW) $Units]
+
+        ##
+        ##  MGC::WireBond::UpdateParameters
+        ##
+        proc UpdateParameters {} {
+            variable Units
+            variable WBParameters
+            set GUI::Dashboard::WBParameters [format \
+                {[Model=[%s]][Padstack=[%s]][XStart=[%s%s]][YStart=[%s%s]][XEnd=[%s%s]][YEnd=[%s%s]]} \
+                $WBParameters(Model) $WBParameters(Padstack) \
+                $WBParameters(XStart) $Units $WBParameters(YStart) $Units \
+                $WBParameters(XEnd) $Units $WBParameters(YEnd) $Units]
+        }
+
+        ##
+        ##  MGC::WireBond::UpdateDRCProperty
+        ##
+        proc UpdateDRCProperty {} {
+            variable Angle
+            variable Units
+            variable WBDRCProperty
+            set GUI::Dashboard::WBDRCProperty [format \
+                {[WB2WB=[%s%s]][WB2Part=[%s%s]][WB2Metal=[%s%s]][WB2DieEdge=[%s%s]][WB2DieSurface=[%s%s]][WB2Cavity=[%s%s]][WBAngle=[%s%s]][BondSiteMargin=[%s%s]][Rows=[[[WBMin=[%s%s]][WBMax=[%s%s]]]]]} \
+                    $WBDRCProperty(WB2WB) $Units $WBDRCProperty(WB2Part) $Units $WBDRCProperty(WB2Metal) $Units \
+                    $WBDRCProperty(WB2DieEdge) $Units $WBDRCProperty(WB2DieSurface) $Units $WBDRCProperty(WB2Cavity) $Units \
+                    $WBDRCProperty(WBAngle) $Angle $WBDRCProperty(BondSiteMargin) $Units $WBDRCProperty(WBMin) $Units \
+                    $WBDRCProperty(WBMax) $Units]
+        }
+
+        ##
+        ##  MGC::WireBond::SelectBondPad
+        ##
+        proc SelectBondPad {} {
+            set bondpads [list]
+
+            foreach i [dict keys $::padtypes] {
+                set type [dict get $::padtypes $i]
+
+                if { [string equal bondpad $type] } {
+                    lappend bondpads $i
+                }
+            }
+
+            set MGC::WireBond::WBParameters(Padstack) \
+                [AIFForms::SelectOneFromList "Select Bond Pad" $bondpads]
+            if { [string equal $MGC::WireBond::WBParameters(Padstack) ""] } {
+                Transcript $::ediu(MsgError) "No bond pad selected."
+                return
+            } else {
+                set MGC::WireBond::WBParameters(Padstack) [lindex $MGC::WireBond::WBParameters(Padstack) 1]
+            }
+        }
+
         ##
         ##  MGC::WireBond::Setup
         ##
         proc Setup {} {
+            variable WBParameters
+            printArray WBParameters
             puts "MGC::WireBond::Setup"
+            $GUI::widgets(notebook) select $GUI::widgets(wirebondparams)
         }
 
         ##
@@ -1562,6 +1655,34 @@ namespace eval MGC {
         ##
         proc PlaceBondWires {} {
             puts "MGC::WireBond::PlaceBondWires"
+        }
+
+        ##
+        ##  MGC::WireBond::ExportWireModel
+        ##
+        proc ExportWireModel { { wb "" } } {
+            variable Units
+            variable WBRule
+
+            if { $wb == "" } {
+                set wb [tk_getSaveFile -filetypes {{WB .wb} {All *}} \
+                    -initialfile [format "%s.wb" $WBRule(Name)] -defaultextension ".wb"]
+            }
+
+            if { $wb == "" } {
+                Transcript $::ediu(MsgWarning) "No Placement file specified, Export aborted."
+                return
+            }
+        
+            #  Write the wire model to the file
+
+            set f [open $wb "w+"]
+            puts $f $WBRule(Value)
+            close $f
+
+            Transcript $::ediu(MsgNote) [format "Wire Model successfully exported to file \"%s\"." $wb]
+
+            return
         }
     }
 }
