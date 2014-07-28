@@ -106,6 +106,7 @@ namespace eval GUI {
 
         ##  Build the Dashboard
         GUI::Build::Dashboard
+        GUI::Build::WireBondParameters
 
         ##  Arrange the top level widgets
         grid $GUI::widgets(notebook) -row 0 -column 0 -sticky nsew -padx 4 -pady 4
@@ -286,10 +287,13 @@ namespace eval GUI {
             $fm add command -label "Close AIF" \
                 -accelerator "F6" -underline 0 \
                 -command ediuAIFFileClose
+            $fm add separator
             $fm add command -label "Export KYN ..." \
                 -underline 7 -command Netlist::Export::KYN
             $fm add command -label "Export Placement ..." \
                 -underline 7 -command Netlist::Export::Placement
+            $fm add command -label "Export Wire Model ..." \
+                -underline 7 -command MGC::WireBond::ExportWireModel
             #$fm add separator
             #$fm add command -label "Open Sparse Pins ..." \
                 -underline 1 -command ediuSparsePinsFileOpen
@@ -580,19 +584,22 @@ if { 0 } {
             set GUI::widgets(netlisttable) $nltf
             set knltf [ttk::frame $nb.kynnetlist]
             set GUI::widgets(kynnetlist) $knltf
+            set wbpf [ttk::frame $nb.wirebondparams]
+            set GUI::widgets(wirebondparams) $wbpf
 
             $nb add $dbf -text "Dashboard" -padding 4
             $nb add $lvf -text "Layout" -padding 4
             $nb add $tf -text "Transcript" -padding 4
             $nb add $sf -text "AIF Source File" -padding 4
             $nb add $nf -text "Netlist" -padding 4
-            #$nb add $ssf -text "Sparse Pins" -padding 4
+            $nb add $ssf -text "Sparse Pins" -padding 4
             $nb add $nltf -text "AIF Netlist" -padding 4
             $nb add $knltf -text "KYN Netlist" -padding 4
+            $nb add $wbpf -text "Wire Bond Parameters" -padding 4
 
             #  Hide the netlist tab, it is used but shouldn't be visible
-            #$nb hide $nf
-            #$nb hide $ssf
+            $nb hide $nf
+            $nb hide $ssf
 
             GUI::Build::Notebook::LayoutFrame $lvf
             GUI::Build::Notebook::AIFSourceFrame $sf
@@ -773,9 +780,6 @@ if { 0 } {
             set db $GUI::widgets(dashboard)
             set dbf [frame $db.frame -borderwidth 5 -relief ridge]
 
-#pack $db -anchor nw
-#pack $dbf -in $db -anchor nw
-
             ##  Mode
             labelframe $dbf.mode -pady 2 -text "Mode" -padx 2
             foreach i { "Design" "Central Library" } {
@@ -861,12 +865,14 @@ if { 0 } {
 
             ##  WBParameters
             labelframe $dbf.wbparameters -pady 5 -text "Wire Bond Parameters" -padx 5
-            entry $dbf.wbparameters.e -width 110 -relief sunken -bd 2 -textvariable GUI::Dashboard::WBParameters
+            entry $dbf.wbparameters.e -width 110 -relief sunken -bd 2 \
+                -textvariable GUI::Dashboard::WBParameters -state readonly
             grid $dbf.wbparameters.e -row 0 -column 0 -pady 5 -padx 5 -sticky w
 
             ##  WBDRCProperty
             labelframe $dbf.wbdrcproperty -pady 5 -text "Wire Bond DRC Property" -padx 5
-            entry $dbf.wbdrcproperty.e -width 110 -relief sunken -bd 2 -textvariable GUI::Dashboard::WBDRCProperty
+            entry $dbf.wbdrcproperty.e -width 110 -relief sunken -bd 2 \
+                -textvariable GUI::Dashboard::WBDRCProperty -state readonly
             grid $dbf.wbdrcproperty.e -row 0 -column 0 -pady 5 -padx 5 -sticky w
 
             
@@ -890,6 +896,121 @@ if { 0 } {
             grid $dbf.wbdrcproperty  -row 7 -column 0 -sticky new -padx 10 -pady 8 -columnspan 5
 
             grid $dbf -row 0 -column 0 -sticky nw -padx 10 -pady 10
+        }
+
+        ##
+        ##  GUI::Build::WireBondParameters
+        ##
+        proc WireBondParameters {} {
+            set wbp $GUI::widgets(wirebondparams)
+            set wbpf [frame $wbp.frame -borderwidth 5 -relief ridge]
+
+            ##  Units
+            labelframe $wbpf.units -pady 2 -text "Units" -padx 2
+            foreach { i j } { um "Microns" th "Thousandths" } {
+                radiobutton $wbpf.units.b$i -text "$j" -variable MGC::WireBond::Units \
+	            -relief flat -value $i
+                pack $wbpf.units.b$i  -side top -pady 2 -anchor w
+            }
+
+            ##  Angle
+            labelframe $wbpf.angle -pady 2 -text "Angle" -padx 2
+            foreach { i j } { deg "Degrees" rad "Radians" } {
+                radiobutton $wbpf.angle.b$i -text "$j" -variable MGC::WireBond::Angle \
+	            -relief flat -value $i
+                pack $wbpf.angle.b$i  -side top -pady 2 -anchor w
+            }
+
+            ##  Wire Bond Parameters
+            labelframe $wbpf.wbparameters -pady 2 -text "Wire Bond Parameters" -padx 2
+            foreach i  [array names MGC::WireBond::WBParameters] {
+                label $wbpf.wbparameters.l$i -text "$i:"
+                entry $wbpf.wbparameters.e$i -relief sunken \
+                    -textvariable MGC::WireBond::WBParameters($i)
+                pack $wbpf.wbparameters.l$i  -side left -pady 2 -anchor w
+                pack $wbpf.wbparameters.e$i  -side left -pady 2 -anchor w -expand true
+                grid $wbpf.wbparameters.l$i $wbpf.wbparameters.e$i -padx 3 -pady 3 -sticky w
+            }
+            button $wbpf.wbparameters.b -text "Select Bond Pad ..." -command MGC::WireBond::SelectBondPad
+            grid $wbpf.wbparameters.b -padx 3 -pady 3 -sticky s -column 1
+
+            ##  Wire Bond DRC Property
+            labelframe $wbpf.wbdrcproperty -pady 2 -text "Wire Bond DRC Property" -padx 2
+            foreach i [array names MGC::WireBond::WBDRCProperty] {
+                label $wbpf.wbdrcproperty.l$i -text "$i:"
+                entry $wbpf.wbdrcproperty.e$i -relief sunken -textvariable MGC::WireBond::WBDRCProperty($i)
+                pack $wbpf.wbdrcproperty.l$i  -side left -pady 2 -anchor w
+                pack $wbpf.wbdrcproperty.e$i  -side left -pady 2 -anchor w -expand true
+                grid $wbpf.wbdrcproperty.l$i $wbpf.wbdrcproperty.e$i -padx 3 -pady 3 -sticky w
+            }
+
+            ##  Wire Bond Rule
+            #labelframe $wbpf.wbrule -pady 2 -text "Wire Bond Rule" -padx 2
+            #foreach i [array names MGC::WireBond::WBRule] {
+            #    label $wbpf.wbrule.l$i -text "$i:"
+            #    entry $wbpf.wbrule.e$i -relief sunken -textvariable MGC::WireBond::WBRule($i)
+            #    pack $wbpf.wbrule.l$i  -side left -pady 2 -anchor w
+            #    pack $wbpf.wbrule.e$i  -side left -pady 2 -anchor w -expand true
+            #    grid $wbpf.wbrule.l$i $wbpf.wbrule.e$i -padx 3 -pady 3 -sticky w
+            #}
+
+            ##  Bond Wire Setup
+            #labelframe $wbpf.bondwireparams -pady 5 -text "Default Bond Wire Setup" -padx 5
+
+            ##  WBParameters
+            labelframe $wbpf.wbparametersval -pady 2 -text "Wire Bond Parameters Property Value" -padx 5
+            entry $wbpf.wbparametersval.e -width 120 -relief sunken -bd 2 \
+                -textvariable GUI::Dashboard::WBParameters -state readonly
+            button $wbpf.wbparametersval.b -text "Update" -command MGC::WireBond::UpdateParameters
+            grid $wbpf.wbparametersval.b -row 0 -column 0 -pady 2 -padx 5 -sticky w
+            grid $wbpf.wbparametersval.e -row 0 -column 1 -pady 2 -padx 5 -sticky w
+
+            ##  WBDRCProperty
+            labelframe $wbpf.wbdrcpropertyval -pady 2 -text "Wire Bond DRC Property Property Value" -padx 5
+            entry $wbpf.wbdrcpropertyval.e -width 120 -relief sunken -bd 2 \
+                -textvariable GUI::Dashboard::WBDRCProperty -state readonly
+            button $wbpf.wbdrcpropertyval.b -text "Update" -command MGC::WireBond::UpdateDRCProperty
+            grid $wbpf.wbdrcpropertyval.b -row 0 -column 0 -pady 2 -padx 5 -sticky w
+            grid $wbpf.wbdrcpropertyval.e -row 0 -column 1 -pady 2 -padx 5 -sticky w
+
+            ##  WBRule
+            labelframe $wbpf.wbrule -pady 2 -text "Default Wire Model" -padx 5
+            set tftext [text $wbpf.wbrule.text -wrap word  -height 10 \
+                -xscrollcommand [list $wbpf.wbrule.tftextscrollx set] \
+                -yscrollcommand [list $wbpf.wbrule.tftextscrolly set]]
+            $tftext configure -font EDIUFont -state disabled
+            ttk::scrollbar $wbpf.wbrule.tftextscrolly -orient vertical -command [list $tftext yview]
+            ttk::scrollbar $wbpf.wbrule.tftextscrollx -orient horizontal -command [list $tftext xview]
+            grid $tftext -row 0 -column 0 -in $wbpf.wbrule -sticky nsew
+            grid $wbpf.wbrule.tftextscrolly -row 0 -column 1 -in $wbpf.wbrule -sticky ns
+            grid $wbpf.wbrule.tftextscrollx x -row 1 -column 0 -in $wbpf.wbrule -sticky ew
+            grid columnconfigure $wbpf.wbrule 0 -weight 1
+            grid    rowconfigure $wbpf.wbrule 0 -weight 1
+
+            $wbpf.wbrule.text configure -state normal
+            $wbpf.wbrule.text insert 1.0 $MGC::WireBond::WBRule(Value)
+            $wbpf.wbrule.text configure -state disabled
+            puts $MGC::WireBond::WBRule(Value)
+
+            ttk::separator $wbpf.sep1 -orient vertical
+            ttk::separator $wbpf.sep2 -orient vertical
+            ttk::separator $wbpf.sep3 -orient horizontal
+
+            ##  Place all of the widgets
+            grid $wbpf.units            -row 0 -column 0 -sticky new -padx 10 -pady 8
+            grid $wbpf.angle            -row 1 -column 0 -sticky new -padx 10 -pady 8
+            grid $wbpf.sep1             -row 0 -column 1 -sticky nsew -padx 3 -pady 3 -rowspan 4
+            grid $wbpf.wbparameters     -row 0 -column 2 -sticky new -padx 10 -pady 8 -rowspan 2
+            grid $wbpf.sep2             -row 0 -column 3 -sticky nsew -padx 3 -pady 3 -rowspan 4
+            grid $wbpf.wbdrcproperty    -row 0 -column 4 -sticky new -padx 10 -pady 8 -rowspan 2
+            #grid $wbpf.wbrule           -row 0 -column 4 -sticky new -padx 10 -pady 8 -rowspan 2
+            grid $wbpf.sep3             -row 5 -column 0 -sticky nsew -padx 2 -pady 2 -columnspan 5
+            grid $wbpf.wbparametersval  -row 6 -column 0 -sticky new -padx 10 -pady 8 -columnspan 5
+            grid $wbpf.wbdrcpropertyval -row 7 -column 0 -sticky new -padx 10 -pady 8 -columnspan 5
+            grid $wbpf.wbrule           -row 8 -column 0 -sticky new -padx 10 -pady 8 -columnspan 5
+
+            ##  Want to expand everything to fill frame but this doesn't work.  :-(
+            grid $wbpf -row 0 -column 0 -sticky nsew -padx 0 -pady 0
         }
     }
 
@@ -948,8 +1069,11 @@ if { 0 } {
         variable Visibility on
         variable CellGeneration
         variable CellSuffix none
-        variable WBParameters {[Model=[BallWedgeShared]][Padstack=[BF150x65]][XStart=[0um]][YStart=[0um]][XEnd=[0um]][YEnd=[0um]]}
-        variable WBDRCProperty {[WB2WB=[0um]][WB2Part=[4um]][WB2Metal=[0um]][WB2DieEdge=[4um]][WB2DieSurface=[0um]][WB2Cavity=[4um]][WBAngle=[360deg]][BondSiteMargin=[0um]][Rows=[[[WBMin=[100um]][WBMax=[3000um]]]]]}
+        variable WBParameters
+        #variable WBParameters {[Model=[BallWedgeShared]][Padstack=[BF150x65]][XStart=[0um]][YStart=[0um]][XEnd=[0um]][YEnd=[0um]]}
+        variable WBDRCProperty
+        #variable WBDRCProperty {[WB2WB=[0um]][WB2Part=[4um]][WB2Metal=[0um]][WB2DieEdge=[4um]][WB2DieSurface=[0um]][WB2Cavity=[4um]][WBAngle=[360deg]][BondSiteMargin=[0um]][Rows=[[[WBMin=[100um]][WBMax=[3000um]]]]]}
+        variable WBRule
 
         array set CellGeneration {
             MirrorNone on
