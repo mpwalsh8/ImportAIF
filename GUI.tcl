@@ -501,10 +501,13 @@ if { 0 } {
             $wbm add command -label "Setup ..." \
                 -underline 0 -command MGC::WireBond::Setup
             $wbm add separator
+            $wbm add command -label "Apply Wire Bond Properties" \
+                -underline 0 -command MGC::WireBond::ApplyProperies
+            $wbm add separator
             $wbm add command -label "Place Bond Pads ..." \
-                -underline 0 -command MGC::WireBond::PlaceBondPads
+                -underline 11 -command MGC::WireBond::PlaceBondPads
             $wbm add command -label "Place Bond Wires ..." \
-                -underline 0 -command MGC::WireBond::PlaceBondWires
+                -underline 11 -command MGC::WireBond::PlaceBondWires
         }
 
         ##

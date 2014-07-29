@@ -1644,10 +1644,119 @@ namespace eval MGC {
         }
 
         ##
+        ##  MGC::WireBond::ApplyProperies
+        ##
+        proc ApplyProperies {} {
+            puts "MGC::WireBond::ApplyProperies"
+            ##  Which mode?  Design or Library?
+            if { $::ediu(mode) == $::ediu(designMode) } {
+                ##  Invoke Expedition on the design so the Cell Editor can be started
+                ##  Catch any exceptions raised by opening the database
+                set errorCode [catch { MGC::OpenExpedition } errorMessage]
+                if {$errorCode != 0} {
+                    Transcript $::ediu(MsgError) [format "API error \"%s\", build aborted." $errorMessage]
+                    GUI::StatusBar::UpdateStatus -busy off
+                    return
+                }
+                set ::ediu(cellEdtr) [$::ediu(pcbDoc) CellEditor]
+            } else {
+                Transcript $::ediu(MsgError) "Bond Pad placement is only available in design mode."
+                return
+            }
+
+            ##  Check the property values and make sure they are set.
+            if { [string equal $GUI::Dashboard::WBParameters ""] } {
+                Transcript $::ediu(MsgError) "Wire Bond Parameters property has not been set."
+                return
+            }
+
+            if { [string equal $GUI::Dashboard::WBDRCProperty ""] } {
+                Transcript $::ediu(MsgError) "Wire Bond DRC property has not been set."
+                return
+            }
+
+            ##  Apply the properties to the PCB Doc
+            $::ediu(pcbDoc) PutProperty "WBParameters" $GUI::Dashboard::WBParameters
+            Transcript $::ediu(MsgNote) "Wire Bond property \"WBParameters\" applied to design."
+            $::ediu(pcbDoc) PutProperty "WBDRCProperty" $GUI::Dashboard::WBDRCProperty
+            Transcript $::ediu(MsgNote) "Wire Bond property \"WBDRCProperty\" applied to design."
+        }
+
+        ##
         ##  MGC::WireBond::PlaceBondPads
         ##
         proc PlaceBondPads {} {
             puts "MGC::WireBond::PlaceBondPads"
+
+            ##  Which mode?  Design or Library?
+            if { $::ediu(mode) == $::ediu(designMode) } {
+                ##  Invoke Expedition on the design so the Cell Editor can be started
+                ##  Catch any exceptions raised by opening the database
+                set errorCode [catch { MGC::OpenExpedition } errorMessage]
+                if {$errorCode != 0} {
+                    Transcript $::ediu(MsgError) [format "API error \"%s\", build aborted." $errorMessage]
+                    GUI::StatusBar::UpdateStatus -busy off
+                    return
+                }
+            } else {
+                Transcript $::ediu(MsgError) "Bond Pad placement is only available in design mode."
+                return
+            }
+
+            ##  Start a transaction with DRC to get Bond Pads placed ...
+            $::ediu(pcbDoc) TransactionStart [expr $::MGCPCB::EPcbDRCMode(epcbDRCModeNone)]
+            
+            foreach i $::bondpads {
+
+                set bondpad(NETNAME) [lindex $i 0]
+                set bondpad(FINNAME) [lindex $i 1]
+                set bondpad(FIN_X) [lindex $i 2]
+                set bondpad(FIN_Y) [lindex $i 3]
+                set bondpad(ANGLE) [lindex $i 4]
+
+                ##  Need to find the padstack ...
+                ##  Make sure the Bond Pad exists and is defined as a Bond Pad
+                set padstacks [$::ediu(pcbDoc) PadstackNames \
+                    [expr $::MGCPCB::EPcbPadstackObjectType(epcbPadstackObjectBondPad)]]
+
+                if { [lsearch $padstacks $bondpad(FINNAME)] == -1} {
+                    Transcript $::ediu(MsgError) [format \
+                        "Bond Pad \"%s\" does not appear in the design or is not defined as a Bond Pad." \
+                        $bondpad(FINNAME)]
+                    $::ediu(pcbDoc) TransactionEnd True
+                    return
+                } else {
+                    Transcript $::ediu(MsgNote) [format \
+                    "Bond Pad \"%s\" found in design, will be placed." $bondpad(FINNAME)]
+                }
+
+                ##  Activate the Bond Pad padstack
+                set padstack [$::ediu(pcbDoc) \
+                    PutPadstack [expr 1] [expr 1] $bondpad(FINNAME)]
+
+                set net [$::ediu(pcbDoc) FindNet $bondpad(NETNAME)]
+
+                if { [string equal $net ""] } {
+                    Transcript $::ediu(MsgError) [format "Net \"%s\" was not found." $bondpad(NETNAME)]
+                    $::ediu(pcbDoc) TransactionEnd True
+                    return
+                } else {
+                    Transcript $::ediu(MsgNote) [format "Net \"%s\" was found." $bondpad(NETNAME)]
+                }
+
+                ##  Place the Bond Pad
+                Transcript $::ediu(MsgNote) \
+                    [format "Placing Bond Pad \"%s\" for Net \"%s\" (X: %s  Y: %s  R: %s)." \
+                    $bondpad(FINNAME) $bondpad(NETNAME) $bondpad(FIN_X) $bondpad(FIN_Y) $bondpad(ANGLE)]
+                set bpo [$::ediu(pcbDoc) PutBondPad \
+                    [expr $bondpad(FIN_X)] [expr $bondpad(FIN_Y)] $padstack $net]
+                $bpo -set Orientation \
+                    [expr $::MGCPCB::EPcbAngleUnit(epcbAngleUnitDegrees)] [expr $bondpad(ANGLE)]
+
+                puts [format "---------->  %s" [$bpo Name]]
+                puts [format "Orientation:  %s" [$bpo -get Orientation]]
+            }
+            $::ediu(pcbDoc) TransactionEnd True
         }
 
         ##
@@ -1655,6 +1764,68 @@ namespace eval MGC {
         ##
         proc PlaceBondWires {} {
             puts "MGC::WireBond::PlaceBondWires"
+
+            ##  Which mode?  Design or Library?
+            if { $::ediu(mode) == $::ediu(designMode) } {
+                ##  Invoke Expedition on the design so the Cell Editor can be started
+                ##  Catch any exceptions raised by opening the database
+                set errorCode [catch { MGC::OpenExpedition } errorMessage]
+                if {$errorCode != 0} {
+                    Transcript $::ediu(MsgError) [format "API error \"%s\", build aborted." $errorMessage]
+                    GUI::StatusBar::UpdateStatus -busy off
+                    return
+                }
+            } else {
+                Transcript $::ediu(MsgError) "Bond Pad placement is only available in design mode."
+                return
+            }
+
+            GUI::StatusBar::UpdateStatus -busy on
+            ##  Start a transaction with DRC to get Bond Pads placed ...
+            $::ediu(pcbDoc) TransactionStart [expr $::MGCPCB::EPcbDRCMode(epcbDRCModeNone)]
+
+            set pins [$::ediu(pcbDoc) Pins]
+            puts [format "Design has %d pins." [$pins Count]]
+            set bondpads [$::ediu(pcbDoc) BondPads]
+            puts [format "Design has %d bond pads." [$bondpads Count]]
+            
+            set j 0
+            foreach i $::bondwires {
+                puts $i
+
+                set bondwire(NETNAME) [lindex $i 0]
+                set bondwire(FROM_X) [lindex $i 1]
+                set bondwire(FROM_Y) [lindex $i 2]
+                set bondwire(TO_X) [lindex $i 3]
+                set bondwire(TO_Y) [lindex $i 4]
+
+                ##  Look through the Pins until a match is found
+
+                ::tcom::foreach pin $pins {
+                    #puts [$pin PositionX]
+                    update idletasks
+                    puts [format "%s = %s?" [expr double([$pin PositionX])] [expr double($bondwire(FROM_X))]]
+                    #puts [format "%s = %s?" [expr double([$pin PositionY])] [expr double($bondwire(FROM_Y))]]
+
+                    #puts [$pin PositionY]
+
+                    if { [expr double([$pin PositionX])] == [expr double($bondwire(FROM_X))] } { 
+                        puts "X match ..."
+                        if { [expr double([$pin PositionY])] == [expr double($bondwire(FROM_Y))] } { 
+                            puts "Y match!"
+                            break
+                        } else {
+                            continue
+                        }
+                    } else {
+                        continue
+                    }
+                }
+
+                if { [incr j] > 1 } { break }
+            }
+
+            GUI::StatusBar::UpdateStatus -busy off
         }
 
         ##

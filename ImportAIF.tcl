@@ -287,6 +287,7 @@ proc ediuAIFFileInit { } {
     set ::netlines [list]
 
     ##  Store bondpad connections in a Tcl list
+    set ::bondpads [list]
     set ::bondwires [list]
 }
 
@@ -689,6 +690,7 @@ proc ediuGraphicViewBuild {} {
         if { $nlr(FINNAME) != "-" } {
             #puts "---------------------> Finger"
             ediuGraphicViewAddPin $nlr(FIN_X) $nlr(FIN_Y) $nlr(FINNUM) $nlr(NETNAME) $nlr(FINNAME) $line_no "bondpad pad pad-$nlr(FINNAME)" "purple" "white" $nlr(ANGLE)
+            lappend ::bondpads [list $nlr(NETNAME) $nlr(FINNAME) $nlr(FIN_X) $nlr(FIN_Y) $nlr(ANGLE)]
             if { ![dict exists $::padtypes $nlr(FINNAME)] } {
                 dict lappend ::padtypes $nlr(FINNAME) "bondpad"
             }
@@ -1700,7 +1702,7 @@ GUI::StatusBar::UpdateStatus -busy off
 #catch { ediuAIFFileOpen "c:/users/mike/desktop/ImportAIF/data/BGA_w2_Dies.aif" } retString
 ##catch { ediuAIFFileOpen "c:/users/mike/desktop/ImportAIF/data/BGA_w2_Dies-2.aif" } retString
 #catch { ediuAIFFileOpen "c:/users/mike/desktop/ImportAIF/data/BGA_w2_Dies-3.aif" } retString
-#catch { ediuAIFFileOpen "c:/users/mike/desktop/ImportAIF/data/Test2.aif" } retString
+catch { ediuAIFFileOpen "c:/users/mike/desktop/ImportAIF/data/Test2.aif" } retString
 #GUI::Visibility text -all true -mode off
 #set ::ediu(cellEdtrPrtnNames) { a b c d e f }
 #ediuAIFFileOpen
