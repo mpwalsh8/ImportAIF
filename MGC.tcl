@@ -1781,13 +1781,14 @@ namespace eval MGC {
             }
 
             GUI::StatusBar::UpdateStatus -busy on
+
             ##  Start a transaction with DRC to get Bond Pads placed ...
             $::ediu(pcbDoc) TransactionStart [expr $::MGCPCB::EPcbDRCMode(epcbDRCModeNone)]
 
-            set pins [$::ediu(pcbDoc) Pins]
-            puts [format "Design has %d pins." [$pins Count]]
-            set bondpads [$::ediu(pcbDoc) BondPads]
-            puts [format "Design has %d bond pads." [$bondpads Count]]
+            #set pins [$::ediu(pcbDoc) Pins]
+            #puts [format "Design has %d pins." [$pins Count]]
+            #set bondpads [$::ediu(pcbDoc) BondPads]
+            #puts [format "Design has %d bond pads." [$bondpads Count]]
             
             set j 0
             foreach i $::bondwires {
@@ -1799,32 +1800,122 @@ namespace eval MGC {
                 set bondwire(TO_X) [lindex $i 3]
                 set bondwire(TO_Y) [lindex $i 4]
 
-                ##  Look through the Pins until a match is found
+                ##  Try and "pick" the "FROM" Die Pin at the XY location.
+                $::ediu(pcbDoc) UnSelectAll
+                puts "Picking FROM at X:  $bondwire(FROM_X)  Y:  $bondwire(FROM_Y)"
+                set objs [$::ediu(pcbDoc) Pick \
+                    [expr double($bondwire(FROM_X))] [expr double($bondwire(FROM_Y))] \
+                    [expr double($bondwire(FROM_X))] [expr double($bondwire(FROM_Y))] \
+                    [expr $::MGCPCB::EPcbObjectClassType(epcbObjectClassPadstackObject)] \
+                    [$::ediu(pcbDoc) LayerStack]]
 
-                ::tcom::foreach pin $pins {
-                    #puts [$pin PositionX]
-                    update idletasks
-                    puts [format "%s = %s?" [expr double([$pin PositionX])] [expr double($bondwire(FROM_X))]]
-                    #puts [format "%s = %s?" [expr double([$pin PositionY])] [expr double($bondwire(FROM_Y))]]
+                puts [format "Picked %d objects" [$objs Count]]
 
-                    #puts [$pin PositionY]
+                ##  Make sure exactly "one" object was picked
 
-                    if { [expr double([$pin PositionX])] == [expr double($bondwire(FROM_X))] } { 
-                        puts "X match ..."
-                        if { [expr double([$pin PositionY])] == [expr double($bondwire(FROM_Y))] } { 
-                            puts "Y match!"
-                            break
-                        } else {
-                            continue
-                        }
-                    } else {
+                if { [$objs Count] != 1 } {
+                    Transcript $::ediu(MsgError) \
+                        [format "Unable to pick pad at bond wire origin (X: %f  Y: %f), bond wire skipped (Net: %s  From (%f, %f) To (%f, %f)." \
+                        $bondwire(FROM_X) $bondwire(FROM_Y) $bondwire(NETNAME) \
+                        $bondwire(FROM_X) $bondwire(FROM_Y) $bondwire(TO_X) $bondwire(TO_Y)]
                         continue
-                    }
                 }
 
-                if { [incr j] > 1 } { break }
+                ##  Make sure the object picked is a pin AND it is a die pad
+                set diepin [[$objs Item 1] CurrentPadstack]
+                if { [$diepin PinClass] != [expr $::MGCPCB::EPcbPinClassType(epcbPinClassDie)] } {
+                    Transcript $::ediu(MsgError) \
+                        [format "Pad at bond wire origin (X: %f  Y: %f) is not a Die Pad, bond wire skipped (Net: %s  From (%f, %f) To (%f, %f)." \
+                        $bondwire(FROM_X) $bondwire(FROM_Y) $bondwire(NETNAME) \
+                        $bondwire(FROM_X) $bondwire(FROM_Y) $bondwire(TO_X) $bondwire(TO_Y)]
+                        continue
+                } else {
+                    Transcript $::ediu(MsgNote) \
+                        [format "Found Die Pin at bond wire origin (X: %f  Y: %f) for net \"%s\"." \
+                            $bondwire(FROM_X) $bondwire(FROM_Y) $bondwire(NETNAME)]
+                }
+
+                ## Need to select the Pin Object as PutBondWire requires a Pin Object
+                set DiePin [[$diepin Pins] Item 1]
+                $DiePin Selected True
+
+                puts "help me!!!!"
+                puts [$DiePin PositionX]
+                puts [$DiePin PositionY]
+                puts "you've been helped!!!!"
+
+                ##  Try and "pick" the "TO" Bond Pad at the XY location.
+
+                $::ediu(pcbDoc) UnSelectAll
+
+                puts "Picking TO at X:  $bondwire(TO_X)  Y:  $bondwire(TO_Y)"
+                set objs [$::ediu(pcbDoc) Pick \
+                    [expr double($bondwire(TO_X))] [expr double($bondwire(TO_Y))] \
+                    [expr double($bondwire(TO_X))] [expr double($bondwire(TO_Y))] \
+                    [expr $::MGCPCB::EPcbObjectClassType(epcbObjectClassPadstackObject)] \
+                    [$::ediu(pcbDoc) LayerStack]]
+
+                puts [format "Picked %d objects" [$objs Count]]
+
+                ##  Make sure exactly "one" object was picked
+
+                if { [$objs Count] != 1 } {
+                    Transcript $::ediu(MsgError) \
+                        [format "Unable to pick pad at bond wire termination (X: %f  Y: %f), bond wire skipped (Net: %s  From (%f, %f) To (%f, %f)." \
+                        $bondwire(TO_X) $bondwire(TO_Y) $bondwire(NETNAME) \
+                        $bondwire(TO_X) $bondwire(TO_Y) $bondwire(TO_X) $bondwire(TO_Y)]
+if { [incr j] > 1 } { break }
+                        continue
+                }
+
+                ##  Make sure the object picked is a pin AND it is a bond pad
+                set bondpad [[$objs Item 1] CurrentPadstack]
+                puts [$bondpad Name]
+                puts [$bondpad PinClass]
+
+                if {([$bondpad PinClass] != [expr $::MGCPCB::EPcbPinClassType(epcbPinClassSMD)]) && \
+                    ([$bondpad Type] != [expr $::MGCPCB::EPcbPadstackObjectType(epcbPadstackObjectBondPad)])} {
+                    Transcript $::ediu(MsgError) \
+                        [format "Pad at bond wire termination (X: %f  Y: %f) is not a Bond Pad, bond wire skipped (Net: %s  From (%f, %f) To (%f, %f)." \
+                        $bondwire(TO_X) $bondwire(TO_Y) $bondwire(NETNAME) \
+                        $bondwire(TO_X) $bondwire(TO_Y) $bondwire(TO_X) $bondwire(TO_Y)]
+if { [incr j] > 1 } { break }
+                        continue
+                } else {
+                    Transcript $::ediu(MsgNote) \
+                        [format "Found Bond Pad at bond wire termination (X: %f  Y: %f) for net \"%s\"." \
+                            $bondwire(TO_X) $bondwire(TO_Y) $bondwire(NETNAME)]
+                }
+
+                ## Need to select the Pin Object as PutBondWire requires a Pin Object
+                set BondPad [[$bondpad Pins] Item 1]
+                $BondPad Selected True
+                set QQQ [[$::ediu(pcbDoc) BondPads [expr $::MGCPCB::EPcbSelectionType(epcbSelectSelected)]] Item 1]
+
+                puts "help me again!!!!"
+                puts [$BondPad PositionX]
+                puts [$BondPad PositionY]
+                puts "you've been helped again!!!!"
+
+
+                ##  A die pin and bond pad pair have been identified, time to drop a bond wire
+                set dpX [$DiePin PositionX]
+                set dpY [$DiePin PositionY]
+                set bpX [$BondPad PositionX]
+                set bpY [$BondPad PositionY]
+
+                set errorCode [catch { set bondwire [$::ediu(pcbDoc) \
+                    PutBondWire $DiePin $dpX $dpY $BondPad $bpX $bpY] } errorMessage]
+                if {$errorCode != 0} {
+                    Transcript $::ediu(MsgError) [format "API error \"%s\", Bond Wire not placed." $errorMessage]
+                } else {
+                    Transcript $::ediu(MsgNote) [format "Bond Wire successfully placed for net \"%s\" from (%f,%f) to (%f,%f)." \
+                        $bondwire(FROM_X) $bondwire(FROM_Y) $bondwire(_X) $bondwire(TO_Y)]
+                }
+if { [incr j] > 1 } { puts "Exiting ... " ; break }
             }
 
+            $::ediu(pcbDoc) TransactionEnd True
             GUI::StatusBar::UpdateStatus -busy off
         }
 
