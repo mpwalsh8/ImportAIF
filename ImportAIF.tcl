@@ -706,7 +706,7 @@ proc ediuGraphicViewBuild {} {
 
         ##  Look for bond wire connections
 
-        if { $nlr(PAD_X) != "-"  && $nlr(PAD_Y) != "-"  && $nlr(FIN_X) != "-"  && $nlr(FIN_Y) != "-" } {
+        if { $nlr(PAD_X) != "-"  && $nlr(PAD_Y) != "-"  && $nlr(FINNAME) != "-" && $nlr(FIN_X) != "-"  && $nlr(FIN_Y) != "-" } {
             lappend ::bondwires [list $nlr(NETNAME) $nlr(PAD_X) $nlr(PAD_Y) $nlr(FIN_X) $nlr(FIN_Y)]
         }
 
@@ -718,13 +718,23 @@ proc ediuGraphicViewBuild {} {
 
         ##  Add any connections to the netlist
 
-        if { $nlr(BALL_X) != "-"  && $nlr(BALL_Y) != "-" } {
-            if { $nlr(PAD_X) != "-"  && $nlr(PAD_Y) != "-" } {
-                lappend ::netlist [list $nlr(NETNAME) $nlr(PADNUM) [format "%s.%s" $::bga(refdes) $nlr(BALLNUM)]]
+        if { $nlr(PADNUM) != "-" && $nlr(PADNAME) != "-" && $nlr(PAD_X) != "-"  && $nlr(PAD_Y) != "-" } {
+            if { 1 } {
+                lappend ::netlist [list $nlr(NETNAME) $nlr(PADNUM)]
+            } else {
+                lappend ::netlist [list $nlr(NETNAME) [format "%s.%s" $::ediu(DIEREF) $nlr(PADNUM)]]
+            }
+        }
+
+if { 1 } {
+        if { $nlr(BALLNUM) != "-" && $nlr(BALLNAME) != "-" && $nlr(BALL_X) != "-"  && $nlr(BALL_Y) != "-" } {
+            if { 0 } {
+                lappend ::netlist [list $nlr(NETNAME) [format "%s.%s" $::bga(refdes) $nlr(BALLNUM)]]
             } else {
                 lappend ::netlist [list $nlr(NETNAME) [format "%s.%s" $::bga(refdes) $nlr(BALLNUM)]]
             }
         }
+}
     }
 
     ##  Due to the structure of the AIF file, it is possible to have
@@ -734,6 +744,14 @@ proc ediuGraphicViewBuild {} {
     foreach d [array names ::devices] {
         set ::devices($d) [lsort -unique $::devices($d)]
     }
+
+    ##  Similarly, bond pads can have more than one connection and may
+    ##  appear in the AIF file multiple times.  Need to eliminate any
+    ##  duplicates prevent placing bond pads multiple times.
+
+    puts [format "++++++>  %d" [llength $::bondpads]]
+    set ::bondpads [lsort -unique $::bondpads]
+    puts [format "++++++>  %d" [llength $::bondpads]]
 
     #  Generate KYN Netlist
     $kyn configure -state normal
@@ -778,9 +796,9 @@ proc ediuGraphicViewBuild {} {
     }
     
     ##  If there is a BGA, make sure to put it in the part list
-    if { $::ediu(BGA) == 1 } {
-        $kyn insert end [format "\\%s\\   \\%s\\\n" $::bga(name) $::bga(refdes)]
-    }
+    #if { $::ediu(BGA) == 1 } {
+    #    $kyn insert end [format "\\%s\\   \\%s\\\n" $::bga(name) $::bga(refdes)]
+    #}
 
     $kyn configure -state disabled
 
