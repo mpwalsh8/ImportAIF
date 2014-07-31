@@ -1897,14 +1897,17 @@ break
                 set bpX [$BondPad PositionX]
                 set bpY [$BondPad PositionY]
 
-                set errorCode [catch { $::ediu(pcbDoc) \
-                    PutBondWire $DiePin $dpX $dpY $BondPad $bpX $bpY } errorMessage]
+                set errorCode [catch { [set bw [$::ediu(pcbDoc) \
+                    PutBondWire $DiePin $dpX $dpY $BondPad $bpX $bpY]] } errorMessage]
                 if {$errorCode != 0} {
                     Transcript $::ediu(MsgError) [format "API error \"%s\", Bond Wire not placed." $errorMessage]
                 } else {
                     Transcript $::ediu(MsgNote) [format "Bond Wire successfully placed for net \"%s\" from (%f,%f) to (%f,%f)." \
                         $bondwire(NETNAME) $bondwire(FROM_X) $bondwire(FROM_Y) $bondwire(TO_X) $bondwire(TO_Y)]
                 }
+
+                ##  Assign the BondWire model to ensure propert behavior
+                $bw -set WireModelName $MGC::WireBond::WBParameters(Model)
             }
 
             $::ediu(pcbDoc) TransactionEnd True
