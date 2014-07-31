@@ -136,7 +136,7 @@ proc ediuInit {} {
         layoutview ""
         netlistview ""
         #sparsepinsview ""
-        EDIU "Expedition AIF Import Utility"
+        EDIU "Xpedition xAIF - AIF Import Utility"
         MsgNote 0
         MsgWarning 1
         MsgError 2
@@ -1710,8 +1710,8 @@ GUI::StatusBar::UpdateStatus -busy off
 #Transcript $::ediu(MsgNote) "$::ediu(EDIU) ready."
 #ediuChooseCellPartitionDialog
 #puts $retString
-#set ::ediu(mode) $::ediu(libraryMode)
-#ediuSetupOpenLMC "C:/Users/mike/Documents/Sandbox/Sandbox.lmc"
+set GUI::Dashboard::Mode $::ediu(libraryMode)
+GUI::Dashboard::SelectCentralLibrary "C:/Users/mike/Documents/Sandbox2/Sandbox2.lmc"
 #set ::ediu(mode) $::ediu(designMode)
 #ediuSetupOpenPCB "C:/Users/mike/Documents/a_simple_design_ee794/a_simple_design.pcb"
 #catch { ediuAIFFileOpen "c:/users/mike/desktop/ImportAIF/data/Demo1.aif" } retString
@@ -1720,7 +1720,8 @@ GUI::StatusBar::UpdateStatus -busy off
 #catch { ediuAIFFileOpen "c:/users/mike/desktop/ImportAIF/data/BGA_w2_Dies.aif" } retString
 ##catch { ediuAIFFileOpen "c:/users/mike/desktop/ImportAIF/data/BGA_w2_Dies-2.aif" } retString
 #catch { ediuAIFFileOpen "c:/users/mike/desktop/ImportAIF/data/BGA_w2_Dies-3.aif" } retString
-catch { ediuAIFFileOpen "c:/users/mike/desktop/ImportAIF/data/Test2.aif" } retString
+#catch { ediuAIFFileOpen "c:/users/mike/desktop/ImportAIF/data/Test2.aif" } retString
+catch { GUI::Dashboard::SelectAIFFile "c:/users/mike/desktop/ImportAIF/data/Test1.aif" } retString
 #GUI::Visibility text -all true -mode off
 #set ::ediu(cellEdtrPrtnNames) { a b c d e f }
 #ediuAIFFileOpen

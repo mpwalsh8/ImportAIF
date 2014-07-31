@@ -317,18 +317,18 @@ namespace eval GUI {
             set GUI::widgets(setupmenu) $sm
             $mb add cascade -label "Setup" -menu $sm -underline 0
             $sm add radiobutton -label "Design Mode" -underline 0 \
-                -variable ::ediu(mode) -value $::ediu(designMode) \
+                -variable GUI::Dashboard::Mode -value $::ediu(designMode) \
                 -command GUI::Menus::DesignMode
             $sm add radiobutton -label "Central Library Mode" -underline 0 \
-                -variable ::ediu(mode) -value $::ediu(libraryMode) \
+                -variable GUI::Dashboard::Mode -value $::ediu(libraryMode) \
                 -command GUI::Menus::CentralLibraryMode
             $sm add separator
             $sm add command \
-                -label "Target Design ..." -state normal \
-                -underline 1 -command ediuSetupOpenPCB
+                -label "Design ..." -state normal -underline 1 -command \
+                { set GUI::Dashboard::FullDesignPath [tk_getOpenFile -filetypes {{PCB .pcb}}] }
             $sm add command \
-                -label "Target Central Library ..." -state disabled \
-                -underline 2 -command ediuSetupOpenLMC
+                -label "Central Library ..." -state disabled \
+                -underline 2 -command GUI::Dashboard::SelectCentralLibrary
             #$sm add separator
             #$sm add checkbutton -label "Sparse Mode" -underline 0 \
                 #-variable ::ediu(sparseMode) -command ediuToggleSparseMode
@@ -785,8 +785,8 @@ if { 0 } {
 
             ##  Mode
             labelframe $dbf.mode -pady 2 -text "Mode" -padx 2
-            foreach i { "Design" "Central Library" } {
-                radiobutton $dbf.mode.b$i -text "$i" -variable GUI::Dashboard::Mode \
+            foreach { i j } [list $::ediu(designMode) "Design" $::ediu(libraryMode) "Central Library" ] {
+                radiobutton $dbf.mode.b$i -text "$j" -variable GUI::Dashboard::Mode \
 	            -relief flat -value $i
                 pack $dbf.mode.b$i  -side top -pady 2 -anchor w
             }
@@ -1088,8 +1088,12 @@ if { 0 } {
         ##
         ##  GUI::Dashboard::SelectAIFFile
         ##
-        proc SelectAIFFile {} {
-            set GUI::Dashboard::AIFFile [tk_getOpenFile -filetypes {{AIF .aif} {Txt .txt} {All *}}]
+        proc SelectAIFFile { { f "" } } {
+            if { [string equal $f ""] } {
+                set GUI::Dashboard::AIFFile [tk_getOpenFile -filetypes {{AIF .aif} {Txt .txt} {All *}}]
+            } else {
+                set GUI::Dashboard::AIFFile $f
+            }
 
             if { [string equal $GUI::Dashboard::AIFFile ""] } {
                 Transcript $::ediu(MsgError) "No AIF File selected."
@@ -1101,14 +1105,19 @@ if { 0 } {
         ##
         ##  GUI::Dashboard::SelectCentralLibrary
         ##
-        proc SelectCentralLibrary {} {
+        proc SelectCentralLibrary { { f "" } } {
             set db $GUI::widgets(dashboard)
-            set GUI::Dashboard::LibraryPath [tk_getOpenFile -filetypes {{LMC .lmc}}]
+
+            if { [string equal $f ""] } {
+                set GUI::Dashboard::LibraryPath [tk_getOpenFile -filetypes {{LMC .lmc}}]
+            } else {
+                set GUI::Dashboard::LibraryPath $f
+            }
 
             ##  Valid LMC selected?  If so, enable the buttons and load the partitions
             if { [expr { $GUI::Dashboard::LibraryPath ne "" }] } {
-                $dbf.library.cb configure -state normal
-                $dbf.library.pb configure -state normal
+                $db.frame.library.cb configure -state normal
+                $db.frame.library.pb configure -state normal
 
                 ##  Open the LMC and get the partition names
                 MGC::SetupLMC $GUI::Dashboard::LibraryPath

@@ -114,10 +114,10 @@ namespace eval MGC {
     proc OpenPadstackEditor { { mode "-opendatabase" } } {
         #  Crank up the Padstack Editor once per sessions
 
-        Transcript $::ediu(MsgNote) [format "Opening Padstack Editor in %s mode." $::ediu(mode)]
+        Transcript $::ediu(MsgNote) [format "Opening Padstack Editor in %s mode." $GUI::Dashboard::Mode]
 
         ##  Which mode?  Design or Library?
-        if { $::ediu(mode) == $::ediu(designMode) } {
+        if { $GUI::Dashboard::Mode == $::ediu(designMode) } {
             ##  Invoke Expedition on the design so the Padstack Editor can be started
             ##  Catch any exceptions raised by opening the database
 
@@ -137,7 +137,7 @@ namespace eval MGC {
             }
             set ::ediu(pdstkEdtr) [$::ediu(pcbDoc) PadstackEditor]
             set ::ediu(pdstkEdtrDb) [$::ediu(pdstkEdtr) ActiveDatabase]
-        } elseif { $::ediu(mode) == $::ediu(libraryMode) } {
+        } elseif { $GUI::Dashboard::Mode == $::ediu(libraryMode) } {
             set ::ediu(pdstkEdtr) [::tcom::ref createobject "MGCPCBLibraries.PadstackEditorDlg"]
             # Open the database
             set errorCode [catch {set ::ediu(pdstkEdtrDb) [$::ediu(pdstkEdtr) \
@@ -169,7 +169,7 @@ namespace eval MGC {
     proc ClosePadstackEditor { { mode "-closedatabase" } } {
         ##  Which mode?  Design or Library?
 
-        if { $::ediu(mode) == $::ediu(designMode) } {
+        if { $GUI::Dashboard::Mode == $::ediu(designMode) } {
             Transcript $::ediu(MsgNote) "Closing database for Padstack Editor."
             set errorCode [catch { $::ediu(pdstkEdtr) UnlockServer } errorMessage]
             if {$errorCode != 0} {
@@ -195,7 +195,7 @@ namespace eval MGC {
                 ##  Close Expedition
                 $::ediu(pcbApp) Quit
             }
-        } elseif { $::ediu(mode) == $::ediu(libraryMode) } {
+        } elseif { $GUI::Dashboard::Mode == $::ediu(libraryMode) } {
             Transcript $::ediu(MsgNote) "Closing database for Padstack Editor."
             set errorCode [catch { $::ediu(pdstkEdtr) UnlockServer } errorMessage]
             if {$errorCode != 0} {
@@ -216,7 +216,8 @@ namespace eval MGC {
     #
     proc OpenCellEditor { } {
         ##  Which mode?  Design or Library?
-        if { $::ediu(mode) == $::ediu(designMode) } {
+        if { $GUI::Dashboard::Mode == $::ediu(designMode) } {
+puts "QQQ"
             ##  Invoke Expedition on the design so the Cell Editor can be started
             ##  Catch any exceptions raised by opening the database
             set errorCode [catch { MGC::OpenExpedition } errorMessage]
@@ -228,7 +229,8 @@ namespace eval MGC {
             set ::ediu(cellEdtr) [$::ediu(pcbDoc) CellEditor]
             Transcript $::ediu(MsgNote) "Using design database for Cell Editor."
             set ::ediu(cellEdtrDb) [$::ediu(cellEdtr) ActiveDatabase]
-        } elseif { $::ediu(mode) == $::ediu(libraryMode) } {
+        } elseif { $GUI::Dashboard::Mode == $::ediu(libraryMode) } {
+puts "ZZZ"
             set ::ediu(cellEdtr) [::tcom::ref createobject "CellEditorAddin.CellEditorDlg"]
             set ::ediu(pdstkEdtr) [::tcom::ref createobject "MGCPCBLibraries.PadstackEditorDlg"]
             # Open the database
@@ -263,7 +265,7 @@ namespace eval MGC {
     proc CloseCellEditor {} {
         ##  Which mode?  Design or Library?
 
-        if { $::ediu(mode) == $::ediu(designMode) } {
+        if { $GUI::Dashboard::Mode == $::ediu(designMode) } {
             Transcript $::ediu(MsgNote) "Closing database for Cell Editor."
             set errorCode [catch { $::ediu(cellEdtr) UnlockServer } errorMessage]
             if {$errorCode != 0} {
@@ -289,7 +291,7 @@ namespace eval MGC {
                 ##  Close Expedition
                 $::ediu(pcbApp) Quit
             }
-        } elseif { $::ediu(mode) == $::ediu(libraryMode) } {
+        } elseif { $GUI::Dashboard::Mode == $::ediu(libraryMode) } {
             Transcript $::ediu(MsgNote) "Closing database for Cell Editor."
             set errorCode [catch { $::ediu(cellEdtr) UnlockServer } errorMessage]
             if {$errorCode != 0} {
@@ -310,7 +312,7 @@ namespace eval MGC {
     #
     proc OpenPDBEditor {} {
         ##  Which mode?  Design or Library?
-        if { $::ediu(mode) == $::ediu(designMode) } {
+        if { $GUI::Dashboard::Mode == $::ediu(designMode) } {
             ##  Invoke Expedition on the design so the PDB Editor can be started
             ##  Catch any exceptions raised by opening the database
             set errorCode [catch { MGC::OpenExpedition } errorMessage]
@@ -322,7 +324,7 @@ namespace eval MGC {
             set ::ediu(partEdtr) [$::ediu(pcbDoc) PartEditor]
             Transcript $::ediu(MsgNote) "Using design database for PDB Editor."
             set ::ediu(partEdtrDb) [$::ediu(partEdtr) ActiveDatabase]
-        } elseif { $::ediu(mode) == $::ediu(libraryMode) } {
+        } elseif { $GUI::Dashboard::Mode == $::ediu(libraryMode) } {
             set ::ediu(partEdtr) [::tcom::ref createobject "MGCPCBLibraries.PartsEditorDlg"]
             # Open the database
             Transcript $::ediu(MsgNote) "Opening library database for PDB Editor."
@@ -339,7 +341,7 @@ namespace eval MGC {
             Transcript $::ediu(MsgError) "Mode not set, build aborted."
             return -code return 1
         }
-                puts "OpenPDBEdtr - 1"
+puts "OpenPDBEdtr - 1"
 
         #set ::ediu(partEdtrDb) [$::ediu(partEdtr) OpenDatabase $::ediu(targetPath) false]
         set errorCode [catch { $::ediu(partEdtr) LockServer } errorMessage]
@@ -363,7 +365,7 @@ namespace eval MGC {
     proc ClosePDBEditor { } {
         ##  Which mode?  Design or Library?
 
-        if { $::ediu(mode) == $::ediu(designMode) } {
+        if { $GUI::Dashboard::Mode == $::ediu(designMode) } {
             Transcript $::ediu(MsgNote) "Closing database for PDB Editor."
             set errorCode [catch { $::ediu(partEdtr) UnlockServer } errorMessage]
             if {$errorCode != 0} {
@@ -390,7 +392,7 @@ namespace eval MGC {
                 ##  Close Expedition
                 $::ediu(pcbApp) Quit
             }
-        } elseif { $::ediu(mode) == $::ediu(libraryMode) } {
+        } elseif { $GUI::Dashboard::Mode == $::ediu(libraryMode) } {
             Transcript $::ediu(MsgNote) "Closing database for PDB Editor."
             set errorCode [catch { $::ediu(partEdtr) UnlockServer } errorMessage]
             if {$errorCode != 0} {
@@ -508,9 +510,9 @@ namespace eval MGC {
             ##  Make sure a Target library or design has been defined
 
             if {$::ediu(targetPath) == $::ediu(Nothing) && $::ediu(connectMode) != True } {
-                if {$::ediu(mode) == $::ediu(designMode)} {
+                if {$GUI::Dashboard::Mode == $::ediu(designMode)} {
                     Transcript $::ediu(MsgError) "No Design (PCB) specified, build aborted."
-                } elseif {$::ediu(mode) == $::ediu(libraryMode)} {
+                } elseif {$GUI::Dashboard::Mode == $::ediu(libraryMode)} {
                     Transcript $::ediu(MsgError) "No Central Library (LMC) specified, build aborted."
                 } else {
                     Transcript $::ediu(MsgError) "Mode not set, build aborted."
@@ -615,15 +617,13 @@ namespace eval MGC {
             set ::ediu(sTime) [clock format [clock seconds] -format "%m/%d/%Y %T"]
 
             ##  Extract pad details from AIF file
-            #ediuPadGeomName
-            #ediuPadGeomShape
 
             ##  Make sure a Target library or design has been defined
 
             if {$::ediu(targetPath) == $::ediu(Nothing) && $::ediu(connectMode) != True } {
-                if {$::ediu(mode) == $::ediu(designMode)} {
+                if {$GUI::Dashboard::Mode == $::ediu(designMode)} {
                     Transcript $::ediu(MsgError) "No Design (PCB) specified, build aborted."
-                } elseif {$::ediu(mode) == $::ediu(libraryMode)} {
+                } elseif {$GUI::Dashboard::Mode == $::ediu(libraryMode)} {
                     Transcript $::ediu(MsgError) "No Central Library (LMC) specified, build aborted."
                 } else {
                     Transcript $::ediu(MsgError) "Mode not set, build aborted."
@@ -740,7 +740,7 @@ namespace eval MGC {
         #
         proc Cell { device args } {
             ##  Process command arguments
-            array set V { -partition "" -mirror none } ;# Default values
+            array set V [list -partition $GUI::Dashboard::CellPartition -mirror none] ;# Default values
             foreach {a value} $args {
                 if {! [info exists V($a)]} {error "unknown option $a"}
                 if {$value == {}} {error "value of \"$a\" missing"}
@@ -750,6 +750,8 @@ namespace eval MGC {
                     set V($a) $value
                 }
             }
+
+            set ::ediu(cellEdtrPrtnName) $V(-partition)
 
             ##  Check mirror option, make sure it is valid
             if { [lsearch [list none x y xy] $V(-mirror)] == -1 } {
@@ -781,12 +783,12 @@ namespace eval MGC {
             ##  Make sure a Target library or design has been defined
 
             if {$::ediu(targetPath) == $::ediu(Nothing) && $::ediu(connectMode) != True } {
-                if {$::ediu(mode) == $::ediu(designMode)} {
+                if {$GUI::Dashboard::Mode == $::ediu(designMode)} {
                     Transcript $::ediu(MsgError) "No Design (PCB) specified, build aborted."
-                } elseif {$::ediu(mode) == $::ediu(libraryMode)} {
+                } elseif {$GUI::Dashboard::Mode == $::ediu(libraryMode)} {
                     Transcript $::ediu(MsgError) "No Central Library (LMC) specified, build aborted."
                 } else {
-                    puts $::ediu(mode)
+                    puts $GUI::Dashboard::Mode
                     Transcript $::ediu(MsgError) "Mode not set, build aborted."
                 }
 
@@ -809,7 +811,7 @@ namespace eval MGC {
             ##  mode than it is for design mode.  In design mode there
             ##  isn't a "partition" so none of the partition logic applies.
 
-            if { $::ediu(mode) == $::ediu(libraryMode) } {
+            if { $GUI::Dashboard::Mode == $::ediu(libraryMode) } {
 
                 #  Prompt for the Partition if not supplied with -partition
 
@@ -1022,7 +1024,7 @@ namespace eval MGC {
                         [format "Reference Padstack \"%s\" does not exist, build aborted." $pad]
                     $cellEditor Close False
 
-                    if { $::ediu(mode) == $::ediu(designMode) } {
+                    if { $GUI::Dashboard::Mode == $::ediu(designMode) } {
                         MGC::ClosePadstackEditor -dontclosedatabase
                     } else {
                         MGC::ClosePadstackEditor
@@ -1035,7 +1037,7 @@ namespace eval MGC {
             }
 
             ##  To fix Tcom bug?
-            if { $::ediu(mode) == $::ediu(designMode) } {
+            if { $GUI::Dashboard::Mode == $::ediu(designMode) } {
                 MGC::ClosePadstackEditor -dontclosedatabase
             } else {
                 MGC::ClosePadstackEditor
@@ -1195,7 +1197,7 @@ namespace eval MGC {
             Transcript $::ediu(MsgNote) [format "New cell \"%s\" (%s) saved." $target $time]
             $cellEditor Close False
 
-        ##    if { $::ediu(mode) == $::ediu(designMode) } {
+        ##    if { $GUI::Dashboard::Mode == $::ediu(designMode) } {
         ##        MGC::ClosePadstackEditor -dontclosedatabase
         ##    } else {
         ##        MGC::ClosePadstackEditor
@@ -1215,12 +1217,14 @@ namespace eval MGC {
         #
         proc PDB { device args } {
             ##  Process command arguments
-            array set V { -partition "" } ;# Default values
+            array set V [list -partition $GUI::Dashboard::PartPartition] ;# Default values
             foreach {a value} $args {
                 if {! [info exists V($a)]} {error "unknown option $a"}
                 if {$value == {}} {error "value of \"$a\" missing"}
                 set V($a) $value
             }
+
+            set ::ediu(partEdtrPrtnName) $V(-partition)
 
             GUI::StatusBar::UpdateStatus -busy on
             set ::ediu(sTime) [clock format [clock seconds] -format "%m/%d/%Y %T"]
@@ -1228,9 +1232,9 @@ namespace eval MGC {
             ##  Make sure a Target library or design has been defined
 
             if {$::ediu(targetPath) == $::ediu(Nothing) && $::ediu(connectMode) != True } {
-                if {$::ediu(mode) == $::ediu(designMode)} {
+                if {$GUI::Dashboard::Mode == $::ediu(designMode)} {
                     Transcript $::ediu(MsgError) "No Design (PCB) specified, build aborted."
-                } elseif {$::ediu(mode) == $::ediu(libraryMode)} {
+                } elseif {$GUI::Dashboard::Mode == $::ediu(libraryMode)} {
                     Transcript $::ediu(MsgError) "No Central Library (LMC) specified, build aborted."
                 } else {
                     Transcript $::ediu(MsgError) "Mode not set, build aborted."
@@ -1254,7 +1258,7 @@ namespace eval MGC {
             ##  mode than it is for design mode.  In design mode there
             ##  isn't a "partition" so none of the partition logic applies.
 
-            if { $::ediu(mode) == $::ediu(libraryMode) } {
+            if { $GUI::Dashboard::Mode == $::ediu(libraryMode) } {
                 #  Does the part exist?  Before we can check, we need a
                 #  partition.  There isn't a clear name as to what the
                 #  partition name should be so we'll use the name of the
@@ -1512,9 +1516,7 @@ namespace eval MGC {
 
         proc Cells { } {
             foreach i [AIFForms::SelectFromList "Select Cell(s)" [array names ::devices]] {
-                puts "i:  $i"
                 foreach j [array names GUI::Dashboard::CellGeneration] {
-                    puts "j:  $j"
                     if { [string is true $GUI::Dashboard::CellGeneration($j)] } {
                         MGC::Generate::Cell [lindex $i 1] -mirror [string tolower [string trimleft $j Mirror]]
                     }
@@ -1649,7 +1651,7 @@ namespace eval MGC {
         proc ApplyProperies {} {
             puts "MGC::WireBond::ApplyProperies"
             ##  Which mode?  Design or Library?
-            if { $::ediu(mode) == $::ediu(designMode) } {
+            if { $GUI::Dashboard::Mode == $::ediu(designMode) } {
                 ##  Invoke Expedition on the design so the Cell Editor can be started
                 ##  Catch any exceptions raised by opening the database
                 set errorCode [catch { MGC::OpenExpedition } errorMessage]
@@ -1680,6 +1682,13 @@ namespace eval MGC {
             Transcript $::ediu(MsgNote) "Wire Bond property \"WBParameters\" applied to design."
             $::ediu(pcbDoc) PutProperty "WBDRCProperty" $GUI::Dashboard::WBDRCProperty
             Transcript $::ediu(MsgNote) "Wire Bond property \"WBDRCProperty\" applied to design."
+
+            ##  Apply default wire model to all components
+            set comps [$::ediu(pcbDoc) Components]
+            ::tcom::foreach comp $comps {
+                $comp PutProperty "WBParameters" {[Model=[DefaultWireModel]][PADS=[]]}
+                Transcript $::ediu(MsgNote) [format "Wire Bond property \"WBParameters\" applied to component \"%s\"." [$comp RefDes]]
+            }
         }
 
         ##
@@ -1689,7 +1698,7 @@ namespace eval MGC {
             puts "MGC::WireBond::PlaceBondPads"
 
             ##  Which mode?  Design or Library?
-            if { $::ediu(mode) == $::ediu(designMode) } {
+            if { $GUI::Dashboard::Mode == $::ediu(designMode) } {
                 ##  Invoke Expedition on the design so the Cell Editor can be started
                 ##  Catch any exceptions raised by opening the database
                 set errorCode [catch { MGC::OpenExpedition } errorMessage]
@@ -1737,9 +1746,8 @@ namespace eval MGC {
                 set net [$::ediu(pcbDoc) FindNet $bondpad(NETNAME)]
 
                 if { [string equal $net ""] } {
-                    Transcript $::ediu(MsgError) [format "Net \"%s\" was not found." $bondpad(NETNAME)]
-                    $::ediu(pcbDoc) TransactionEnd True
-                    return
+                    Transcript $::ediu(MsgWarning) [format "Net \"%s\" was not found, may be a No Connect, using \"(Net0)\" as net." $bondpad(NETNAME)]
+                    set net [$::ediu(pcbDoc) FindNet "(Net0)"]
                 } else {
                     Transcript $::ediu(MsgNote) [format "Net \"%s\" was found." $bondpad(NETNAME)]
                 }
@@ -1766,7 +1774,7 @@ namespace eval MGC {
             puts "MGC::WireBond::PlaceBondWires"
 
             ##  Which mode?  Design or Library?
-            if { $::ediu(mode) == $::ediu(designMode) } {
+            if { $GUI::Dashboard::Mode == $::ediu(designMode) } {
                 ##  Invoke Expedition on the design so the Cell Editor can be started
                 ##  Catch any exceptions raised by opening the database
                 set errorCode [catch { MGC::OpenExpedition } errorMessage]
@@ -1802,23 +1810,31 @@ namespace eval MGC {
                     [expr $::MGCPCB::EPcbObjectClassType(epcbObjectClassPadstackObject)] \
                     [$::ediu(pcbDoc) LayerStack]]
 
-                ##  Make sure exactly "one" object was picked
+                ##  Making sure exactly "one" object was picked isn't possible - too many
+                ##  things can be stacked on top of one another on different layers.  Need
+                ##  to iterate through the selected objects and identify the Die Pin we're
+                ##  actually looking for.
 
-                if { [$objs Count] != 1 } {
-                    Transcript $::ediu(MsgError) \
-                        [format "Unable to pick pad at bond wire origin (X: %f  Y: %f), bond wire skipped (Net: %s  From (%f, %f) To (%f, %f)." \
-                        $bondwire(FROM_X) $bondwire(FROM_Y) $bondwire(NETNAME) \
-                        $bondwire(FROM_X) $bondwire(FROM_Y) $bondwire(TO_X) $bondwire(TO_Y)]
-                        continue
+                set dpFound False
+
+                if { [$objs Count] > 0 } {
+                    ::tcom::foreach obj $objs {
+                        set diepin [$obj CurrentPadstack]
+                        if { [$diepin PinClass] == [expr $::MGCPCB::EPcbPinClassType(epcbPinClassDie)] } {
+                            set dpFound True
+                            set DiePin [[$diepin Pins] Item 1]
+                            break
+                        }
+                    }
                 }
 
-                ##  Make sure the object picked is a pin AND it is a die pad
-                set diepin [[$objs Item 1] CurrentPadstack]
-                if { [$diepin PinClass] != [expr $::MGCPCB::EPcbPinClassType(epcbPinClassDie)] } {
+                if { [string is false $dpFound] } {
                     Transcript $::ediu(MsgError) \
-                        [format "Pad at bond wire origin (X: %f  Y: %f) is not a Die Pad, bond wire skipped (Net: %s  From (%f, %f) To (%f, %f)." \
+                        [format "Unable to pick die pad at bond wire origin (X: %f  Y: %f), bond wire skipped (Net: %s  From (%f, %f) To (%f, %f)." \
                         $bondwire(FROM_X) $bondwire(FROM_Y) $bondwire(NETNAME) \
                         $bondwire(FROM_X) $bondwire(FROM_Y) $bondwire(TO_X) $bondwire(TO_Y)]
+$::ediu(pcbDoc) TransactionEnd True
+break
                         continue
                 } else {
                     Transcript $::ediu(MsgNote) \
@@ -1826,9 +1842,9 @@ namespace eval MGC {
                             $bondwire(FROM_X) $bondwire(FROM_Y) $bondwire(NETNAME)]
                 }
 
+                ##  Validated it is correct type, now need just the object selected
                 ## Need to select the Pin Object as PutBondWire requires a Pin Object
-                set DiePin [[$diepin Pins] Item 1]
-                $DiePin Selected True
+                #$DiePin Selected True
 
                 ##  Try and "pick" the "TO" Bond Pad at the XY location.
 
@@ -1841,35 +1857,38 @@ namespace eval MGC {
                     [expr $::MGCPCB::EPcbObjectClassType(epcbObjectClassPadstackObject)] \
                     [$::ediu(pcbDoc) LayerStack]]
 
-                ##  Make sure exactly "one" object was picked
+                ##  Making sure exactly "one" object was picked isn't possible - too many
+                ##  things can be stacked on top of one another on different layers.  Need
+                ##  to iterate through the selected objects and identify the Bond Pad we're
+                ##  actually looking for.
 
-                if { [$objs Count] != 1 } {
-                    Transcript $::ediu(MsgError) \
-                        [format "Unable to pick pad at bond wire termination (X: %f  Y: %f), bond wire skipped (Net: %s  From (%f, %f) To (%f, %f)." \
-                        $bondwire(TO_X) $bondwire(TO_Y) $bondwire(NETNAME) \
-                        $bondwire(TO_X) $bondwire(TO_Y) $bondwire(TO_X) $bondwire(TO_Y)]
-                        continue
+                set bpFound False
+
+                if { [$objs Count] > 0 } {
+                    ::tcom::foreach obj $objs {
+                        set bondpad [$obj CurrentPadstack]
+                        if {([$bondpad PinClass] == [expr $::MGCPCB::EPcbPinClassType(epcbPinClassSMD)]) && \
+                            ([$bondpad Type] == [expr $::MGCPCB::EPcbPadstackObjectType(epcbPadstackObjectBondPad)])} {
+                            set bpFound True
+                            set BondPad $obj
+                            break
+                        }
+                    }
                 }
 
-                ##  Make sure the object picked is a pin AND it is a bond pad
-                set bondpad [[$objs Item 1] CurrentPadstack]
-
-                if {([$bondpad PinClass] != [expr $::MGCPCB::EPcbPinClassType(epcbPinClassSMD)]) && \
-                    ([$bondpad Type] != [expr $::MGCPCB::EPcbPadstackObjectType(epcbPadstackObjectBondPad)])} {
+                if { [string is false $bpFound] } {
                     Transcript $::ediu(MsgError) \
-                        [format "Pad at bond wire termination (X: %f  Y: %f) is not a Bond Pad, bond wire skipped (Net: %s  From (%f, %f) To (%f, %f)." \
+                        [format "Unable to pick bond pad at bond wire termination (X: %f  Y: %f), bond wire skipped (Net: %s  From (%f, %f) To (%f, %f)." \
                         $bondwire(TO_X) $bondwire(TO_Y) $bondwire(NETNAME) \
-                        $bondwire(TO_X) $bondwire(TO_Y) $bondwire(TO_X) $bondwire(TO_Y)]
+                        $bondwire(FROM_X) $bondwire(FROM_Y) $bondwire(TO_X) $bondwire(TO_Y)]
                         continue
                 } else {
                     Transcript $::ediu(MsgNote) \
                         [format "Found Bond Pad at bond wire termination (X: %f  Y: %f) for net \"%s\"." \
-                            $bondwire(TO_X) $bondwire(TO_Y) $bondwire(NETNAME)]
+                            $bondwire(FROM_X) $bondwire(FROM_Y) $bondwire(NETNAME)]
                 }
 
-                ##  Validated it is correct type, now need just the object
-                set BondPad [$objs Item 1]
-
+                ##  Validated it is correct type, now need just the object selected
                 $BondPad Selected True
 
                 ##  A die pin and bond pad pair have been identified, time to drop a bond wire
