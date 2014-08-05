@@ -123,7 +123,7 @@ namespace eval GUI {
         #  Bind some function keys
         bind . "<Key F1>" { ediuHelpAbout }
         bind . "<Key F5>" { GUI::Dashboard::SelectAIFFile }
-        bind . "<Key F6>" { ediuAIFFileClose }
+        bind . "<Key F6>" { GUI::File::CloseAIF }
 
         ## Update the status fields
         GUI::StatusBar::UpdateStatus -busy off
@@ -323,11 +323,9 @@ namespace eval GUI {
             set fm [menu $mb.file -tearoff 0]
             $mb add cascade -label "File" -menu $mb.file -underline 0
             $fm add command -label "Open AIF ..." \
-                -accelerator "F5" -underline 0 \
-                -command GUI::Dashboard::SelectAIFFile
+                -accelerator "F5" -underline 0 -command GUI::Dashboard::SelectAIFFile
             $fm add command -label "Close AIF" \
-                -accelerator "F6" -underline 0 \
-                -command ediuAIFFileClose
+                -accelerator "F6" -underline 0 -command GUI::File::CloseAIF
             $fm add separator
             $fm add command -label "Export KYN ..." \
                 -underline 7 -command Netlist::Export::KYN
@@ -742,7 +740,7 @@ if { 0 } {
                 set nftext [ctext $nf.text -wrap none \
                     -xscrollcommand [list $nf.nftextscrollx set] \
                     -yscrollcommand [list $nf.nftextscrolly set]]
-        
+
                 $nftext configure -font EDIUFont -state disabled
                 set GUI::widgets(netlistview) $nftext
                 ttk::scrollbar $nf.nftextscrolly -orient vertical -command [list $nftext yview]
@@ -804,7 +802,7 @@ if { 0 } {
                 set knltftext [ctext $knltf.text -wrap none \
                     -xscrollcommand [list $knltf.nftextscrollx set] \
                     -yscrollcommand [list $knltf.nftextscrolly set]]
-        
+
                 $knltftext configure -font EDIUFont -state disabled
                 set GUI::widgets(kynnetlistview) $knltftext
                 ttk::scrollbar $knltf.nftextscrolly -orient vertical -command [list $knltftext yview]
@@ -919,7 +917,7 @@ if { 0 } {
                 -textvariable GUI::Dashboard::WBDRCProperty -state readonly
             grid $dbf.wbdrcproperty.e -row 0 -column 0 -pady 5 -padx 5 -sticky w
 
-            
+
             ttk::separator $dbf.sep1 -orient vertical
             ttk::separator $dbf.sep2 -orient horizontal
             ttk::separator $dbf.sep3 -orient horizontal
@@ -1139,7 +1137,7 @@ if { 0 } {
             if { [string equal $GUI::Dashboard::AIFFile ""] } {
                 GUI::Transcript -severity error -msg "No AIF File selected."
             } else {
-                ediuAIFFileOpen $GUI::Dashboard::AIFFile
+                GUI::File::OpenAIF $GUI::Dashboard::AIFFile
             }
         }
 
@@ -1349,6 +1347,9 @@ if { 0 } {
                 {xcenter ""} {ycenter ""} \
                 {winxlength ""} {winylength ""} } {
 
+            #  Do nothing if the canvas is empty
+            if { [string equal "" [$canvas bbox all]] } { return }
+
             #--------------------------------------------------------
             #  If (xcenter,ycenter) were not supplied,
             #  get the canvas coordinates of the center
@@ -1452,6 +1453,336 @@ if { 0 } {
             #  items on the canvas.
             #--------------------------------------------------------
             $canvas configure -scrollregion [$canvas bbox all]
+        }
+    }
+
+    ##
+    ##  Define the GUI::File namespace and procedure supporting operations
+    ##
+    namespace eval File {
+        variable SparsePinNames
+        variable SparsePinNumbers
+        variable SparsePinsFilePath
+
+        ##
+        ##  GUI::File::Init
+        ##
+        proc Init { } {
+
+            ##  Database Details
+            array set ::database {
+                type ""
+                version ""
+                units "um"
+                mcm "FALSE"
+            }
+
+            ##  Die Details
+            array set ::die {
+                name ""
+                refdes "U1"
+                width 0
+                height 0
+                center { 0 0 }
+                partition ""
+            }
+
+            ##  BGA Details
+            array set ::bga {
+                name ""
+                refdes "A1"
+                width 0
+                height 0
+            }
+
+            ##  Store devices in a Tcl list
+            array set ::devices {}
+
+            ##  Store mcm die in a Tcl dictionary
+            set ::mcmdie [dict create]
+
+            ##  Store pads in a Tcl dictionary
+            set ::pads [dict create]
+            set ::padtypes [dict create]
+
+            ##  Store net names in a Tcl list
+            set ::netnames [list]
+
+            ##  Store netlist in a Tcl list
+            set ::netlist [list]
+            set ::netlines [list]
+
+            ##  Store bondpad connections in a Tcl list
+            set ::bondpads [list]
+            set ::bondwires [list]
+        }
+
+        #
+        #  GUI::File::OpenAIF
+        #
+        #  Open a AIF file, read the contents into the
+        #  Source View and update the appropriate status.
+        #
+        proc OpenAIF { { f "" } } {
+        set zzz 0
+            GUI::StatusBar::UpdateStatus -busy on
+            InitialState
+
+            ##  Set up the sections so they can be highlighted in the AIF source
+
+            set sections {}
+            set sectionRegExp ""
+            foreach i [array names ::sections] {
+                lappend sections $::sections($i)
+                #puts $::sections($i)
+                set sectionRegExp [format "%s%s%s%s%s%s%s" $sectionRegExp \
+                    [expr {$sectionRegExp == "" ? "(" : "|" }] \
+                    $::ediu(BackSlash) $::ediu(LeftBracket) $::sections($i) $::ediu(BackSlash) $::ediu(RightBracket) ]
+            }
+
+            set sectionRegExp [format "%s)" $sectionRegExp]
+
+            set ignored {}
+            set ignoreRegExp ""
+            foreach i [array names ::ignored] {
+                lappend ignored $::ignored($i)
+                #puts $::ignored($i)
+                set ignoreRegExp [format "%s%s%s%s%s%s%s" $ignoreRegExp \
+                    [expr {$ignoreRegExp == "" ? "(" : "|" }] \
+                    $::ediu(BackSlash) $::ediu(LeftBracket) $::ignored($i) $::ediu(BackSlash) $::ediu(RightBracket) ]
+            }
+
+            set ignoreRegExp [format "%s)" $ignoreRegExp]
+
+            ##  Prompt the user for a file if not supplied
+
+            if { $f != $::ediu(Nothing) } {
+                set ::ediu(filename) $f
+            } else {
+                set ::ediu(filename) [ GUI::Dashboard::SelectAIFFile]
+            }
+
+            ##  Process the user supplied file
+            if {$::ediu(filename) != $::ediu(Nothing) } {
+                Transcript $::ediu(MsgNote) [format "Loading AIF file \"%s\"." $::ediu(filename)]
+                set txt $GUI::widgets(sourceview)
+                $txt configure -state normal
+                $txt delete 1.0 end
+
+                set f [open $::ediu(filename)]
+                $txt insert end [read $f]
+                Transcript $::ediu(MsgNote) [format "Scanning AIF file \"%s\" for sections." $::ediu(filename)]
+                #ctext::addHighlightClass $txt diesections blue $sections
+                ctext::addHighlightClassForRegexp $txt diesections blue $sectionRegExp
+                ctext::addHighlightClassForRegexp $txt ignoredsections red $ignoreRegExp
+                $txt highlight 1.0 end
+                $txt configure -state disabled
+                close $f
+                Transcript $::ediu(MsgNote) [format "Loaded AIF file \"%s\"." $::ediu(filename)]
+
+                ##  Parse AIF file
+
+                AIF::Parse $::ediu(filename)
+                Transcript $::ediu(MsgNote) [format "Parsed AIF file \"%s\"." $::ediu(filename)]
+
+                ##  Load the DATABASE section ...
+
+                if { [ AIF::Database::Section ] == -1 } {
+                    GUI::StatusBar::UpdateStatus -busy off
+                    return -1
+                }
+
+                ##  If the file a MCM-AIF file?
+
+                if { $::ediu(MCMAIF) == 1 } {
+                    if { [ AIF::MCMDie::Section ] == -1 } {
+                        GUI::StatusBar::UpdateStatus -busy off
+                        return -1
+                    }
+                }
+
+                ##  Load the DIE section ...
+
+                if { [ AIF::Die::Section ] == -1 } {
+                    GUI::StatusBar::UpdateStatus -busy off
+                    return -1
+                }
+
+                ##  Load the optional BGA section ...
+
+                if { $::ediu(BGA) == 1 } {
+                    if { [ AIF::BGA::Section ] == -1 } {
+                        GUI::StatusBar::UpdateStatus -busy off
+                        return -1
+                    }
+                }
+
+                ##  Load the PADS section ...
+
+                if { [ AIF::Pads::Section ] == -1 } {
+                    GUI::StatusBar::UpdateStatus -busy off
+                    return -1
+                }
+
+                ##  Load the NETLIST section ...
+
+                if { [ AIF::Netlist::Section ] == -1 } {
+                    GUI::StatusBar::UpdateStatus -busy off
+                    return -1
+                }
+
+                ##  Draw the Graphic View
+
+                ediuGraphicViewBuild
+            } else {
+                Transcript $::ediu(MsgWarning) "No AIF file selected."
+            }
+
+            GUI::StatusBar::UpdateStatus -busy off
+        }
+
+        #
+        #  GUI::File::CloseAIF
+        #
+        #  Close the AIF file and flush anything stored in
+        #  EDIU memory.  Clear the text widget for the source
+        #  view and the canvas widget for the graphic view.
+        #
+        proc CloseAIF {} {
+            GUI::StatusBar::UpdateStatus -busy on
+            Transcript $::ediu(MsgNote) [format "AIF file \"%s\" closed." $::ediu(filename)]
+            InitialState
+            GUI::StatusBar::UpdateStatus -busy off
+        }
+
+        #
+        #  GUI::File::InitialState
+        #
+        proc InitialState {} {
+
+            ##  Put everything back into an initial state
+            GUI::File::Init
+            set ::ediu(filename) $::ediu(Nothing)
+
+            ##  Remove all content from the AIF source view
+            set txt $GUI::widgets(sourceview)
+            $txt configure -state normal
+            $txt delete 1.0 end
+            $txt configure -state disabled
+
+            ##  Remove all content from the (hidden) netlist text view
+            set txt $GUI::widgets(netlistview)
+            $txt configure -state normal
+            $txt delete 1.0 end
+            $txt configure -state disabled
+
+            ##  Remove all content from the keyin netlist text view
+            set txt $GUI::widgets(kynnetlistview)
+            $txt configure -state normal
+            $txt delete 1.0 end
+            $txt configure -state disabled
+
+            ##  Remove all content from the source graphic view
+            set cnvs $GUI::widgets(layoutview)
+            $cnvs delete all
+
+            ##  Remove all content from the AIF Netlist table
+            set nlt $GUI::widgets(netlisttable)
+            $nlt delete 0 end
+
+            ##  Clean up menus, remove dynamic content
+            set vm $GUI::widgets(viewmenu)
+            $vm.devices delete 3 end
+            $vm.pads delete 3 end
+        }
+
+
+        #
+        #  GUI::File::OpenSparsePins
+        #
+        #  Open a Text file, read the contents into the
+        #  Source View and update the appropriate status.
+        #
+        proc OpenSparsePins {} {
+            variable SparsePinNames
+            variable SparsePinNumbers
+            variable SparsePinsFilePath
+            GUI::StatusBar::UpdateStatus -busy on
+
+            ##  Prompt the user for a file
+            ##set ::ediu(sparsepinsfile) [tk_getOpenFile -filetypes {{TXT .txt} {CSV .csv} {All *}}]
+            set SparsePinsFilePath [tk_getOpenFile -filetypes {{TXT .txt} {All *}}]
+
+            ##  Process the user supplied file
+            if {[string equal "" SparsePinsFilePath]} {
+                Transcript $::ediu(MsgWarning) "No Sparse Pins file selected."
+            } else {
+                Transcript $::ediu(MsgNote) [format "Loading Sparse Pins file \"%s\"." $::ediu(sparsepinsfile)]
+                set txt $GUI::widgets(sparsepinsview)
+                $txt configure -state normal
+                $txt delete 1.0 end
+
+                set f [open $::ediu(sparsepinsfile)]
+                $txt insert end [read $f]
+                Transcript $::ediu(MsgNote) [format "Scanning Sparse List \"%s\" for pin numbers." $::ediu(sparsepinsfile)]
+                ctext::addHighlightClassForRegexp $txt sparsepinlist blue {[\t ]*[0-9][0-9]*[\t ]*$}
+                $txt highlight 1.0 end
+                $txt configure -state disabled
+                close $f
+                Transcript $::ediu(MsgNote) [format "Loaded Sparse Pins file \"%s\"." $::ediu(sparsepinsfile)]
+                Transcript $::ediu(MsgNote) [format "Extracting Pin Numbers from Sparse Pins file \"%s\"." $::ediu(sparsepinsfile)]
+
+                set pins [split $GUI::widgets(sparsepinsview) \n]
+                set txt $GUI::widgets(sparsepinsview)
+                set pins [split [$txt get 1.0 end] \n]
+
+                set lc 1
+                set SparsePinNames {}
+                set SparsePinNumbers {}
+
+                ##  Loop through the pin data and extract the pin names and numbers
+
+                foreach i $pins {
+                    set pindata [regexp -inline -all -- {\S+} $i]
+                    if { [llength $pindata] == 0 } {
+                        continue
+                    } elseif { [llength $pindata] != 2 } {
+                        Transcript $::ediu(MsgWarning) [format "Skipping line %s, incorrect number of fields." $lc]
+                    } else {
+                        Transcript $::ediu(MsgNote) [format "Found Sparse Pin Number:  \"%s\" on line %s" [lindex $pindata 1] $lc]
+                        lappend ::ediu(sparsepinnames) [lindex $pindata 1]
+                        lappend ::ediu(sparsepinnumbers) [lindex $pindata 1]
+                        ##if { [incr lc] > 100 } { break }
+                    }
+
+                    incr lc
+                }
+            }
+
+            # Force the scroll to the top of the sparse pins view
+            $txt yview moveto 0
+            $txt xview moveto 0
+
+            GUI::StatusBar::UpdateStatus -busy off
+        }
+
+        #
+        #  ediuSparsePinsFileClose
+        #
+        #  Close the sparse rules file and flush anything stored
+        #  in EDIU memory.  Clear the text widget for the sparse
+        #  rules.
+        #
+        proc CloseSparsePins {} {
+            variable SparsePinsFilePath
+            GUI::StatusBar::UpdateStatus -busy on
+            Transcript $::ediu(MsgNote) [format "Sparse Pins file \"%s\" closed." $::ediu(sparsepinsfile)]
+            set SparsePinsFilePath $::ediu(Nothing)
+            set txt $GUI::widgets(sparsepinsview)
+            $txt configure -state normal
+            $txt delete 1.0 end
+            $txt configure -state disabled
+            GUI::StatusBar::UpdateStatus -busy off
         }
     }
 }

@@ -322,7 +322,7 @@ proc Transcript {severity messagetext} {
 #
 #  ediuChooseCellPartition
 #
-proc ediuChooseCellPartition-deprecated {} {
+proc deprecated-ediuChooseCellPartition {} {
     set dlg $GUI::widgets(CellPartnDlg)
 
     puts [$dlg.f.cellpartition.list curselection]
@@ -342,7 +342,7 @@ proc ediuChooseCellPartition-deprecated {} {
 #  the user to select from.
 #
 
-proc ediuChooseCellPartitionDialog-deprecated {} {
+proc deprecated-ediuChooseCellPartitionDialog {} {
     set dlg $GUI::widgets(CellPartnDlg)
 
     #  Create the top level window and withdraw it
@@ -1106,273 +1106,9 @@ proc ediuDrawBGAOutline { { color "white" } } {
 }
 
 #
-#  ediuAIFFileOpen
-#
-#  Open a AIF file, read the contents into the
-#  Source View and update the appropriate status.
-#
-proc ediuAIFFileOpen { { f "" } } {
-set zzz 0
-    GUI::StatusBar::UpdateStatus -busy on
-    ediuAIFInitialState
-
-    ##  Set up the sections so they can be highlighted in the AIF source
-
-    set sections {}
-    set sectionRegExp ""
-    foreach i [array names ::sections] {
-        lappend sections $::sections($i)
-        #puts $::sections($i)
-        set sectionRegExp [format "%s%s%s%s%s%s%s" $sectionRegExp \
-            [expr {$sectionRegExp == "" ? "(" : "|" }] \
-            $::ediu(BackSlash) $::ediu(LeftBracket) $::sections($i) $::ediu(BackSlash) $::ediu(RightBracket) ]
-    }
-
-    set sectionRegExp [format "%s)" $sectionRegExp]
-
-    set ignored {}
-    set ignoreRegExp ""
-    foreach i [array names ::ignored] {
-        lappend ignored $::ignored($i)
-        #puts $::ignored($i)
-        set ignoreRegExp [format "%s%s%s%s%s%s%s" $ignoreRegExp \
-            [expr {$ignoreRegExp == "" ? "(" : "|" }] \
-            $::ediu(BackSlash) $::ediu(LeftBracket) $::ignored($i) $::ediu(BackSlash) $::ediu(RightBracket) ]
-    }
-
-    set ignoreRegExp [format "%s)" $ignoreRegExp]
-
-    ##  Prompt the user for a file if not supplied
-
-    if { $f != $::ediu(Nothing) } {
-        set ::ediu(filename) $f
-    } else {
-        set ::ediu(filename) [ GUI::Dashboard::SelectAIFFile]
-    }
-
-    ##  Process the user supplied file
-    if {$::ediu(filename) != $::ediu(Nothing) } {
-        Transcript $::ediu(MsgNote) [format "Loading AIF file \"%s\"." $::ediu(filename)]
-        set txt $GUI::widgets(sourceview)
-        $txt configure -state normal
-        $txt delete 1.0 end
-
-        set f [open $::ediu(filename)]
-        $txt insert end [read $f]
-        Transcript $::ediu(MsgNote) [format "Scanning AIF file \"%s\" for sections." $::ediu(filename)]
-        #ctext::addHighlightClass $txt diesections blue $sections
-        ctext::addHighlightClassForRegexp $txt diesections blue $sectionRegExp
-        ctext::addHighlightClassForRegexp $txt ignoredsections red $ignoreRegExp
-        $txt highlight 1.0 end
-        $txt configure -state disabled
-        close $f
-        Transcript $::ediu(MsgNote) [format "Loaded AIF file \"%s\"." $::ediu(filename)]
-
-        ##  Parse AIF file
-
-        AIF::Parse $::ediu(filename)
-        Transcript $::ediu(MsgNote) [format "Parsed AIF file \"%s\"." $::ediu(filename)]
-
-        ##  Load the DATABASE section ...
-
-        if { [ AIF::Database::Section ] == -1 } {
-            GUI::StatusBar::UpdateStatus -busy off
-            return -1
-        }
-
-        ##  If the file a MCM-AIF file?
-
-        if { $::ediu(MCMAIF) == 1 } {
-            if { [ AIF::MCMDie::Section ] == -1 } {
-                GUI::StatusBar::UpdateStatus -busy off
-                return -1
-            }
-        }
-
-        ##  Load the DIE section ...
-
-        if { [ AIF::Die::Section ] == -1 } {
-            GUI::StatusBar::UpdateStatus -busy off
-            return -1
-        }
-
-        ##  Load the optional BGA section ...
-
-        if { $::ediu(BGA) == 1 } {
-            if { [ AIF::BGA::Section ] == -1 } {
-                GUI::StatusBar::UpdateStatus -busy off
-                return -1
-            }
-        }
-
-        ##  Load the PADS section ...
-
-        if { [ ediuAIFPadsSection ] == -1 } {
-            GUI::StatusBar::UpdateStatus -busy off
-            return -1
-        }
-
-        ##  Load the NETLIST section ...
-
-        if { [ ediuAIFNetlistSection ] == -1 } {
-            GUI::StatusBar::UpdateStatus -busy off
-            return -1
-        }
-
-        ##  Draw the Graphic View
-
-        ediuGraphicViewBuild
-    } else {
-        Transcript $::ediu(MsgWarning) "No AIF file selected."
-    }
-
-    GUI::StatusBar::UpdateStatus -busy off
-}
-
-#
-#  ediuAIFFileClose
-#
-#  Close the AIF file and flush anything stored in
-#  EDIU memory.  Clear the text widget for the source
-#  view and the canvas widget for the graphic view.
-#
-proc ediuAIFFileClose {} {
-    GUI::StatusBar::UpdateStatus -busy on
-    Transcript $::ediu(MsgNote) [format "AIF file \"%s\" closed." $::ediu(filename)]
-    ediuAIFInitialState
-    GUI::StatusBar::UpdateStatus -busy off
-}
-
-#
-#  ediuAIFInitialState
-#
-proc ediuAIFInitialState {} {
-
-    ##  Put everything back into an initial state
-    ediuAIFFileInit
-    set ::ediu(filename) $::ediu(Nothing)
-
-    ##  Remove all content from the AIF source view
-    set txt $GUI::widgets(sourceview)
-    $txt configure -state normal
-    $txt delete 1.0 end
-    $txt configure -state disabled
-
-    ##  Remove all content from the (hidden) netlist text view
-    set txt $GUI::widgets(netlistview)
-    $txt configure -state normal
-    $txt delete 1.0 end
-    $txt configure -state disabled
-
-    ##  Remove all content from the keyin netlist text view
-    set txt $GUI::widgets(kynnetlistview)
-    $txt configure -state normal
-    $txt delete 1.0 end
-    $txt configure -state disabled
-
-    ##  Remove all content from the source graphic view
-    set cnvs $GUI::widgets(layoutview)
-    $cnvs delete all
-
-    ##  Remove all content from the AIF Netlist table
-    set nlt $GUI::widgets(netlisttable)
-    $nlt delete 0 end
-
-    ##  Clean up menus, remove dynamic content
-    set vm $GUI::widgets(viewmenu)
-    $vm.devices delete 3 end
-    $vm.pads delete 3 end
-}
-
-
-#
-#  ediuSparsePinsFileOpen
-#
-#  Open a Text file, read the contents into the
-#  Source View and update the appropriate status.
-#
-proc ediuSparsePinsFileOpen {} {
-    GUI::StatusBar::UpdateStatus -busy on
-
-    ##  Prompt the user for a file
-    ##set ::ediu(sparsepinsfile) [tk_getOpenFile -filetypes {{TXT .txt} {CSV .csv} {All *}}]
-    set ::ediu(sparsepinsfile) [tk_getOpenFile -filetypes {{TXT .txt} {All *}}]
-
-    ##  Process the user supplied file
-    if {$::ediu(sparsepinsfile) == "" } {
-        Transcript $::ediu(MsgWarning) "No Sparse Pins file selected."
-    } else {
-        Transcript $::ediu(MsgNote) [format "Loading Sparse Pins file \"%s\"." $::ediu(sparsepinsfile)]
-        set txt $GUI::widgets(sparsepinsview)
-        $txt configure -state normal
-        $txt delete 1.0 end
-
-        set f [open $::ediu(sparsepinsfile)]
-        $txt insert end [read $f]
-        Transcript $::ediu(MsgNote) [format "Scanning Sparse List \"%s\" for pin numbers." $::ediu(sparsepinsfile)]
-        ctext::addHighlightClassForRegexp $txt sparsepinlist blue {[\t ]*[0-9][0-9]*[\t ]*$}
-        $txt highlight 1.0 end
-        $txt configure -state disabled
-        close $f
-        Transcript $::ediu(MsgNote) [format "Loaded Sparse Pins file \"%s\"." $::ediu(sparsepinsfile)]
-        Transcript $::ediu(MsgNote) [format "Extracting Pin Numbers from Sparse Pins file \"%s\"." $::ediu(sparsepinsfile)]
-        
-        set pins [split $GUI::widgets(sparsepinsview) \n]
-        set txt $GUI::widgets(sparsepinsview)
-        set pins [split [$txt get 1.0 end] \n]
-
-        set lc 1
-        set ::ediu(sparsepinnames) {}
-        set ::ediu(sparsepinnumbers) {}
- 
-        ##  Loop through the pin data and extract the pin names and numbers
-
-        foreach i $pins {
-            set pindata [regexp -inline -all -- {\S+} $i]
-            if { [llength $pindata] == 0 } {
-                continue
-            } elseif { [llength $pindata] != 2 } {
-                Transcript $::ediu(MsgWarning) [format "Skipping line %s, incorrect number of fields." $lc]
-            } else {
-                Transcript $::ediu(MsgNote) [format "Found Sparse Pin Number:  \"%s\" on line %s" [lindex $pindata 1] $lc]
-                lappend ::ediu(sparsepinnames) [lindex $pindata 1]
-                lappend ::ediu(sparsepinnumbers) [lindex $pindata 1]
-                ##if { [incr lc] > 100 } { break }
-            }
-
-            incr lc
-        }
-    }
-
-    # Force the scroll to the top of the sparse pins view
-    $txt yview moveto 0
-    $txt xview moveto 0
-
-    GUI::StatusBar::UpdateStatus -busy off
-}
-
-#
-#  ediuSparsePinsFileClose
-#
-#  Close the sparse rules file and flush anything stored
-#  in EDIU memory.  Clear the text widget for the sparse
-#  rules.
-#
-proc ediuSparsePinsFileClose {} {
-    GUI::StatusBar::UpdateStatus -busy on
-    Transcript $::ediu(MsgNote) [format "Sparse Pins file \"%s\" closed." $::ediu(sparsepinsfile)]
-    set ::ediu(sparsepinsfile) $::ediu(Nothing)
-    set txt $GUI::widgets(sparsepinsview)
-    $txt configure -state normal
-    $txt delete 1.0 end
-    $txt configure -state disabled
-    GUI::StatusBar::UpdateStatus -busy off
-}
-
-#
 #  ediuSetupOpenPCB
 #
-proc ediuSetupOpenPCB { { f "" } } {
+proc deprecated-ediuSetupOpenPCB { { f "" } } {
     GUI::StatusBar::UpdateStatus -busy on
 
     ##  Prompt the user for an Xpedition database
@@ -1395,7 +1131,7 @@ proc ediuSetupOpenPCB { { f "" } } {
 #
 #  ediuSetupOpenLMC
 #
-proc ediuSetupOpenLMC { { f "" } } {
+proc deprecated-ediuSetupOpenLMC { { f "" } } {
     GUI::StatusBar::UpdateStatus -busy on
 
     ##  Prompt the user for a Central Library database if not supplied
@@ -1537,7 +1273,7 @@ proc ediuUpdateStatus-deprecated {mode} {
 #
 #  Scan the AIF source file for the "die_name" section
 #
-proc ediuAIFName {} {
+proc deprecated-ediuAIFName {} {
 
     Transcript $::ediu(MsgNote) [format "Scanning AIF source for \"%s\"." $::sections(die)]
 
@@ -1567,7 +1303,7 @@ proc ediuAIFName {} {
 #
 #  Scan the AIF source file for the "DIE" section
 #
-proc ediuAIFBGASection {} {
+proc deprecated-ediuAIFBGASection {} {
     ##  Make sure we have a BGA section!
     if { [lsearch -exact $::AIF::sections BGA] != -1 } {
         ##  Load the DIE section
@@ -1585,91 +1321,6 @@ proc ediuAIFBGASection {} {
         Transcript $::ediu(MsgError) [format "AIF file \"%s\" does not contain a BGA section." $::ediu(filename)]
         return -1
     }
-}
-
-#
-#  ediuAIFPadsSection
-#
-#  Scan the AIF source file for the "PADS" section
-#
-proc ediuAIFPadsSection {} {
-
-    set rv 0
-    set vm $GUI::widgets(viewmenu)
-    $vm.pads add separator
-
-    ##  Make sure we have a PADS section!
-    if { [lsearch -exact $::AIF::sections PADS] != -1 } {
-        ##  Load the PADS section
-        set vars [AIF::Variables PADS]
-
-        ##  Flush the pads dictionary
-
-        set ::pads [dict create]
-        set ::padtypes [dict create]
-
-        ##  Populate the pads dictionary
-
-        foreach v $vars {
-            dict lappend ::pads $v [AIF::GetVar $v PADS]
-            
-            #  Add pad to the View Devices menu and make it visible
-            set GUI::pads($v) on
-            #$vm.pads add checkbutton -label "$v" -underline 0 \
-            #    -variable GUI::pads($v) -onvalue on -offvalue off -command GUI::VisiblePad
-            $vm.pads add checkbutton -label "$v" \
-                -variable GUI::pads($v) -onvalue on -offvalue off \
-                -command  "GUI::Visibility pad-$v -mode toggle"
-        }
-
-        foreach i [dict keys $::pads] {
-            
-            set padshape [lindex [regexp -inline -all -- {\S+} [lindex [dict get $::pads $i] 0]] 0]
-
-            ##  Check units for legal option - AIF supports UM, MM, CM, INCH, MIL
-
-            if { [lsearch -exact $::padshapes [string tolower $padshape]] == -1 } {
-                Transcript $::ediu(MsgError) [format "Pad shape \"%s\" is not supported AIF syntax." $padshape]
-                set rv -1
-            } else {
-                Transcript $::ediu(MsgNote) [format "Found pad \"%s\" with shape \"%s\"." [string toupper $i] $padshape]
-            }
-        }
-
-        Transcript $::ediu(MsgNote) [format "AIF source file contains %d %s." [llength [dict keys $::pads]] [ediuPlural [llength [dict keys $::pads]] "pad"]]
-    } else {
-        Transcript $::ediu(MsgError) [format "AIF file \"%s\" does not contain a PADS section." $::ediu(filename)]
-        set rv -1
-    }
-
-    return rv
-}
-
-#
-#  ediuAIFNetlistSection
-#
-#  Scan the AIF source file for the "NETLIST" section
-#
-proc ediuAIFNetlistSection {} {
-    set rv 0
-    set txt $GUI::widgets(netlistview)
-
-    ##  Make sure we have a NETLIST section!
-    if { [lsearch -exact $::AIF::sections NETLIST] != -1 } {
-
-        ##  Load the NETLIST section which was previously stored in the netlist text widget
-
-        Netlist::Load
-
-        Transcript $::ediu(MsgNote) [format "AIF source file contains %d net %s." [ Netlist::GetConnectionCount ] [ediuPlural [Netlist::GetConnectionCount] "connection"]]
-        Transcript $::ediu(MsgNote) [format "AIF source file contains %d unique %s." [Netlist::GetNetCount] [ediuPlural [Netlist::GetNetCount] "net"]]
-        
-    } else {
-        Transcript $::ediu(MsgError) [format "AIF file \"%s\" does not contain a NETLIST section." $::ediu(filename)]
-        set rv -1
-    }
-
-    return rv
 }
 
 #

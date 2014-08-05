@@ -410,4 +410,101 @@ namespace eval AIF {
             return $rv
         }
     }
+
+    ##
+    ##  Define the Pads namespace and procedure supporting pad operations
+    ##
+    namespace eval Pads {
+        #
+        #  AIF::Pads::Section
+        #
+        #  Scan the AIF source file for the "PADS" section
+        #
+        proc Section {} {
+
+            set rv 0
+            set vm $GUI::widgets(viewmenu)
+            $vm.pads add separator
+
+            ##  Make sure we have a PADS section!
+            if { [lsearch -exact $::AIF::sections PADS] != -1 } {
+                ##  Load the PADS section
+                set vars [AIF::Variables PADS]
+
+                ##  Flush the pads dictionary
+
+                set ::pads [dict create]
+                set ::padtypes [dict create]
+
+                ##  Populate the pads dictionary
+
+                foreach v $vars {
+                    dict lappend ::pads $v [AIF::GetVar $v PADS]
+
+                    #  Add pad to the View Devices menu and make it visible
+                    set GUI::pads($v) on
+                    #$vm.pads add checkbutton -label "$v" -underline 0 \
+                    #    -variable GUI::pads($v) -onvalue on -offvalue off -command GUI::VisiblePad
+                    $vm.pads add checkbutton -label "$v" \
+                        -variable GUI::pads($v) -onvalue on -offvalue off \
+                        -command  "GUI::Visibility pad-$v -mode toggle"
+                }
+
+                foreach i [dict keys $::pads] {
+
+                    set padshape [lindex [regexp -inline -all -- {\S+} [lindex [dict get $::pads $i] 0]] 0]
+
+                    ##  Check units for legal option - AIF supports UM, MM, CM, INCH, MIL
+
+                    if { [lsearch -exact $::padshapes [string tolower $padshape]] == -1 } {
+                        Transcript $::ediu(MsgError) [format "Pad shape \"%s\" is not supported AIF syntax." $padshape]
+                        set rv -1
+                    } else {
+                        Transcript $::ediu(MsgNote) [format "Found pad \"%s\" with shape \"%s\"." [string toupper $i] $padshape]
+                    }
+                }
+
+                Transcript $::ediu(MsgNote) [format "AIF source file contains %d %s." [llength [dict keys $::pads]] [ediuPlural [llength [dict keys $::pads]] "pad"]]
+            } else {
+                Transcript $::ediu(MsgError) [format "AIF file \"%s\" does not contain a PADS section." $::ediu(filename)]
+                set rv -1
+            }
+
+            return rv
+        }
+
+    }
+
+    ##
+    ##  Define the Netlist namespace and procedure supporting pad operations
+    ##
+    namespace eval Netlist {
+        #
+        #  AIF::Netlist::Section
+        #
+        #  Scan the AIF source file for the "NETLIST" section
+        #
+        proc Section {} {
+            set rv 0
+            set txt $GUI::widgets(netlistview)
+
+            ##  Make sure we have a NETLIST section!
+            if { [lsearch -exact $::AIF::sections NETLIST] != -1 } {
+
+                ##  Load the NETLIST section which was previously stored in the netlist text widget
+
+                Netlist::Load
+
+                Transcript $::ediu(MsgNote) [format "AIF source file contains %d net %s." [ Netlist::GetConnectionCount ] [ediuPlural [Netlist::GetConnectionCount] "connection"]]
+                Transcript $::ediu(MsgNote) [format "AIF source file contains %d unique %s." [Netlist::GetNetCount] [ediuPlural [Netlist::GetNetCount] "net"]]
+
+            } else {
+                Transcript $::ediu(MsgError) [format "AIF file \"%s\" does not contain a NETLIST section." $::ediu(filename)]
+                set rv -1
+            }
+
+            return rv
+        }
+
+    }
 }
