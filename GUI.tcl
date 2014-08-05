@@ -130,6 +130,47 @@ namespace eval GUI {
     }
 
     #
+    #  Transcript a message with a severity level
+    #
+    proc Transcript {args} {
+        ##  Process command arguments
+        array set V { {-msg} "" {-severity} note} ;# Default values
+        foreach {a value} $args {
+            if {! [info exists V($a)]} {
+                error "unknown option $a"
+            } elseif {$value == {}} {
+                error "value of \"$a\" missing"
+            } else {
+                set V($a) $value
+            }
+        }
+
+        ##  Make sure what we received makes sense
+        if {[string equal "" $V(-msg)]} {
+            error "value of \"-msg\" option is missing"
+        }
+
+        if { [lsearch [list note warning error] $V(-severity)] == -1 } {
+            error "value of \"$a\" must be one of note, warning, or error"
+        }
+
+        ##  Generate the message
+        set msg [format "# %s:  %s" [string toupper $V(-severity) 0 0] $V(-msg)]
+
+        set txt $GUI::widgets(transcript)
+        $txt configure -state normal
+        $txt insert end "$msg\n"
+        $txt see end
+        $txt configure -state disabled
+        set GUI::widgets(lastmsg) $msg
+        update idletasks
+
+        if { $::ediu(consoleEcho) } {
+            puts $msg
+        }
+    }
+
+    #
     #  Visibility
     #
     proc Visibility { tags args } {
@@ -335,11 +376,11 @@ namespace eval GUI {
             $sm add separator
             $sm add checkbutton -label "Application Visibility" \
                 -variable GUI::Dashboard::Visibility -onvalue on -offvalue off \
-                -command  {Transcript MsgNote [format "Application visibility is now %s." \
+                -command  {GUI::Transcript -severity note -msg [format "Application visibility is now %s." \
                 [expr [string is true $GUI::Dashboard::Visibility] ? "on" : "off"]] }
             $sm add checkbutton -label "Connect to Running Application" \
                 -variable ::ediu(connectMode) -onvalue True -offvalue False \
-                -command  {Transcript MsgNote [format "Application Connect mode is now %s." \
+                -command  {GUI::Transcript -severity note -msg [format "Application Connect mode is now %s." \
                 [expr $::ediu(connectMode) ? "on" : "off"]] ; GUI::StatusBar::UpdateStatus -busy off }
         }
 
@@ -1096,7 +1137,7 @@ if { 0 } {
             }
 
             if { [string equal $GUI::Dashboard::AIFFile ""] } {
-                Transcript $::ediu(MsgError) "No AIF File selected."
+                GUI::Transcript -severity error -msg "No AIF File selected."
             } else {
                 ediuAIFFileOpen $GUI::Dashboard::AIFFile
             }
@@ -1132,7 +1173,7 @@ if { 0 } {
                 [AIFForms::SelectOneFromList "Select Target Cell Partition" $::ediu(cellEdtrPrtnNames)]
 
             if { [string equal $GUI::Dashboard::CellPartition ""] } {
-                Transcript $::ediu(MsgError) "No Cell Partition selected."
+                GUI::Transcript -severity error -msg "No Cell Partition selected."
             } else {
                 set GUI::Dashboard::CellPartition [lindex $GUI::Dashboard::CellPartition 1]
             }
@@ -1146,7 +1187,7 @@ if { 0 } {
                 [AIFForms::SelectOneFromList "Select Target Part Partition" $::ediu(partEdtrPrtnNames)]
 
             if { [string equal $GUI::Dashboard::PartPartition ""] } {
-                Transcript $::ediu(MsgError) "No Part Partition selected."
+                GUI::Transcript -severity error -msg "No Part Partition selected."
             } else {
                 set GUI::Dashboard::PartPartition [lindex $GUI::Dashboard::PartPartition 1]
             }

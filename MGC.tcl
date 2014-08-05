@@ -56,27 +56,27 @@ namespace eval MGC {
         #  Crank up Expedition
 
         if { $::ediu(connectMode) } {
-            Transcript $::ediu(MsgNote) "Connecting to existing Expedition session."
+            GUI::Transcript -severity note -msg "Connecting to existing Expedition session."
             set ::ediu(pcbApp) [::tcom::ref getactiveobject "MGCPCB.ExpeditionPCBApplication"]
 
             #  Use the active PCB document object
             set errorCode [catch {set ::ediu(pcbDoc) [$::ediu(pcbApp) ActiveDocument] } errorMessage]
             if {$errorCode != 0} {
-                Transcript $::ediu(MsgError) [format "API error \"%s\", build aborted." $errorMessage]
+                GUI::Transcript -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
                 return -code return 1
             }
         } else {
-            Transcript $::ediu(MsgNote) "Opening Expedition."
+            GUI::Transcript -severity note -msg "Opening Expedition."
             set ::ediu(pcbApp) [::tcom::ref createobject "MGCPCB.ExpeditionPCBApplication"]
 
             # Open the database
-            Transcript $::ediu(MsgNote) "Opening database for Expedition."
+            GUI::Transcript -severity note -msg "Opening database for Expedition."
 
             #  Create a PCB document object
             set errorCode [catch {set ::ediu(pcbDoc) [$::ediu(pcbApp) \
                 OpenDocument $::ediu(targetPath)] } errorMessage]
             if {$errorCode != 0} {
-                Transcript $::ediu(MsgError) [format "API error \"%s\", build aborted." $errorMessage]
+                GUI::Transcript -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
                 return -code return 1
             }
         }
@@ -104,7 +104,7 @@ namespace eval MGC {
         set ::ediu(targetPath) [$::ediu(pcbDoc) Path][$::ediu(pcbDoc) Name]
         set GUI::Dashboard::DesignPath [$::ediu(pcbDoc) Path][$::ediu(pcbDoc) Name]
         #puts [$::ediu(pcbDoc) Path][$::ediu(pcbDoc) Name]
-        Transcript $::ediu(MsgNote) [format "Connected to design database:  %s%s" \
+        GUI::Transcript -severity note -msg [format "Connected to design database:  %s%s" \
             [$::ediu(pcbDoc) Path] [$::ediu(pcbDoc) Name]]
     }
 
@@ -114,7 +114,7 @@ namespace eval MGC {
     proc OpenPadstackEditor { { mode "-opendatabase" } } {
         #  Crank up the Padstack Editor once per sessions
 
-        Transcript $::ediu(MsgNote) [format "Opening Padstack Editor in %s mode." $GUI::Dashboard::Mode]
+        GUI::Transcript -severity note -msg [format "Opening Padstack Editor in %s mode." $GUI::Dashboard::Mode]
 
         ##  Which mode?  Design or Library?
         if { $GUI::Dashboard::Mode == $::ediu(designMode) } {
@@ -128,12 +128,12 @@ namespace eval MGC {
             if { $mode == "-opendatabase" } {
                 set errorCode [catch { MGC::OpenExpedition } errorMessage]
                 if {$errorCode != 0} {
-                    Transcript $::ediu(MsgError) [format "API error \"%s\", build aborted." $errorMessage]
+                    GUI::Transcript -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
                     GUI::StatusBar::UpdateStatus -busy off
                     return
                 }
             } else {
-                Transcript $::ediu(MsgNote) "Reusing previously opened instance of Expedition."
+                GUI::Transcript -severity note -msg "Reusing previously opened instance of Expedition."
             }
             set ::ediu(pdstkEdtr) [$::ediu(pcbDoc) PadstackEditor]
             set ::ediu(pdstkEdtrDb) [$::ediu(pdstkEdtr) ActiveDatabase]
@@ -143,18 +143,18 @@ namespace eval MGC {
             set errorCode [catch {set ::ediu(pdstkEdtrDb) [$::ediu(pdstkEdtr) \
                 OpenDatabaseEx $::ediu(targetPath) false] } errorMessage]
             if {$errorCode != 0} {
-                Transcript $::ediu(MsgError) [format "API error \"%s\", build aborted." $errorMessage]
+                GUI::Transcript -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
                 return -code return 1
             }
         } else {
-            Transcript $::ediu(MsgError) "Mode not set, build aborted."
+            GUI::Transcript -severity error -msg "Mode not set, build aborted."
             return -code return 1
         }
 
         # Lock the server
         set errorCode [catch { $::ediu(pdstkEdtr) LockServer } errorMessage]
         if {$errorCode != 0} {
-            Transcript $::ediu(MsgError) [format "API error \"%s\", build aborted." $errorMessage]
+            GUI::Transcript -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
             return -code return 1
         }
 
@@ -170,13 +170,13 @@ namespace eval MGC {
         ##  Which mode?  Design or Library?
 
         if { $GUI::Dashboard::Mode == $::ediu(designMode) } {
-            Transcript $::ediu(MsgNote) "Closing database for Padstack Editor."
+            GUI::Transcript -severity note -msg "Closing database for Padstack Editor."
             set errorCode [catch { $::ediu(pdstkEdtr) UnlockServer } errorMessage]
             if {$errorCode != 0} {
-                Transcript $::ediu(MsgError) [format "API error \"%s\", build aborted." $errorMessage]
+                GUI::Transcript -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
                 return -code return 1
             }
-            Transcript $::ediu(MsgNote) "Closing Padstack Editor."
+            GUI::Transcript -severity note -msg "Closing Padstack Editor."
             ##  Close Padstack Editor
             $::ediu(pdstkEdtr) SaveActiveDatabase
             $::ediu(pdstkEdtr) Quit
@@ -196,17 +196,17 @@ namespace eval MGC {
                 $::ediu(pcbApp) Quit
             }
         } elseif { $GUI::Dashboard::Mode == $::ediu(libraryMode) } {
-            Transcript $::ediu(MsgNote) "Closing database for Padstack Editor."
+            GUI::Transcript -severity note -msg "Closing database for Padstack Editor."
             set errorCode [catch { $::ediu(pdstkEdtr) UnlockServer } errorMessage]
             if {$errorCode != 0} {
-                Transcript $::ediu(MsgError) [format "API error \"%s\", build aborted." $errorMessage]
+                GUI::Transcript -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
                 return -code return 1
             }
             $::ediu(pdstkEdtr) CloseActiveDatabase True
-            Transcript $::ediu(MsgNote) "Closing Padstack Editor."
+            GUI::Transcript -severity note -msg "Closing Padstack Editor."
             $::ediu(pdstkEdtr) Quit
         } else {
-            Transcript $::ediu(MsgError) "Mode not set, build aborted."
+            GUI::Transcript -severity error -msg "Mode not set, build aborted."
             return -code return 1
         }
     }
@@ -222,35 +222,35 @@ puts "QQQ"
             ##  Catch any exceptions raised by opening the database
             set errorCode [catch { MGC::OpenExpedition } errorMessage]
             if {$errorCode != 0} {
-                Transcript $::ediu(MsgError) [format "API error \"%s\", build aborted." $errorMessage]
+                GUI::Transcript -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
                 GUI::StatusBar::UpdateStatus -busy off
                 return
             }
             set ::ediu(cellEdtr) [$::ediu(pcbDoc) CellEditor]
-            Transcript $::ediu(MsgNote) "Using design database for Cell Editor."
+            GUI::Transcript -severity note -msg "Using design database for Cell Editor."
             set ::ediu(cellEdtrDb) [$::ediu(cellEdtr) ActiveDatabase]
         } elseif { $GUI::Dashboard::Mode == $::ediu(libraryMode) } {
 puts "ZZZ"
             set ::ediu(cellEdtr) [::tcom::ref createobject "CellEditorAddin.CellEditorDlg"]
             set ::ediu(pdstkEdtr) [::tcom::ref createobject "MGCPCBLibraries.PadstackEditorDlg"]
             # Open the database
-            Transcript $::ediu(MsgNote) "Opening library database for Cell Editor."
+            GUI::Transcript -severity note -msg "Opening library database for Cell Editor."
 
             set errorCode [catch {set ::ediu(cellEdtrDb) [$::ediu(cellEdtr) \
                 OpenDatabase $::ediu(targetPath) false] } errorMessage]
             if {$errorCode != 0} {
-                Transcript $::ediu(MsgError) [format "API error \"%s\", build aborted." $errorMessage]
+                GUI::Transcript -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
                 return -code return 1
             }
         } else {
-            Transcript $::ediu(MsgError) "Mode not set, build aborted."
+            GUI::Transcript -severity error -msg "Mode not set, build aborted."
             return -code return 1
         }
 
         #set ::ediu(cellEdtrDb) [$::ediu(cellEdtr) OpenDatabase $::ediu(targetPath) false]
         set errorCode [catch { $::ediu(cellEdtr) LockServer } errorMessage]
         if {$errorCode != 0} {
-            Transcript $::ediu(MsgError) [format "API error \"%s\", build aborted." $errorMessage]
+            GUI::Transcript -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
             return -code return 1
         }
 
@@ -266,17 +266,17 @@ puts "ZZZ"
         ##  Which mode?  Design or Library?
 
         if { $GUI::Dashboard::Mode == $::ediu(designMode) } {
-            Transcript $::ediu(MsgNote) "Closing database for Cell Editor."
+            GUI::Transcript -severity note -msg "Closing database for Cell Editor."
             set errorCode [catch { $::ediu(cellEdtr) UnlockServer } errorMessage]
             if {$errorCode != 0} {
-                Transcript $::ediu(MsgError) [format "API error \"%s\", build aborted." $errorMessage]
+                GUI::Transcript -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
                 return -code return 1
             }
-            Transcript $::ediu(MsgNote) "Closing Cell Editor."
+            GUI::Transcript -severity note -msg "Closing Cell Editor."
             ##  Close Padstack Editor
             set errorCode [catch { $::ediu(cellEdtr) SaveActiveDatabase } errorMessage]
             if {$errorCode != 0} {
-                Transcript $::ediu(MsgError) [format "API error \"%s\", build aborted." $errorMessage]
+                GUI::Transcript -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
                 return -code return 1
             }
             #$::ediu(cellEdtr) SaveActiveDatabase
@@ -292,17 +292,17 @@ puts "ZZZ"
                 $::ediu(pcbApp) Quit
             }
         } elseif { $GUI::Dashboard::Mode == $::ediu(libraryMode) } {
-            Transcript $::ediu(MsgNote) "Closing database for Cell Editor."
+            GUI::Transcript -severity note -msg "Closing database for Cell Editor."
             set errorCode [catch { $::ediu(cellEdtr) UnlockServer } errorMessage]
             if {$errorCode != 0} {
-                Transcript $::ediu(MsgError) [format "API error \"%s\", build aborted." $errorMessage]
+                GUI::Transcript -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
                 return -code return 1
             }
             $::ediu(cellEdtr) CloseActiveDatabase True
-            Transcript $::ediu(MsgNote) "Closing Cell Editor."
+            GUI::Transcript -severity note -msg "Closing Cell Editor."
             $::ediu(cellEdtr) Quit
         } else {
-            Transcript $::ediu(MsgError) "Mode not set, build aborted."
+            GUI::Transcript -severity error -msg "Mode not set, build aborted."
             return -code return 1
         }
     }
@@ -317,28 +317,28 @@ puts "ZZZ"
             ##  Catch any exceptions raised by opening the database
             set errorCode [catch { MGC::OpenExpedition } errorMessage]
             if {$errorCode != 0} {
-                Transcript $::ediu(MsgError) [format "API error \"%s\", build aborted." $errorMessage]
+                GUI::Transcript -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
                 GUI::StatusBar::UpdateStatus -busy off
                 return
             }
             set ::ediu(partEdtr) [$::ediu(pcbDoc) PartEditor]
-            Transcript $::ediu(MsgNote) "Using design database for PDB Editor."
+            GUI::Transcript -severity note -msg "Using design database for PDB Editor."
             set ::ediu(partEdtrDb) [$::ediu(partEdtr) ActiveDatabase]
         } elseif { $GUI::Dashboard::Mode == $::ediu(libraryMode) } {
             set ::ediu(partEdtr) [::tcom::ref createobject "MGCPCBLibraries.PartsEditorDlg"]
             # Open the database
-            Transcript $::ediu(MsgNote) "Opening library database for PDB Editor."
+            GUI::Transcript -severity note -msg "Opening library database for PDB Editor."
 
             set errorCode [catch {set ::ediu(partEdtrDb) [$::ediu(partEdtr) \
                 OpenDatabaseEx $::ediu(targetPath) false] } errorMessage]
             if {$errorCode != 0} {
-                Transcript $::ediu(MsgError) [format "API error \"%s\", build aborted." $errorMessage]
+                GUI::Transcript -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
                 return -code return 1
             }
             puts "22->  $errorCode"
             puts "33->  $errorMessage"
         } else {
-            Transcript $::ediu(MsgError) "Mode not set, build aborted."
+            GUI::Transcript -severity error -msg "Mode not set, build aborted."
             return -code return 1
         }
 puts "OpenPDBEdtr - 1"
@@ -346,7 +346,7 @@ puts "OpenPDBEdtr - 1"
         #set ::ediu(partEdtrDb) [$::ediu(partEdtr) OpenDatabase $::ediu(targetPath) false]
         set errorCode [catch { $::ediu(partEdtr) LockServer } errorMessage]
         if {$errorCode != 0} {
-            Transcript $::ediu(MsgError) [format "API error \"%s\", build aborted." $errorMessage]
+            GUI::Transcript -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
             return -code return 1
         }
             puts "44->  $errorCode"
@@ -366,13 +366,13 @@ puts "OpenPDBEdtr - 1"
         ##  Which mode?  Design or Library?
 
         if { $GUI::Dashboard::Mode == $::ediu(designMode) } {
-            Transcript $::ediu(MsgNote) "Closing database for PDB Editor."
+            GUI::Transcript -severity note -msg "Closing database for PDB Editor."
             set errorCode [catch { $::ediu(partEdtr) UnlockServer } errorMessage]
             if {$errorCode != 0} {
-                Transcript $::ediu(MsgError) [format "API error \"%s\", build aborted." $errorMessage]
+                GUI::Transcript -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
                 return -code return 1
             }
-            Transcript $::ediu(MsgNote) "Closing PDB Editor."
+            GUI::Transcript -severity note -msg "Closing PDB Editor."
             ##  Close Padstack Editor
             $::ediu(partEdtr) SaveActiveDatabase
             $::ediu(partEdtr) Quit
@@ -393,17 +393,17 @@ puts "OpenPDBEdtr - 1"
                 $::ediu(pcbApp) Quit
             }
         } elseif { $GUI::Dashboard::Mode == $::ediu(libraryMode) } {
-            Transcript $::ediu(MsgNote) "Closing database for PDB Editor."
+            GUI::Transcript -severity note -msg "Closing database for PDB Editor."
             set errorCode [catch { $::ediu(partEdtr) UnlockServer } errorMessage]
             if {$errorCode != 0} {
-                Transcript $::ediu(MsgError) [format "API error \"%s\", build aborted." $errorMessage]
+                GUI::Transcript -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
                 return -code return 1
             }
             $::ediu(partEdtr) CloseActiveDatabase True
-            Transcript $::ediu(MsgNote) "Closing PDB Editor."
+            GUI::Transcript -severity note -msg "Closing PDB Editor."
             $::ediu(partEdtr) Quit
         } else {
-            Transcript $::ediu(MsgError) "Mode not set, build aborted."
+            GUI::Transcript -severity error -msg "Mode not set, build aborted."
             return -code return 1
         }
     }
@@ -423,9 +423,9 @@ puts "OpenPDBEdtr - 1"
         }
 
         if {$::ediu(targetPath) == "" } {
-            Transcript $::ediu(MsgWarning) "No Central Library selected."
+            GUI::Transcript -severity warning -msg "No Central Library selected."
         } else {
-            Transcript $::ediu(MsgNote) [format "Central Library \"%s\" set as library target." $::ediu(targetPath)]
+            GUI::Transcript -severity note -msg [format "Central Library \"%s\" set as library target." $::ediu(targetPath)]
         }
 
         ##  Invoke the Cell Editor and open the LMC
@@ -450,14 +450,14 @@ puts "OpenPDBEdtr - 1"
         set partitions [$::ediu(cellEdtrDb) Partitions]
         $::ediu(cellEdtr) Visible $visbility
 
-        Transcript $::ediu(MsgNote) [format "Found %s cell %s." [$partitions Count] \
+        GUI::Transcript -severity note -msg [format "Found %s cell %s." [$partitions Count] \
             [ediuPlural [$partitions Count] "partition"]]
 
         set ::ediu(cellEdtrPrtnNames) {}
         for {set i 1} {$i <= [$partitions Count]} {incr i} {
             set partition [$partitions Item $i]
             lappend ::ediu(cellEdtrPrtnNames) [$partition Name]
-            Transcript $::ediu(MsgNote) [format "Found cell partition \"%s.\"" [$partition Name]]
+            GUI::Transcript -severity note -msg [format "Found cell partition \"%s.\"" [$partition Name]]
         }
     
         MGC::CloseCellEditor
@@ -476,14 +476,14 @@ puts "OpenPDBEdtr - 1"
 
         set partitions [$::ediu(partEdtrDb) Partitions]
 
-        Transcript $::ediu(MsgNote) [format "Found %s part %s." [$partitions Count] \
+        GUI::Transcript -severity note -msg [format "Found %s part %s." [$partitions Count] \
             [ediuPlural [$partitions Count] "partition"]]
 
         set ::ediu(partEdtrPrtnNames) {}
         for {set i 1} {$i <= [$partitions Count]} {incr i} {
             set partition [$partitions Item $i]
             lappend ::ediu(partEdtrPrtnNames) [$partition Name]
-            Transcript $::ediu(MsgNote) [format "Found part partition \"%s.\"" [$partition Name]]
+            GUI::Transcript -severity note -msg [format "Found part partition \"%s.\"" [$partition Name]]
         }
 
         MGC::ClosePDBEditor
@@ -511,11 +511,11 @@ puts "OpenPDBEdtr - 1"
 
             if {$::ediu(targetPath) == $::ediu(Nothing) && $::ediu(connectMode) != True } {
                 if {$GUI::Dashboard::Mode == $::ediu(designMode)} {
-                    Transcript $::ediu(MsgError) "No Design (PCB) specified, build aborted."
+                    GUI::Transcript -severity error -msg "No Design (PCB) specified, build aborted."
                 } elseif {$GUI::Dashboard::Mode == $::ediu(libraryMode)} {
-                    Transcript $::ediu(MsgError) "No Central Library (LMC) specified, build aborted."
+                    GUI::Transcript -severity error -msg "No Central Library (LMC) specified, build aborted."
                 } else {
-                    Transcript $::ediu(MsgError) "Mode not set, build aborted."
+                    GUI::Transcript -severity error -msg "Mode not set, build aborted."
                 }
 
                 GUI::StatusBar::UpdateStatus -busy off
@@ -526,7 +526,7 @@ puts "OpenPDBEdtr - 1"
 
             if { $::padGeom(name) == "" || $::padGeom(shape) == "" || \
                 $::padGeom(height) == "" || $::padGeom(width) == "" } {
-                Transcript $::ediu(MsgError) "Incomplete pad definition, build aborted."
+                GUI::Transcript -severity error -msg "Incomplete pad definition, build aborted."
                 GUI::StatusBar::UpdateStatus -busy off
                 return
             }
@@ -536,7 +536,7 @@ puts "OpenPDBEdtr - 1"
             set shape [MapEnum::Shape $::padGeom(shape)]
 
             if { $shape == $::ediu(Nothing) } {
-                Transcript $::ediu(MsgError) "Unsupported pad shape, build aborted."
+                GUI::Transcript -severity error -msg "Unsupported pad shape, build aborted."
                 GUI::StatusBar::UpdateStatus -busy off
                 return
             }
@@ -548,7 +548,7 @@ puts "OpenPDBEdtr - 1"
             ##  Catch any exceptions raised by opening the database
             set errorCode [catch { MGC::OpenPadstackEditor } errorMessage]
             if {$errorCode != 0} {
-                Transcript $::ediu(MsgError) [format "API error \"%s\", build aborted." $errorMessage]
+                GUI::Transcript -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
                 GUI::StatusBar::UpdateStatus -busy off
                 return
             }
@@ -561,21 +561,21 @@ puts "OpenPDBEdtr - 1"
             #  Echo some information about what will happen.
 
             if {$oldPadName == $::ediu(Nothing)} {
-                Transcript $::ediu(MsgNote) [format "Pad \"%s\" does not exist." $padName]
+                GUI::Transcript -severity note -msg [format "Pad \"%s\" does not exist." $padName]
             } elseif {$mode == "-replace" } {
-                Transcript $::ediu(MsgWarning) [format "Pad \"%s\" already exists and will be replaced." $padName]
+                GUI::Transcript -severity warning -msg [format "Pad \"%s\" already exists and will be replaced." $padName]
 
                 ##  Can't delete a pad that is referenced by a padstack so
                 ##  need to catch the error if it is raised by the API.
                 set errorCode [catch { $oldPadName Delete } errorMessage]
                 if {$errorCode != 0} {
-                    Transcript $::ediu(MsgError) [format "API error \"%s\", build aborted." $errorMessage]
+                    GUI::Transcript -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
                     MGC::ClosePadstackEditor
                     GUI::StatusBar::UpdateStatus -busy off
                     return
                 }
             } else {
-                Transcript $::ediu(MsgWarning) [format "Pad \"%s\" already exists and will not be replaced." $padName]
+                GUI::Transcript -severity warning -msg [format "Pad \"%s\" already exists and will not be replaced." $padName]
                 MGC::ClosePadstackEditor
                 GUI::StatusBar::UpdateStatus -busy off
                 return
@@ -596,15 +596,15 @@ puts "OpenPDBEdtr - 1"
             $newPad -set OriginOffsetY \
                 [expr [MapEnum::Units $::database(units) "pad"]] [expr $::padGeom(offsety)]
 
-            Transcript $::ediu(MsgNote) [format "Committing pad:  %s" $padName]
+            GUI::Transcript -severity note -msg [format "Committing pad:  %s" $padName]
             $newPad Commit
 
             MGC::ClosePadstackEditor
 
             ##  Report some time statistics
             set ::ediu(cTime) [clock format [clock seconds] -format "%m/%d/%Y %T"]
-            Transcript $::ediu(MsgNote) [format "Start Time:  %s" $::ediu(sTime)]
-            Transcript $::ediu(MsgNote) [format "Completion Time:  %s" $::ediu(cTime)]
+            GUI::Transcript -severity note -msg [format "Start Time:  %s" $::ediu(sTime)]
+            GUI::Transcript -severity note -msg [format "Completion Time:  %s" $::ediu(cTime)]
 
             GUI::StatusBar::UpdateStatus -busy off
         }
@@ -622,11 +622,11 @@ puts "OpenPDBEdtr - 1"
 
             if {$::ediu(targetPath) == $::ediu(Nothing) && $::ediu(connectMode) != True } {
                 if {$GUI::Dashboard::Mode == $::ediu(designMode)} {
-                    Transcript $::ediu(MsgError) "No Design (PCB) specified, build aborted."
+                    GUI::Transcript -severity error -msg "No Design (PCB) specified, build aborted."
                 } elseif {$GUI::Dashboard::Mode == $::ediu(libraryMode)} {
-                    Transcript $::ediu(MsgError) "No Central Library (LMC) specified, build aborted."
+                    GUI::Transcript -severity error -msg "No Central Library (LMC) specified, build aborted."
                 } else {
-                    Transcript $::ediu(MsgError) "Mode not set, build aborted."
+                    GUI::Transcript -severity error -msg "Mode not set, build aborted."
                 }
 
                 GUI::StatusBar::UpdateStatus -busy off
@@ -637,7 +637,7 @@ puts "OpenPDBEdtr - 1"
 
             if { $::padGeom(name) == "" || $::padGeom(shape) == "" || \
                 $::padGeom(height) == "" || $::padGeom(width) == "" } {
-                Transcript $::ediu(MsgError) "Incomplete pad definition, build aborted."
+                GUI::Transcript -severity error -msg "Incomplete pad definition, build aborted."
                 GUI::StatusBar::UpdateStatus -busy off
                 return
             }
@@ -649,7 +649,7 @@ puts "OpenPDBEdtr - 1"
             ##  Catch any exceptions raised by opening the database
             set errorCode [catch { MGC::OpenPadstackEditor } errorMessage]
             if {$errorCode != 0} {
-                Transcript $::ediu(MsgError) [format "API error \"%s\", build aborted." $errorMessage]
+                GUI::Transcript -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
                 GUI::StatusBar::UpdateStatus -busy off
                 return
             }
@@ -658,7 +658,7 @@ puts "OpenPDBEdtr - 1"
             set pad [$::ediu(pdstkEdtrDb) FindPad $padName]
 
             if {$pad == $::ediu(Nothing)} {
-                Transcript $::ediu(MsgError) [format "Pad \"%s\" is not defined, padstack \"%s\" build aborted." $padName $::padGeom(name)]
+                GUI::Transcript -severity error -msg [format "Pad \"%s\" is not defined, padstack \"%s\" build aborted." $padName $::padGeom(name)]
                 GUI::StatusBar::UpdateStatus -busy off
                 return
             }
@@ -670,20 +670,20 @@ puts "OpenPDBEdtr - 1"
             #  Echo some information about what will happen.
 
             if {$oldPadstackName == $::ediu(Nothing)} {
-                Transcript $::ediu(MsgNote) [format "Padstack \"%s\" does not exist." $padName]
+                GUI::Transcript -severity note -msg [format "Padstack \"%s\" does not exist." $padName]
             } elseif {$mode == "-replace" } {
-                Transcript $::ediu(MsgWarning) [format "Padstack \"%s\" already exists and will be replaced." $::padGeom(name)]
+                GUI::Transcript -severity warning -msg [format "Padstack \"%s\" already exists and will be replaced." $::padGeom(name)]
                 ##  Can't delete a padstack that is referenced by a padstack
                 ##  so need to catch the error if it is raised by the API.
                 set errorCode [catch { $oldPadstackName Delete } errorMessage]
                 if {$errorCode != 0} {
-                    Transcript $::ediu(MsgError) [format "API error \"%s\", build aborted." $errorMessage]
+                    GUI::Transcript -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
                     MGC::ClosePadstackEditor
                     GUI::StatusBar::UpdateStatus -busy off
                     return
                 }
             } else {
-                Transcript $::ediu(MsgWarning) [format "Padstack \"%s\" already exists and will not be replaced." $::padGeom(name)]
+                GUI::Transcript -severity warning -msg [format "Padstack \"%s\" already exists and will not be replaced." $::padGeom(name)]
                 MGC::ClosePadstackEditor
                 GUI::StatusBar::UpdateStatus -busy off
                 return
@@ -729,8 +729,8 @@ puts "OpenPDBEdtr - 1"
 
             ##  Report some time statistics
             set ::ediu(cTime) [clock format [clock seconds] -format "%m/%d/%Y %T"]
-            Transcript $::ediu(MsgNote) [format "Start Time:  %s" $::ediu(sTime)]
-            Transcript $::ediu(MsgNote) [format "Completion Time:  %s" $::ediu(cTime)]
+            GUI::Transcript -severity note -msg [format "Start Time:  %s" $::ediu(sTime)]
+            GUI::Transcript -severity note -msg [format "Completion Time:  %s" $::ediu(cTime)]
 
             GUI::StatusBar::UpdateStatus -busy off
         }
@@ -755,7 +755,7 @@ puts "OpenPDBEdtr - 1"
 
             ##  Check mirror option, make sure it is valid
             if { [lsearch [list none x y xy] $V(-mirror)] == -1 } {
-                Transcript $::ediu(MsgError) "Illegal seeting for -mirror switch, must be one of none, x, y, or xy."
+                GUI::Transcript -severity error -msg "Illegal seeting for -mirror switch, must be one of none, x, y, or xy."
                 GUI::StatusBar::UpdateStatus -busy off
                 return
             }
@@ -784,12 +784,12 @@ puts "OpenPDBEdtr - 1"
 
             if {$::ediu(targetPath) == $::ediu(Nothing) && $::ediu(connectMode) != True } {
                 if {$GUI::Dashboard::Mode == $::ediu(designMode)} {
-                    Transcript $::ediu(MsgError) "No Design (PCB) specified, build aborted."
+                    GUI::Transcript -severity error -msg "No Design (PCB) specified, build aborted."
                 } elseif {$GUI::Dashboard::Mode == $::ediu(libraryMode)} {
-                    Transcript $::ediu(MsgError) "No Central Library (LMC) specified, build aborted."
+                    GUI::Transcript -severity error -msg "No Central Library (LMC) specified, build aborted."
                 } else {
                     puts $GUI::Dashboard::Mode
-                    Transcript $::ediu(MsgError) "Mode not set, build aborted."
+                    GUI::Transcript -severity error -msg "Mode not set, build aborted."
                 }
 
                 GUI::StatusBar::UpdateStatus -busy off
@@ -801,7 +801,7 @@ puts "OpenPDBEdtr - 1"
 
             set errorCode [catch { MGC::OpenCellEditor } errorMessage]
             if {$errorCode != 0} {
-                Transcript $::ediu(MsgError) [format "API error \"%s\", build aborted." $errorMessage]
+                GUI::Transcript -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
                 MGC::CloseCellEditor
                 GUI::StatusBar::UpdateStatus -busy off
                 return
@@ -820,7 +820,7 @@ puts "OpenPDBEdtr - 1"
                         [AIFForms::SelectOneFromList "Select Target Cell Partition" $::ediu(cellEdtrPrtnNames)]
 
                     if { [string equal $::ediu(cellEdtrPrtnName) ""] } {
-                        Transcript $::ediu(MsgError) "No Cell Partition selected, build aborted."
+                        GUI::Transcript -severity error -msg "No Cell Partition selected, build aborted."
                         MGC::CloseCellEditor
                         GUI::StatusBar::UpdateStatus -busy off
                         return
@@ -844,7 +844,7 @@ puts "OpenPDBEdtr - 1"
                 set partitions [$::ediu(cellEdtrDb) Partitions]
                 $::ediu(cellEdtr) Visible $visibility
 
-                Transcript $::ediu(MsgNote) [format "Found %s cell %s." [$partitions Count] \
+                GUI::Transcript -severity note -msg [format "Found %s cell %s." [$partitions Count] \
                     [ediuPlural [$partitions Count] "partition"]]
 
                 set pNames {}
@@ -856,12 +856,12 @@ puts "OpenPDBEdtr - 1"
                 #  Does the partition exist?
 
                 if { [lsearch $pNames $::ediu(cellEdtrPrtnName)] == -1 } {
-                    Transcript $::ediu(MsgNote) [format "Creating partition \"%s\" for cell \"%s\"." \
+                    GUI::Transcript -severity note -msg [format "Creating partition \"%s\" for cell \"%s\"." \
                         $::die(partition) $target]
 
                     set partition [$::ediu(cellEdtrDb) NewPartition $::ediu(cellEdtrPrtnName)]
                 } else {
-                    Transcript $::ediu(MsgNote) [format "Using existing partition \"%s\" for cell \"%s\"." \
+                    GUI::Transcript -severity note -msg [format "Using existing partition \"%s\" for cell \"%s\"." \
                         $::ediu(cellEdtrPrtnName) $target]
                     set partition [$partitions Item [expr [lsearch $pNames $::ediu(cellEdtrPrtnName)] +1]]
                 }
@@ -871,13 +871,13 @@ puts "OpenPDBEdtr - 1"
                 set cells [$partition Cells]
             } else {
                 if { [expr { $V(-partition) ne "" }] } {
-                    Transcript $::ediu(MsgWarning) "-partition switch is ignored in Design Mode."
+                    GUI::Transcript -severity warning -msg "-partition switch is ignored in Design Mode."
                 }
                 set partition [$::ediu(cellEdtrDb) ActivePartition]
                 set cells [$partition Cells]
             }
 
-            Transcript $::ediu(MsgNote) [format "Found %s %s." [$cells Count] \
+            GUI::Transcript -severity note -msg [format "Found %s %s." [$cells Count] \
                 [ediuPlural [$cells Count] "cell"]]
 
             set cNames {}
@@ -912,7 +912,7 @@ puts "OpenPDBEdtr - 1"
 
                     ##  Make sure the end of the alphabet hasn't been reached
                     if { [string equal $suffix Z] } {
-                        Transcript $::ediu(MsgNote) [format "Cell suffixes (\"%s\") exhausted, aborted." $suffix]
+                        GUI::Transcript -severity note -msg [format "Cell suffixes (\"%s\") exhausted, aborted." $suffix]
                         MGC::CloseCellEditor
                         return
                     }
@@ -935,9 +935,9 @@ puts "OpenPDBEdtr - 1"
             ##  This can fail if the cell is being referenced by the design.
 
             if { [lsearch $cNames $target] == -1 } {
-                Transcript $::ediu(MsgNote) [format "Creating new cell \"%s\"." $target]
+                GUI::Transcript -severity note -msg [format "Creating new cell \"%s\"." $target]
             } else {
-                Transcript $::ediu(MsgNote) [format "Replacing existing cell \"%s.\"" $target]
+                GUI::Transcript -severity note -msg [format "Replacing existing cell \"%s.\"" $target]
                 set cell [$cells Item [expr [lsearch $cNames $target] +1]]
 
                 ##  Delete the cell and save the database.  The delete
@@ -945,7 +945,7 @@ puts "OpenPDBEdtr - 1"
 
                 set errorCode [catch { $cell Delete } errorMessage]
                 if {$errorCode != 0} {
-                    Transcript $::ediu(MsgError) [format "API error \"%s\", build aborted." $errorMessage]
+                    GUI::Transcript -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
                     MGC::CloseCellEditor
                     return
                 }
@@ -989,7 +989,7 @@ puts "OpenPDBEdtr - 1"
             ##  Catch any exceptions raised by opening the database
             set errorCode [catch { MGC::OpenPadstackEditor -dontopendatabase } errorMessage]
             if {$errorCode != 0} {
-                Transcript $::ediu(MsgError) [format "API error \"%s\", build aborted." $errorMessage]
+                GUI::Transcript -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
                 GUI::StatusBar::UpdateStatus -busy off
                 return
             }
@@ -1020,7 +1020,7 @@ puts "OpenPDBEdtr - 1"
                 #  Echo some information about what will happen.
 
                 if {$padstack($pad) == $::ediu(Nothing)} {
-                    Transcript $::ediu(MsgError) \
+                    GUI::Transcript -severity error -msg \
                         [format "Reference Padstack \"%s\" does not exist, build aborted." $pad]
                     $cellEditor Close False
 
@@ -1104,7 +1104,7 @@ puts "OpenPDBEdtr - 1"
         }
 
                 if { $skip  == False } {
-                    Transcript $::ediu(MsgNote) [format "Placing pin \"%s\" using padstack \"%s\"." \
+                    GUI::Transcript -severity note -msg [format "Placing pin \"%s\" using padstack \"%s\"." \
                         $diePadFields(pinnum) $diePadFields(padname)]
 
                     ##  Need to "Put" the padstack so it can be
@@ -1118,7 +1118,7 @@ puts "OpenPDBEdtr - 1"
                     set errorCode [catch { $pin Place \
                         [expr $diePadFields(padx)] [expr $diePadFields(pady)] [expr 0] } errorMessage]
                     if {$errorCode != 0} {
-                        Transcript $::ediu(MsgError) [format "API error \"%s\", build aborted." $errorMessage]
+                        GUI::Transcript -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
                         #puts [format "Error:  %s  Pin:  %d  Handle:  %s" $errorMessage $i $pin]
 
                         #puts [$pin IsValid]
@@ -1128,7 +1128,7 @@ puts "OpenPDBEdtr - 1"
                         break
                     }
                 } else {
-                    Transcript $::ediu(MsgNote) [format "Skipping pin \"%s\" using padstack \"%s\", not in Sparse Pin list." \
+                    GUI::Transcript -severity note -msg [format "Skipping pin \"%s\" using padstack \"%s\", not in Sparse Pin list." \
                         $diePadFields(pinnum) $diePadFields(padname)]
                 }
 
@@ -1191,10 +1191,10 @@ puts "OpenPDBEdtr - 1"
 
             ##  Save edits and close the Cell Editor
             set time [clock format [clock seconds] -format "%m/%d/%Y %T"]
-            Transcript $::ediu(MsgNote) [format "Saving new cell \"%s\" (%s)." $target $time]
+            GUI::Transcript -severity note -msg [format "Saving new cell \"%s\" (%s)." $target $time]
             $cellEditor Save
             set time [clock format [clock seconds] -format "%m/%d/%Y %T"]
-            Transcript $::ediu(MsgNote) [format "New cell \"%s\" (%s) saved." $target $time]
+            GUI::Transcript -severity note -msg [format "New cell \"%s\" (%s) saved." $target $time]
             $cellEditor Close False
 
         ##    if { $GUI::Dashboard::Mode == $::ediu(designMode) } {
@@ -1206,8 +1206,8 @@ puts "OpenPDBEdtr - 1"
 
             ##  Report some time statistics
             set ::ediu(cTime) [clock format [clock seconds] -format "%m/%d/%Y %T"]
-            Transcript $::ediu(MsgNote) [format "Start Time:  %s" $::ediu(sTime)]
-            Transcript $::ediu(MsgNote) [format "Completion Time:  %s" $::ediu(cTime)]
+            GUI::Transcript -severity note -msg [format "Start Time:  %s" $::ediu(sTime)]
+            GUI::Transcript -severity note -msg [format "Completion Time:  %s" $::ediu(cTime)]
 
             GUI::StatusBar::UpdateStatus -busy off
         }
@@ -1217,7 +1217,7 @@ puts "OpenPDBEdtr - 1"
         #
         proc PDB { device args } {
             ##  Process command arguments
-            array set V [list -partition $GUI::Dashboard::PartPartition] ;# Default values
+            array set V [list {-partition} $GUI::Dashboard::PartPartition] ;# Default values
             foreach {a value} $args {
                 if {! [info exists V($a)]} {error "unknown option $a"}
                 if {$value == {}} {error "value of \"$a\" missing"}
@@ -1233,11 +1233,11 @@ puts "OpenPDBEdtr - 1"
 
             if {$::ediu(targetPath) == $::ediu(Nothing) && $::ediu(connectMode) != True } {
                 if {$GUI::Dashboard::Mode == $::ediu(designMode)} {
-                    Transcript $::ediu(MsgError) "No Design (PCB) specified, build aborted."
+                    GUI::Transcript -severity error -msg "No Design (PCB) specified, build aborted."
                 } elseif {$GUI::Dashboard::Mode == $::ediu(libraryMode)} {
-                    Transcript $::ediu(MsgError) "No Central Library (LMC) specified, build aborted."
+                    GUI::Transcript -severity error -msg "No Central Library (LMC) specified, build aborted."
                 } else {
-                    Transcript $::ediu(MsgError) "Mode not set, build aborted."
+                    GUI::Transcript -severity error -msg "Mode not set, build aborted."
                 }
 
                 GUI::StatusBar::UpdateStatus -busy off
@@ -1249,7 +1249,7 @@ puts "OpenPDBEdtr - 1"
 
             set errorCode [catch { MGC::OpenPDBEditor } errorMessage]
             if {$errorCode != 0} {
-                Transcript $::ediu(MsgError) [format "API error \"%s\", build aborted." $errorMessage]
+                GUI::Transcript -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
                 GUI::StatusBar::UpdateStatus -busy off
                 return
             }
@@ -1271,7 +1271,7 @@ puts "OpenPDBEdtr - 1"
                         [AIFForms::SelectOneFromList "Select Target Part Partition" $::ediu(partEdtrPrtnNames)]
 
                     if { [string equal $::ediu(partEdtrPrtnName) ""] } {
-                        Transcript $::ediu(MsgError) "No Part Partition selected, build aborted."
+                        GUI::Transcript -severity error -msg "No Part Partition selected, build aborted."
                         MGC::CloseCellEditor
                         GUI::StatusBar::UpdateStatus -busy off
                         return
@@ -1285,7 +1285,7 @@ puts "OpenPDBEdtr - 1"
 
                 set partitions [$::ediu(partEdtrDb) Partitions]
 
-                Transcript $::ediu(MsgNote) [format "Found %s part %s." [$partitions Count] \
+                GUI::Transcript -severity note -msg [format "Found %s part %s." [$partitions Count] \
                     [ediuPlural [$partitions Count] "partition"]]
 
                 set pNames {}
@@ -1297,12 +1297,12 @@ puts "OpenPDBEdtr - 1"
                 #  Does the partition exist?
 
                 if { [lsearch $pNames $::ediu(partEdtrPrtnName)] == -1 } {
-                    Transcript $::ediu(MsgNote) [format "Creating partition \"%s\" for part \"%s\"." \
+                    GUI::Transcript -severity note -msg [format "Creating partition \"%s\" for part \"%s\"." \
                         $::ediu(partEdtrPrtnName) $device]
 
                     set partition [$::ediu(partEdtrDb) NewPartition $::ediu(partEdtrPrtnName)]
                 } else {
-                    Transcript $::ediu(MsgNote) [format "Using existing partition \"%s\" for part \"%s\"." \
+                    GUI::Transcript -severity note -msg [format "Using existing partition \"%s\" for part \"%s\"." \
                         $::ediu(partEdtrPrtnName) $device]
                     set partition [$partitions Item [expr [lsearch $pNames $::ediu(partEdtrPrtnName)] +1]]
                 }
@@ -1312,13 +1312,13 @@ puts "OpenPDBEdtr - 1"
                 set parts [$partition Parts]
             } else {
                 if { [expr { $V(-partition) ne "" }] } {
-                    Transcript $::ediu(MsgWarning) "-partition switch is ignored in Design Mode."
+                    GUI::Transcript -severity warning -msg "-partition switch is ignored in Design Mode."
                 }
                 set partition [$::ediu(partEdtrDb) ActivePartition]
                 set parts [$partition Parts]
             }
 
-            Transcript $::ediu(MsgNote) [format "Found %s %s." [$parts Count] \
+            GUI::Transcript -severity note -msg [format "Found %s %s." [$parts Count] \
                 [ediuPlural [$parts Count] "part"]]
 
             set cNames {}
@@ -1330,10 +1330,10 @@ puts "OpenPDBEdtr - 1"
             #  Does the part exist?
 
             if { [lsearch $cNames $device] == -1 } {
-                Transcript $::ediu(MsgNote) [format "Creating new part \"%s\"." $device]
+                GUI::Transcript -severity note -msg [format "Creating new part \"%s\"." $device]
 
             } else {
-                Transcript $::ediu(MsgNote) [format "Replacing existing part \"%s.\"" $device]
+                GUI::Transcript -severity note -msg [format "Replacing existing part \"%s.\"" $device]
                 set part [$parts Item [expr [lsearch $cNames $device] +1]]
 
                 ##  Delete the part and save the database.  The delete
@@ -1343,7 +1343,7 @@ puts "OpenPDBEdtr - 1"
 
                 set errorCode [catch { $part Delete } errorMessage]
                 if {$errorCode != 0} {
-                    Transcript $::ediu(MsgError) [format "API error \"%s\", build aborted." $errorMessage]
+                    GUI::Transcript -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
                     MGC::ClosePDBEditor
                     GUI::StatusBar::UpdateStatus -busy off
                     return
@@ -1376,12 +1376,12 @@ puts "OpenPDBEdtr - 1"
             set symRef [$mapping PutSymbolReference $device]
 
             if { [[$mapping SymbolReferences] Count] > 0 } {
-                Transcript $::ediu(MsgWarning) \
+                GUI::Transcript -severity warning -msg \
                     [format "Mapping has %d preexisting Symbol Reference(s)." \
                         [[$mapping SymbolReferences] Count]]
 
                 for { set i 1 } {$i <= [[$mapping SymbolReferences] Count] } {incr i} {
-                    Transcript $::ediu(MsgNote) \
+                    GUI::Transcript -severity note -msg \
                         [format "Removing prexisting symbol reference #%d" $i]
                     [$mapping SymbolReferences] Remove $i
                 }
@@ -1404,7 +1404,7 @@ puts "OpenPDBEdtr - 1"
             set pi 1
             foreach p $::devices($device) {
                 set sc [lindex $p 1]
-                Transcript $::ediu(MsgNote) [format "Adding Pin Definition %d \"%s\" %d \"Unknown\"" \
+                GUI::Transcript -severity note -msg [format "Adding Pin Definition %d \"%s\" %d \"Unknown\"" \
                     $pi $sc [expr $::MGCPCBPartsEditor::EPDBPinPropertyType(epdbPinPropertyPinType)]]
                 $gate PutPinDefinition [expr $pi] "1" \
                     [expr $::MGCPCBPartsEditor::EPDBPinPropertyType(epdbPinPropertyPinType)] "Unknown"
@@ -1414,7 +1414,7 @@ puts "OpenPDBEdtr - 1"
             ##  Report symbol reference count.  Not sure this is needed ...
 
             if { [[$mapping SymbolReferences] Count] != 0 } {
-                Transcript $::ediu(MsgWarning) \
+                GUI::Transcript -severity warning -msg \
                     [format "Symbol Reference \"%s\" is already defined." $device]
 
                 #set i 1
@@ -1442,7 +1442,7 @@ puts "OpenPDBEdtr - 1"
                     #    $slot PutPin [expr $i] [format "%s" $i]
                     #}
                 } else {
-                    Transcript $::ediu(MsgNote) [format "Adding pin %d (\"%s\") to slot." $pi $sc]
+                    GUI::Transcript -severity note -msg [format "Adding pin %d (\"%s\") to slot." $pi $sc]
                     $slot PutPin [expr $pi] [format "%s" $sc] [format "%s" $pi]
                 }
                 incr pi
@@ -1450,15 +1450,15 @@ puts "OpenPDBEdtr - 1"
 
             ##  Commit mapping and close the PDB editor
 
-            Transcript $::ediu(MsgNote) [format "Saving PDB \"%s\"." $device]
+            GUI::Transcript -severity note -msg [format "Saving PDB \"%s\"." $device]
             $mapping Commit
-            Transcript $::ediu(MsgNote) [format "New PDB \"%s\" saved." $device]
+            GUI::Transcript -severity note -msg [format "New PDB \"%s\" saved." $device]
             MGC::ClosePDBEditor
 
             ##  Report some time statistics
             set ::ediu(cTime) [clock format [clock seconds] -format "%m/%d/%Y %T"]
-            Transcript $::ediu(MsgNote) [format "Start Time:  %s" $::ediu(sTime)]
-            Transcript $::ediu(MsgNote) [format "Completion Time:  %s" $::ediu(cTime)]
+            GUI::Transcript -severity note -msg [format "Start Time:  %s" $::ediu(sTime)]
+            GUI::Transcript -severity note -msg [format "Completion Time:  %s" $::ediu(cTime)]
             GUI::StatusBar::UpdateStatus -busy off
         }
 
@@ -1628,7 +1628,7 @@ puts "OpenPDBEdtr - 1"
             set MGC::WireBond::WBParameters(Padstack) \
                 [AIFForms::SelectOneFromList "Select Bond Pad" $bondpads]
             if { [string equal $MGC::WireBond::WBParameters(Padstack) ""] } {
-                Transcript $::ediu(MsgError) "No bond pad selected."
+                GUI::Transcript -severity error -msg "No bond pad selected."
                 return
             } else {
                 set MGC::WireBond::WBParameters(Padstack) [lindex $MGC::WireBond::WBParameters(Padstack) 1]
@@ -1656,38 +1656,38 @@ puts "OpenPDBEdtr - 1"
                 ##  Catch any exceptions raised by opening the database
                 set errorCode [catch { MGC::OpenExpedition } errorMessage]
                 if {$errorCode != 0} {
-                    Transcript $::ediu(MsgError) [format "API error \"%s\", build aborted." $errorMessage]
+                    GUI::Transcript -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
                     GUI::StatusBar::UpdateStatus -busy off
                     return
                 }
                 set ::ediu(cellEdtr) [$::ediu(pcbDoc) CellEditor]
             } else {
-                Transcript $::ediu(MsgError) "Bond Pad placement is only available in design mode."
+                GUI::Transcript -severity error -msg "Bond Pad placement is only available in design mode."
                 return
             }
 
             ##  Check the property values and make sure they are set.
             if { [string equal $GUI::Dashboard::WBParameters ""] } {
-                Transcript $::ediu(MsgError) "Wire Bond Parameters property has not been set."
+                GUI::Transcript -severity error -msg "Wire Bond Parameters property has not been set."
                 return
             }
 
             if { [string equal $GUI::Dashboard::WBDRCProperty ""] } {
-                Transcript $::ediu(MsgError) "Wire Bond DRC property has not been set."
+                GUI::Transcript -severity error -msg "Wire Bond DRC property has not been set."
                 return
             }
 
             ##  Apply the properties to the PCB Doc
             $::ediu(pcbDoc) PutProperty "WBParameters" $GUI::Dashboard::WBParameters
-            Transcript $::ediu(MsgNote) "Wire Bond property \"WBParameters\" applied to design."
+            GUI::Transcript -severity note -msg "Wire Bond property \"WBParameters\" applied to design."
             $::ediu(pcbDoc) PutProperty "WBDRCProperty" $GUI::Dashboard::WBDRCProperty
-            Transcript $::ediu(MsgNote) "Wire Bond property \"WBDRCProperty\" applied to design."
+            GUI::Transcript -severity note -msg "Wire Bond property \"WBDRCProperty\" applied to design."
 
             ##  Apply default wire model to all components
             set comps [$::ediu(pcbDoc) Components]
             ::tcom::foreach comp $comps {
                 $comp PutProperty "WBParameters" {[Model=[DefaultWireModel]][PADS=[]]}
-                Transcript $::ediu(MsgNote) [format "Wire Bond property \"WBParameters\" applied to component \"%s\"." [$comp RefDes]]
+                GUI::Transcript -severity note -msg [format "Wire Bond property \"WBParameters\" applied to component \"%s\"." [$comp RefDes]]
             }
         }
 
@@ -1703,12 +1703,12 @@ puts "OpenPDBEdtr - 1"
                 ##  Catch any exceptions raised by opening the database
                 set errorCode [catch { MGC::OpenExpedition } errorMessage]
                 if {$errorCode != 0} {
-                    Transcript $::ediu(MsgError) [format "API error \"%s\", build aborted." $errorMessage]
+                    GUI::Transcript -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
                     GUI::StatusBar::UpdateStatus -busy off
                     return
                 }
             } else {
-                Transcript $::ediu(MsgError) "Bond Pad placement is only available in design mode."
+                GUI::Transcript -severity error -msg "Bond Pad placement is only available in design mode."
                 return
             }
 
@@ -1729,13 +1729,13 @@ puts "OpenPDBEdtr - 1"
                     [expr $::MGCPCB::EPcbPadstackObjectType(epcbPadstackObjectBondPad)]]
 
                 if { [lsearch $padstacks $bondpad(FINNAME)] == -1} {
-                    Transcript $::ediu(MsgError) [format \
+                    GUI::Transcript -severity error -msg [format \
                         "Bond Pad \"%s\" does not appear in the design or is not defined as a Bond Pad." \
                         $bondpad(FINNAME)]
                     $::ediu(pcbDoc) TransactionEnd True
                     return
                 } else {
-                    Transcript $::ediu(MsgNote) [format \
+                    GUI::Transcript -severity note -msg [format \
                     "Bond Pad \"%s\" found in design, will be placed." $bondpad(FINNAME)]
                 }
 
@@ -1746,14 +1746,14 @@ puts "OpenPDBEdtr - 1"
                 set net [$::ediu(pcbDoc) FindNet $bondpad(NETNAME)]
 
                 if { [string equal $net ""] } {
-                    Transcript $::ediu(MsgWarning) [format "Net \"%s\" was not found, may be a No Connect, using \"(Net0)\" as net." $bondpad(NETNAME)]
+                    GUI::Transcript -severity warning -msg [format "Net \"%s\" was not found, may be a No Connect, using \"(Net0)\" as net." $bondpad(NETNAME)]
                     set net [$::ediu(pcbDoc) FindNet "(Net0)"]
                 } else {
-                    Transcript $::ediu(MsgNote) [format "Net \"%s\" was found." $bondpad(NETNAME)]
+                    GUI::Transcript -severity note -msg [format "Net \"%s\" was found." $bondpad(NETNAME)]
                 }
 
                 ##  Place the Bond Pad
-                Transcript $::ediu(MsgNote) \
+                GUI::Transcript -severity note -msg \
                     [format "Placing Bond Pad \"%s\" for Net \"%s\" (X: %s  Y: %s  R: %s)." \
                     $bondpad(FINNAME) $bondpad(NETNAME) $bondpad(FIN_X) $bondpad(FIN_Y) $bondpad(ANGLE)]
                 set bpo [$::ediu(pcbDoc) PutBondPad \
@@ -1779,12 +1779,12 @@ puts "OpenPDBEdtr - 1"
                 ##  Catch any exceptions raised by opening the database
                 set errorCode [catch { MGC::OpenExpedition } errorMessage]
                 if {$errorCode != 0} {
-                    Transcript $::ediu(MsgError) [format "API error \"%s\", build aborted." $errorMessage]
+                    GUI::Transcript -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
                     GUI::StatusBar::UpdateStatus -busy off
                     return
                 }
             } else {
-                Transcript $::ediu(MsgError) "Bond Pad placement is only available in design mode."
+                GUI::Transcript -severity error -msg "Bond Pad placement is only available in design mode."
                 return
             }
 
@@ -1829,7 +1829,7 @@ puts "OpenPDBEdtr - 1"
                 }
 
                 if { [string is false $dpFound] } {
-                    Transcript $::ediu(MsgError) \
+                    GUI::Transcript -severity error -msg \
                         [format "Unable to pick die pad at bond wire origin (X: %f  Y: %f), bond wire skipped (Net: %s  From (%f, %f) To (%f, %f)." \
                         $bondwire(FROM_X) $bondwire(FROM_Y) $bondwire(NETNAME) \
                         $bondwire(FROM_X) $bondwire(FROM_Y) $bondwire(TO_X) $bondwire(TO_Y)]
@@ -1837,7 +1837,7 @@ $::ediu(pcbDoc) TransactionEnd True
 break
                         continue
                 } else {
-                    Transcript $::ediu(MsgNote) \
+                    GUI::Transcript -severity note -msg \
                         [format "Found Die Pin at bond wire origin (X: %f  Y: %f) for net \"%s\"." \
                             $bondwire(FROM_X) $bondwire(FROM_Y) $bondwire(NETNAME)]
                 }
@@ -1877,13 +1877,13 @@ break
                 }
 
                 if { [string is false $bpFound] } {
-                    Transcript $::ediu(MsgError) \
+                    GUI::Transcript -severity error -msg \
                         [format "Unable to pick bond pad at bond wire termination (X: %f  Y: %f), bond wire skipped (Net: %s  From (%f, %f) To (%f, %f)." \
                         $bondwire(TO_X) $bondwire(TO_Y) $bondwire(NETNAME) \
                         $bondwire(FROM_X) $bondwire(FROM_Y) $bondwire(TO_X) $bondwire(TO_Y)]
                         continue
                 } else {
-                    Transcript $::ediu(MsgNote) \
+                    GUI::Transcript -severity note -msg \
                         [format "Found Bond Pad at bond wire termination (X: %f  Y: %f) for net \"%s\"." \
                             $bondwire(FROM_X) $bondwire(FROM_Y) $bondwire(NETNAME)]
                 }
@@ -1897,16 +1897,14 @@ break
                 set bpX [$BondPad PositionX]
                 set bpY [$BondPad PositionY]
 
-                set errorCode [catch { [set bw [$::ediu(pcbDoc) \
-                    PutBondWire $DiePin $dpX $dpY $BondPad $bpX $bpY]] } errorMessage]
-                if {$errorCode != 0} {
-                    Transcript $::ediu(MsgError) [format "API error \"%s\", Bond Wire not placed." $errorMessage]
-                } else {
-                    Transcript $::ediu(MsgNote) [format "Bond Wire successfully placed for net \"%s\" from (%f,%f) to (%f,%f)." \
-                        $bondwire(NETNAME) $bondwire(FROM_X) $bondwire(FROM_Y) $bondwire(TO_X) $bondwire(TO_Y)]
-                }
+                set bw [$::ediu(pcbDoc) PutBondWire $DiePin $dpX $dpY $BondPad $bpX $bpY]
+                GUI::Transcript -severity note -msg [format "Bond Wire successfully placed for net \"%s\" from (%f,%f) to (%f,%f)." \
+                    $bondwire(NETNAME) $bondwire(FROM_X) $bondwire(FROM_Y) $bondwire(TO_X) $bondwire(TO_Y)]
 
                 ##  Assign the BondWire model to ensure propert behavior
+                
+                GUI::Transcript -severity note -msg [format "Bond Wire Model \"%s\" assigned to net \"%s\"." \
+                    $MGC::WireBond::WBParameters(Model) [[$bw Net] Name]]
                 $bw -set WireModelName $MGC::WireBond::WBParameters(Model)
             }
 
@@ -1927,7 +1925,7 @@ break
             }
 
             if { $wb == "" } {
-                Transcript $::ediu(MsgWarning) "No Placement file specified, Export aborted."
+                GUI::Transcript -severity warning -msg "No Placement file specified, Export aborted."
                 return
             }
         
@@ -1937,7 +1935,7 @@ break
             puts $f $WBRule(Value)
             close $f
 
-            Transcript $::ediu(MsgNote) [format "Wire Model successfully exported to file \"%s\"." $wb]
+            GUI::Transcript -severity note -msg [format "Wire Model successfully exported to file \"%s\"." $wb]
 
             return
         }
