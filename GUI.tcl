@@ -116,7 +116,7 @@ namespace eval GUI {
         grid    rowconfigure . 0 -weight 1
 
         #  Configure the main window
-        wm title . $::ediu(EDIU).
+        wm title . $xAIF::Settings(EDIU).
         wm geometry . 1024x768
         . configure -menu .menubar -width 200 -height 150
 
@@ -165,7 +165,7 @@ namespace eval GUI {
         set GUI::widgets(lastmsg) $msg
         update idletasks
 
-        if { $::ediu(consoleEcho) } {
+        if { $xAIF::Settings(consoleEcho) } {
             puts $msg
         }
     }
@@ -356,10 +356,10 @@ namespace eval GUI {
             set GUI::widgets(setupmenu) $sm
             $mb add cascade -label "Setup" -menu $sm -underline 0
             $sm add radiobutton -label "Design Mode" -underline 0 \
-                -variable GUI::Dashboard::Mode -value $::ediu(designMode) \
+                -variable GUI::Dashboard::Mode -value $xAIF::Settings(designMode) \
                 -command GUI::Menus::DesignMode
             $sm add radiobutton -label "Central Library Mode" -underline 0 \
-                -variable GUI::Dashboard::Mode -value $::ediu(libraryMode) \
+                -variable GUI::Dashboard::Mode -value $xAIF::Settings(libraryMode) \
                 -command GUI::Menus::CentralLibraryMode
             $sm add separator
             $sm add command \
@@ -370,16 +370,16 @@ namespace eval GUI {
                 -underline 2 -command GUI::Dashboard::SelectCentralLibrary
             #$sm add separator
             #$sm add checkbutton -label "Sparse Mode" -underline 0 \
-                #-variable ::ediu(sparseMode) -command ediuToggleSparseMode
+                #-variable xAIF::Settings(sparseMode) -command ediuToggleSparseMode
             $sm add separator
             $sm add checkbutton -label "Application Visibility" \
                 -variable GUI::Dashboard::Visibility -onvalue on -offvalue off \
                 -command  {GUI::Transcript -severity note -msg [format "Application visibility is now %s." \
                 [expr [string is true $GUI::Dashboard::Visibility] ? "on" : "off"]] }
             $sm add checkbutton -label "Connect to Running Application" \
-                -variable ::ediu(connectMode) -onvalue True -offvalue False \
+                -variable xAIF::Settings(connectMode) -onvalue True -offvalue False \
                 -command  {GUI::Transcript -severity note -msg [format "Application Connect mode is now %s." \
-                [expr $::ediu(connectMode) ? "on" : "off"]] ; GUI::StatusBar::UpdateStatus -busy off }
+                [expr $xAIF::Settings(connectMode) ? "on" : "off"]] ; GUI::StatusBar::UpdateStatus -busy off }
         }
 
         ##
@@ -584,13 +584,13 @@ if { 0 } {
             pack $pb -in $pbf -fill both -expand yes
 
             #set mode [ttk::label .mode \
-            #    -padding 5 -textvariable ::widgets(mode)]
+            #    -padding 5 -textvariable xAIF::widgets(mode)]
             #set AIFfile [ttk::label .aifFile \
-            #    -padding 5 -textvariable ::widgets(AIFFile)]
+            #    -padding 5 -textvariable xAIF::widgets(AIFFile)]
             #set AIFType [ttk::label .aifType \
-            #    -padding 5 -textvariable ::widgets(AIFType)]
+            #    -padding 5 -textvariable xAIF::widgets(AIFType)]
             #set targetpath [ttk::label .targetPath \
-            #    -padding 5 -textvariable ::widgets(targetPath)]
+            #    -padding 5 -textvariable xAIF::widgets(targetPath)]
 
             set lastmsg [ttk::label .lastmsg \
                 -padding 5 -textvariable GUI::widgets(lastmsg)]
@@ -824,7 +824,7 @@ if { 0 } {
 
             ##  Mode
             labelframe $dbf.mode -pady 2 -text "Mode" -padx 2
-            foreach { i j } [list $::ediu(designMode) "Design" $::ediu(libraryMode) "Central Library" ] {
+            foreach { i j } [list $xAIF::Settings(designMode) "Design" $xAIF::Settings(libraryMode) "Central Library" ] {
                 radiobutton $dbf.mode.b$i -text "$j" -variable GUI::Dashboard::Mode \
 	            -relief flat -value $i
                 pack $dbf.mode.b$i  -side top -pady 2 -anchor w
@@ -1067,7 +1067,7 @@ if { 0 } {
             $GUI::widgets(setupmenu) entryconfigure  3 -state disabled
             $GUI::widgets(setupmenu) entryconfigure 4 -state normal
             $GUI::widgets(setupmenu) entryconfigure 7 -state disabled
-            #set ::ediu(targetPath) $::ediu(Nothing)
+            #set xAIF::Settings(targetPath) $xAIF::Settings(Nothing)
             GUI::StatusBar::UpdateStatus -busy off
         }
 
@@ -1078,7 +1078,7 @@ if { 0 } {
             $GUI::widgets(setupmenu) entryconfigure  3 -state normal
             $GUI::widgets(setupmenu) entryconfigure 4 -state disabled
             $GUI::widgets(setupmenu) entryconfigure 7 -state normal
-            #set ::ediu(targetPath) $::ediu(Nothing)
+            #set xAIF::Settings(targetPath) $xAIF::Settings(Nothing)
             GUI::StatusBar::UpdateStatus -busy off
         }
 
@@ -1089,7 +1089,7 @@ if { 0 } {
             $GUI::widgets(setupmenu) entryconfigure  3 -state normal
             $GUI::widgets(setupmenu) entryconfigure 4 -state disabled
             $GUI::widgets(setupmenu) entryconfigure 7 -state normal
-            #set ::ediu(targetPath) $::ediu(Nothing)
+            #set xAIF::Settings(targetPath) $xAIF::Settings(Nothing)
             GUI::StatusBar::UpdateStatus -busy off
         }
     }
@@ -1168,7 +1168,7 @@ if { 0 } {
         ##
         proc SelectCellPartition {} {
             set GUI::Dashboard::CellPartition \
-                [AIFForms::SelectOneFromList "Select Target Cell Partition" $::ediu(cellEdtrPrtnNames)]
+                [AIFForms::SelectOneFromList "Select Target Cell Partition" $xAIF::Settings(cellEdtrPrtnNames)]
 
             if { [string equal $GUI::Dashboard::CellPartition ""] } {
                 GUI::Transcript -severity error -msg "No Cell Partition selected."
@@ -1182,7 +1182,7 @@ if { 0 } {
         ##
         proc SelectPartPartition {} {
             set GUI::Dashboard::PartPartition \
-                [AIFForms::SelectOneFromList "Select Target Part Partition" $::ediu(partEdtrPrtnNames)]
+                [AIFForms::SelectOneFromList "Select Target Part Partition" $xAIF::Settings(partEdtrPrtnNames)]
 
             if { [string equal $GUI::Dashboard::PartPartition ""] } {
                 GUI::Transcript -severity error -msg "No Part Partition selected."
@@ -1195,7 +1195,7 @@ if { 0 } {
         ##  GUI::Dashboard::SetApplicationVisibility
         ##
         proc SetApplicationVisibility {} {
-            set ::ediu(appVisible) [expr [string is true $GUI::Dashboard::Visibility] ? on : off]
+            set xAIF::Settings(appVisible) [expr [string is true $GUI::Dashboard::Visibility] ? on : off]
         }
     }
 
@@ -1532,58 +1532,58 @@ if { 0 } {
 
             set sections {}
             set sectionRegExp ""
-            foreach i [array names ::sections] {
-                lappend sections $::sections($i)
-                #puts $::sections($i)
+            foreach i [array names xAIF::sections] {
+                lappend sections $xAIF::sections($i)
+                #puts $xAIF::sections($i)
                 set sectionRegExp [format "%s%s%s%s%s%s%s" $sectionRegExp \
                     [expr {$sectionRegExp == "" ? "(" : "|" }] \
-                    $::ediu(BackSlash) $::ediu(LeftBracket) $::sections($i) $::ediu(BackSlash) $::ediu(RightBracket) ]
+                    $xAIF::Settings(BackSlash) $xAIF::Settings(LeftBracket) $xAIF::sections($i) $xAIF::Settings(BackSlash) $xAIF::Settings(RightBracket) ]
             }
 
             set sectionRegExp [format "%s)" $sectionRegExp]
 
             set ignored {}
             set ignoreRegExp ""
-            foreach i [array names ::ignored] {
-                lappend ignored $::ignored($i)
-                #puts $::ignored($i)
+            foreach i [array names xAIF::ignored] {
+                lappend ignored $xAIF::ignored($i)
+                #puts $xAIF::ignored($i)
                 set ignoreRegExp [format "%s%s%s%s%s%s%s" $ignoreRegExp \
                     [expr {$ignoreRegExp == "" ? "(" : "|" }] \
-                    $::ediu(BackSlash) $::ediu(LeftBracket) $::ignored($i) $::ediu(BackSlash) $::ediu(RightBracket) ]
+                    $xAIF::Settings(BackSlash) $xAIF::Settings(LeftBracket) $xAIF::ignored($i) $xAIF::Settings(BackSlash) $xAIF::Settings(RightBracket) ]
             }
 
             set ignoreRegExp [format "%s)" $ignoreRegExp]
 
             ##  Prompt the user for a file if not supplied
 
-            if { $f != $::ediu(Nothing) } {
-                set ::ediu(filename) $f
+            if { $f != $xAIF::Settings(Nothing) } {
+                set xAIF::Settings(filename) $f
             } else {
-                set ::ediu(filename) [ GUI::Dashboard::SelectAIFFile]
+                set xAIF::Settings(filename) [ GUI::Dashboard::SelectAIFFile]
             }
 
             ##  Process the user supplied file
-            if {$::ediu(filename) != $::ediu(Nothing) } {
-                Transcript $::ediu(MsgNote) [format "Loading AIF file \"%s\"." $::ediu(filename)]
+            if {$xAIF::Settings(filename) != $xAIF::Settings(Nothing) } {
+                GUI::Transcript -severity note -msg [format "Loading AIF file \"%s\"." $xAIF::Settings(filename)]
                 set txt $GUI::widgets(sourceview)
                 $txt configure -state normal
                 $txt delete 1.0 end
 
-                set f [open $::ediu(filename)]
+                set f [open $xAIF::Settings(filename)]
                 $txt insert end [read $f]
-                Transcript $::ediu(MsgNote) [format "Scanning AIF file \"%s\" for sections." $::ediu(filename)]
+                GUI::Transcript -severity note -msg [format "Scanning AIF file \"%s\" for sections." $xAIF::Settings(filename)]
                 #ctext::addHighlightClass $txt diesections blue $sections
                 ctext::addHighlightClassForRegexp $txt diesections blue $sectionRegExp
                 ctext::addHighlightClassForRegexp $txt ignoredsections red $ignoreRegExp
                 $txt highlight 1.0 end
                 $txt configure -state disabled
                 close $f
-                Transcript $::ediu(MsgNote) [format "Loaded AIF file \"%s\"." $::ediu(filename)]
+                GUI::Transcript -severity note -msg [format "Loaded AIF file \"%s\"." $xAIF::Settings(filename)]
 
                 ##  Parse AIF file
 
-                AIF::Parse $::ediu(filename)
-                Transcript $::ediu(MsgNote) [format "Parsed AIF file \"%s\"." $::ediu(filename)]
+                AIF::Parse $xAIF::Settings(filename)
+                GUI::Transcript -severity note -msg [format "Parsed AIF file \"%s\"." $xAIF::Settings(filename)]
 
                 ##  Load the DATABASE section ...
 
@@ -1594,7 +1594,7 @@ if { 0 } {
 
                 ##  If the file a MCM-AIF file?
 
-                if { $::ediu(MCMAIF) == 1 } {
+                if { $xAIF::Settings(MCMAIF) == 1 } {
                     if { [ AIF::MCMDie::Section ] == -1 } {
                         GUI::StatusBar::UpdateStatus -busy off
                         return -1
@@ -1610,7 +1610,7 @@ if { 0 } {
 
                 ##  Load the optional BGA section ...
 
-                if { $::ediu(BGA) == 1 } {
+                if { $xAIF::Settings(BGA) == 1 } {
                     if { [ AIF::BGA::Section ] == -1 } {
                         GUI::StatusBar::UpdateStatus -busy off
                         return -1
@@ -1633,9 +1633,9 @@ if { 0 } {
 
                 ##  Draw the Graphic View
 
-                ediuGraphicViewBuild
+                GUI::Draw::BuildDesign
             } else {
-                Transcript $::ediu(MsgWarning) "No AIF file selected."
+                GUI::Transcript -severity warning -msg "No AIF file selected."
             }
 
             GUI::StatusBar::UpdateStatus -busy off
@@ -1650,7 +1650,7 @@ if { 0 } {
         #
         proc CloseAIF {} {
             GUI::StatusBar::UpdateStatus -busy on
-            Transcript $::ediu(MsgNote) [format "AIF file \"%s\" closed." $::ediu(filename)]
+            GUI::Transcript -severity note -msg [format "AIF file \"%s\" closed." $xAIF::Settings(filename)]
             InitialState
             GUI::StatusBar::UpdateStatus -busy off
         }
@@ -1662,7 +1662,7 @@ if { 0 } {
 
             ##  Put everything back into an initial state
             GUI::File::Init
-            set ::ediu(filename) $::ediu(Nothing)
+            set xAIF::Settings(filename) $xAIF::Settings(Nothing)
 
             ##  Remove all content from the AIF source view
             set txt $GUI::widgets(sourceview)
@@ -1710,27 +1710,27 @@ if { 0 } {
             GUI::StatusBar::UpdateStatus -busy on
 
             ##  Prompt the user for a file
-            ##set ::ediu(sparsepinsfile) [tk_getOpenFile -filetypes {{TXT .txt} {CSV .csv} {All *}}]
+            ##set xAIF::Settings(sparsepinsfile) [tk_getOpenFile -filetypes {{TXT .txt} {CSV .csv} {All *}}]
             set SparsePinsFilePath [tk_getOpenFile -filetypes {{TXT .txt} {All *}}]
 
             ##  Process the user supplied file
             if {[string equal "" SparsePinsFilePath]} {
-                Transcript $::ediu(MsgWarning) "No Sparse Pins file selected."
+                GUI::Transcript -severity warning -msg "No Sparse Pins file selected."
             } else {
-                Transcript $::ediu(MsgNote) [format "Loading Sparse Pins file \"%s\"." $::ediu(sparsepinsfile)]
+                GUI::Transcript -severity note -msg [format "Loading Sparse Pins file \"%s\"." $xAIF::Settings(sparsepinsfile)]
                 set txt $GUI::widgets(sparsepinsview)
                 $txt configure -state normal
                 $txt delete 1.0 end
 
-                set f [open $::ediu(sparsepinsfile)]
+                set f [open $xAIF::Settings(sparsepinsfile)]
                 $txt insert end [read $f]
-                Transcript $::ediu(MsgNote) [format "Scanning Sparse List \"%s\" for pin numbers." $::ediu(sparsepinsfile)]
+                GUI::Transcript -severity note -msg [format "Scanning Sparse List \"%s\" for pin numbers." $xAIF::Settings(sparsepinsfile)]
                 ctext::addHighlightClassForRegexp $txt sparsepinlist blue {[\t ]*[0-9][0-9]*[\t ]*$}
                 $txt highlight 1.0 end
                 $txt configure -state disabled
                 close $f
-                Transcript $::ediu(MsgNote) [format "Loaded Sparse Pins file \"%s\"." $::ediu(sparsepinsfile)]
-                Transcript $::ediu(MsgNote) [format "Extracting Pin Numbers from Sparse Pins file \"%s\"." $::ediu(sparsepinsfile)]
+                GUI::Transcript -severity note -msg [format "Loaded Sparse Pins file \"%s\"." $xAIF::Settings(sparsepinsfile)]
+                GUI::Transcript -severity note -msg [format "Extracting Pin Numbers from Sparse Pins file \"%s\"." $xAIF::Settings(sparsepinsfile)]
 
                 set pins [split $GUI::widgets(sparsepinsview) \n]
                 set txt $GUI::widgets(sparsepinsview)
@@ -1747,11 +1747,11 @@ if { 0 } {
                     if { [llength $pindata] == 0 } {
                         continue
                     } elseif { [llength $pindata] != 2 } {
-                        Transcript $::ediu(MsgWarning) [format "Skipping line %s, incorrect number of fields." $lc]
+                        GUI::Transcript -severity warning -msg [format "Skipping line %s, incorrect number of fields." $lc]
                     } else {
-                        Transcript $::ediu(MsgNote) [format "Found Sparse Pin Number:  \"%s\" on line %s" [lindex $pindata 1] $lc]
-                        lappend ::ediu(sparsepinnames) [lindex $pindata 1]
-                        lappend ::ediu(sparsepinnumbers) [lindex $pindata 1]
+                        GUI::Transcript -severity note -msg [format "Found Sparse Pin Number:  \"%s\" on line %s" [lindex $pindata 1] $lc]
+                        lappend xAIF::Settings(sparsepinnames) [lindex $pindata 1]
+                        lappend xAIF::Settings(sparsepinnumbers) [lindex $pindata 1]
                         ##if { [incr lc] > 100 } { break }
                     }
 
@@ -1776,13 +1776,699 @@ if { 0 } {
         proc CloseSparsePins {} {
             variable SparsePinsFilePath
             GUI::StatusBar::UpdateStatus -busy on
-            Transcript $::ediu(MsgNote) [format "Sparse Pins file \"%s\" closed." $::ediu(sparsepinsfile)]
-            set SparsePinsFilePath $::ediu(Nothing)
+            GUI::Transcript -severity note -msg [format "Sparse Pins file \"%s\" closed." $xAIF::Settings(sparsepinsfile)]
+            set SparsePinsFilePath $xAIF::Settings(Nothing)
             set txt $GUI::widgets(sparsepinsview)
             $txt configure -state normal
             $txt delete 1.0 end
             $txt configure -state disabled
             GUI::StatusBar::UpdateStatus -busy off
         }
+    }
+
+    ##
+    ##  Define the GUI::Draw namespace and procedure supporting operations
+    ##
+    namespace eval Draw {
+        #
+        #  GUI::Draw::BuildDesign
+        #
+        proc BuildDesign {} {
+            set rv 0
+            set line_no 0
+            set vm $GUI::widgets(viewmenu)
+            $vm.devices add separator
+    
+            set cnvs $GUI::widgets(layoutview)
+            set txt $GUI::widgets(netlistview)
+            set nlt $GUI::widgets(netlisttable)
+            set kyn $GUI::widgets(kynnetlistview)
+    
+            $cnvs delete all
+    
+            ##  Add the outline
+            #ediuGraphicViewAddOutline
+    
+            ##  Draw the BGA outline (if it exists)
+            if { $xAIF::Settings(BGA) == 1 } {
+                GUI::Draw::BGAOutline
+                set ::devices($::bga(name)) [list]
+    
+                #  Add BGA to the View Devices menu and make it visible
+                set GUI::devices($::bga(name)) on
+                $vm.devices add checkbutton -label "$::bga(name)" -underline 0 \
+                    -variable GUI::devices($::bga(name)) -onvalue on -offvalue off \
+                    -command  "GUI::Visibility $::bga(name) -mode toggle"
+    
+                $vm.devices add separator
+            }
+    
+            ##  Is this an MCM-AIF?
+    
+            if { $xAIF::Settings(MCMAIF) == 1 } {
+                foreach i [AIF::MCMDie::GetAllDie] {
+                    #set section [format "MCM_%s_%s" [string toupper $i] [dict get $::mcmdie $i]]
+                    set section [format "MCM_%s_%s" [dict get $::mcmdie $i] $i]
+                    if { [lsearch -exact [::AIF::Sections] $section] != -1 } {
+                        array set part {
+                            REF ""
+                            NAME ""
+                            WIDTH 0.0
+                            HEIGHT 0.0
+                            CENTER [list 0.0 0.0]
+                            X 0.0
+                            Y 0.0
+                        }
+    
+                        #  Extract each of the expected keywords from the section
+                        foreach key [array names part] {
+                            if { [lsearch -exact [AIF::Variables $section] $key] != -1 } {
+                                set part($key) [AIF::GetVar $key $section]
+                            }
+                        }
+    
+                        #  Need the REF designator for later
+    
+                        set part(REF) $i
+                        set ::devices($part(NAME)) [list]
+    
+                        #  Split the CENTER keyword into X and Y components
+                        #
+                        #  The AIF specification and sample file have the X and Y separated by
+                        #  both a space and comma character so we'll plan to handle either situation.
+                        if { [llength [split $part(CENTER) ,]] == 2 } {
+                            set part(X) [lindex [split $part(CENTER) ,] 0]
+                            set part(Y) [lindex [split $part(CENTER) ,] 1]
+                        } else {
+                            set part(X) [lindex [split $part(CENTER)] 0]
+                            set part(Y) [lindex [split $part(CENTER)] 1]
+                        }
+    
+                        #  Draw the Part Outline
+                        PartOutline $part(REF) $part(HEIGHT) $part(WIDTH) $part(X) $part(Y)
+    
+                        #  Add part to the View Devices menu and make it visible
+                        set GUI::devices($part(REF)) on
+                        $vm.devices add checkbutton -label "$part(REF)" -underline 0 \
+                            -variable GUI::devices($part(REF)) -onvalue on -offvalue off \
+                            -command  "GUI::Visibility device-$part(REF) -mode toggle"
+                    }
+                }
+            } else {
+                if { [lsearch -exact [AIF::Sections] DIE] != -1 } {
+                    array set part {
+                        REF ""
+                        NAME ""
+                        WIDTH 0.0
+                        HEIGHT 0.0
+                        CENTER { 0.0 0.0 }
+                        X 0.0
+                        Y 0.0
+                    }
+    
+                    #  Extract each of the expected keywords from the section
+                    foreach key [array names part] {
+                        if { [lsearch -exact [AIF::Variables DIE] $key] != -1 } {
+                            set part($key) [AIF::GetVar $key DIE]
+                        }
+                    }
+    
+                    #  Need the REF designator for later
+    
+                    set part(REF) $xAIF::Settings(DIEREF)
+                    set ::devices($part(NAME)) [list]
+    
+                    #  Split the CENTER keyword into X and Y components
+                    #
+                    #  The AIF specification and sample file have the X and Y separated by
+                    #  both a space and comma character so we'll plan to handle either situation.
+                    if { [llength [split $part(CENTER) ,]] == 2 } {
+                        set part(X) [lindex [split $part(CENTER) ,] 0]
+                        set part(Y) [lindex [split $part(CENTER) ,] 1]
+                    } else {
+                        set part(X) [lindex [split $part(CENTER)] 0]
+                        set part(Y) [lindex [split $part(CENTER)] 1]
+                    }
+    
+                    #  Draw the Part Outline
+                    PartOutline $part(REF) $part(HEIGHT) $part(WIDTH) $part(X) $part(Y)
+    
+                    #  Add part to the View Devices menu and make it visible
+                    set GUI::devices($part(REF)) on
+                    $vm.devices add checkbutton -label "$part(REF)" -underline 0 \
+                        -variable GUI::devices($part(REF)) -onvalue on -offvalue off \
+                        -command  "GUI::Visibility device-$part(REF) -mode toggle"
+                }
+            }
+    
+            ##  Load the NETLIST section
+    
+            set nl [$txt get 1.0 end]
+    
+            ##  Clean up netlist table
+            #$nlt configure -state normal
+            $nlt delete 0 end
+    
+            ##  Process the netlist looking for the pads
+    
+            foreach n [split $nl '\n'] {
+                #puts "==>  $n"
+                incr line_no
+                ##  Skip blank or empty lines
+                if { [string length $n] == 0 } { continue }
+    
+                set net [regexp -inline -all -- {\S+} $n]
+                set netname [lindex [regexp -inline -all -- {\S+} $n] 0]
+    
+                ##  Put netlist into table for easy review
+    
+                $nlt insert end $net
+    
+                ##  Initialize array to store netlist fields
+    
+                array set nlr {
+                    NETNAME "-"
+                    PADNUM "-"
+                    PADNAME "-"
+                    PAD_X "-"
+                    PAD_Y "-"
+                    BALLNUM "-"
+                    BALLNAME "-"
+                    BALL_X "-"
+                    BALL_Y "-"
+                    FINNUM "-"
+                    FINNAME "-"
+                    FIN_X "-"
+                    FIN_Y "-"
+                    ANGLE "-"
+                }
+    
+                #  A simple netlist has 5 fields
+    
+                set nlr(NETNAME) [lindex $net 0]
+                set nlr(PADNUM) [lindex $net 1]
+                set nlr(PADNAME) [lindex $net 2]
+                set nlr(PAD_X) [lindex $net 3]
+                set nlr(PAD_Y) [lindex $net 4]
+    
+                #  A simple netlist with ball assignment has 6 fields
+                if { [llength [split $net]] > 5 } {
+                    set nlr(BALLNUM) [lindex $net 5]
+                }
+    
+                #  A complex netlist with ball and rings assignments has 14 fields
+                if { [llength [split $net]] > 6 } {
+                    set nlr(BALLNAME) [lindex $net 6]
+                    set nlr(BALL_X) [lindex $net 7]
+                    set nlr(BALL_Y) [lindex $net 8]
+                    set nlr(FINNUM [lindex $net 9]
+                    set nlr(FINNAME) [lindex $net 10]
+                    set nlr(FIN_X) [lindex $net 11]
+                    set nlr(FIN_Y) [lindex $net 12]
+                    set nlr(ANGLE) [lindex $net 13]
+                }
+    
+                #printArray nlr
+    
+                #  Check the netname and store it for later use
+                if { [ regexp {^[[:alpha:][:alnum:]_]*\w} $netname ] == 0 } {
+                    GUI::Transcript -severity error -msg [format "Net name \"%s\" is not supported AIF syntax." $netname]
+                    set rv -1
+                } else {
+                    if { [lsearch -exact $::netlist $netname ] == -1 } {
+                        #lappend ::netlist $netname
+                        GUI::Transcript -severity note -msg [format "Found net name \"%s\"." $netname]
+                    }
+                }
+    
+                ##  Can the die pad be placed?
+    
+                if { $nlr(PADNAME) != "-" } {
+                    set ref [lindex [split $nlr(PADNUM) "."] 0]
+                    if { $ref == $nlr(PADNUM) } {
+                        set padnum $nlr(PADNUM)
+                        set ref $xAIF::Settings(DIEREF)
+                    } else {
+                        set padnum [lindex [split $nlr(PADNUM) "."] 1]
+                    }
+    
+                    #puts "---------------------> Die Pad:  $ref-$padnum"
+    
+                    ##  Record the pad and location in the device list
+                    if { $xAIF::Settings(MCMAIF) == 1 } {
+                        set name [dict get $::mcmdie $ref]
+                    } else {
+                        set name [AIF::GetVar NAME DIE]
+                    }
+    
+                    lappend ::devices($name) [list $nlr(PADNAME) $padnum $nlr(PAD_X) $nlr(PAD_Y)]
+    
+                    GUI::Draw::AddPin $nlr(PAD_X) $nlr(PAD_Y) $nlr(PADNUM) $nlr(NETNAME) $nlr(PADNAME) $line_no "diepad pad pad-$nlr(PADNAME) $ref"
+                    if { ![dict exists $::padtypes $nlr(PADNAME)] } {
+                        dict lappend ::padtypes $nlr(PADNAME) "diepad"
+                    }
+                } else {
+                    GUI::Transcript -severity warning -msg [format "Skipping die pad for net \"%s\" on line %d, no pad assignment." $netname, $line_no]
+                }
+    
+                ##  Can the BALL pad be placed?
+    
+                if { $nlr(BALLNAME) != "-" } {
+                    #puts "---------------------> Ball"
+    
+                    ##  Record the pad and location in the device list
+                    lappend ::devices($::bga(name)) [list $nlr(BALLNAME) $nlr(BALLNUM) $nlr(BALL_X) $nlr(BALL_Y)]
+                    #puts "---------------------> Ball Middle"
+    
+                    GUI::Draw::AddPin $nlr(BALL_X) $nlr(BALL_Y) $nlr(BALLNUM) $nlr(NETNAME) $nlr(BALLNAME) $line_no "ballpad pad pad-$nlr(BALLNAME)" "white" "red"
+                    #puts "---------------------> Ball Middle"
+                    if { ![dict exists $::padtypes $nlr(BALLNAME)] } {
+                        dict lappend ::padtypes $nlr(BALLNAME) "ballpad"
+                    }
+                    #puts "---------------------> Ball End"
+                } else {
+                    GUI::Transcript -severity warning -msg [format "Skipping ball pad for net \"%s\" on line %d, no ball assignment." $netname, $line_no]
+                }
+    
+                ##  Can the Finger pad be placed?
+    
+                if { $nlr(FINNAME) != "-" } {
+                    #puts "---------------------> Finger"
+                    GUI::Draw::AddPin $nlr(FIN_X) $nlr(FIN_Y) $nlr(FINNUM) $nlr(NETNAME) $nlr(FINNAME) $line_no "bondpad pad pad-$nlr(FINNAME)" "purple" "white" $nlr(ANGLE)
+                    lappend ::bondpads [list $nlr(NETNAME) $nlr(FINNAME) $nlr(FIN_X) $nlr(FIN_Y) $nlr(ANGLE)]
+                    if { ![dict exists $::padtypes $nlr(FINNAME)] } {
+                        dict lappend ::padtypes $nlr(FINNAME) "bondpad"
+                    }
+                } else {
+                    GUI::Transcript -severity warning -msg [format "Skipping finger for net \"%s\" on line %d, no finger assignment." $netname, $line_no]
+                }
+    
+                ##  Need to detect connections - there are two types:
+                ##
+                ##  1)  Bond Pad connections
+                ##  2)  Any other connection (Die to Die,  Die to BGA, etc.)
+                ##
+    
+                ##  Look for bond wire connections
+    
+                if { $nlr(PAD_X) != "-"  && $nlr(PAD_Y) != "-"  && $nlr(FINNAME) != "-" && $nlr(FIN_X) != "-"  && $nlr(FIN_Y) != "-" } {
+                    lappend ::bondwires [list $nlr(NETNAME) $nlr(PAD_X) $nlr(PAD_Y) $nlr(FIN_X) $nlr(FIN_Y)]
+                }
+    
+                ##  Look for net line connections (which are different than netlist connections)
+    
+                if { $nlr(PAD_X) != "-"  && $nlr(PAD_Y) != "-"  && $nlr(BALL_X) != "-"  && $nlr(BALL_Y) != "-" } {
+                    lappend ::netlines [list $nlr(NETNAME) $nlr(PAD_X) $nlr(PAD_Y) $nlr(BALL_X) $nlr(BALL_Y)]
+                }
+    
+                ##  Add any connections to the netlist
+    
+                if { $nlr(PADNUM) != "-" && $nlr(PADNAME) != "-" && $nlr(PAD_X) != "-"  && $nlr(PAD_Y) != "-" } {
+                    if { 1 } {
+                        lappend ::netlist [list $nlr(NETNAME) $nlr(PADNUM)]
+                    } else {
+                        lappend ::netlist [list $nlr(NETNAME) [format "%s.%s" $xAIF::Settings(DIEREF) $nlr(PADNUM)]]
+                    }
+                }
+    
+        if { 1 } {
+                if { $nlr(BALLNUM) != "-" && $nlr(BALLNAME) != "-" && $nlr(BALL_X) != "-"  && $nlr(BALL_Y) != "-" } {
+                    if { 0 } {
+                        lappend ::netlist [list $nlr(NETNAME) [format "%s.%s" $::bga(refdes) $nlr(BALLNUM)]]
+                    } else {
+                        lappend ::netlist [list $nlr(NETNAME) [format "%s.%s" $::bga(refdes) $nlr(BALLNUM)]]
+                    }
+                }
+        }
+            }
+    
+            ##  Due to the structure of the AIF file, it is possible to have
+            ##  replicated pins in our device list.  Need to roll through them
+            ##  and make sure all of the stored lists are unique.
+    
+            foreach d [array names ::devices] {
+                set ::devices($d) [lsort -unique $::devices($d)]
+            }
+    
+            ##  Similarly, bond pads can have more than one connection and may
+            ##  appear in the AIF file multiple times.  Need to eliminate any
+            ##  duplicates prevent placing bond pads multiple times.
+    
+            puts [format "++++++>  %d" [llength $::bondpads]]
+            set ::bondpads [lsort -unique $::bondpads]
+            puts [format "++++++>  %d" [llength $::bondpads]]
+    
+            #  Generate KYN Netlist
+            $kyn configure -state normal
+    
+            ##  Netlist file header 
+            $kyn insert end ";; V4.1.0\n"
+            $kyn insert end "%net\n"
+            $kyn insert end "%Prior=1\n\n"
+            $kyn insert end "%page=0\n"
+    
+            ##  Netlist content
+            set p ""
+            foreach n $::netlist {
+                set c ""
+                foreach i $n {
+                    if { [lsearch $n $i] == 0 } {
+                        set c $i
+                        if { $c == $p } {
+                            $kyn insert end "*  "
+                        } else {
+                            $kyn insert end "\\$i\\  "
+                        }
+                    } else {
+                        set p [split $i "."]
+                        if { [llength $p] > 1 } {
+                            $kyn insert end [format " \\%s\\-\\%s\\" [lindex $p 0] [lindex $p 1]]
+                        } else {
+                            $kyn insert end [format " \\%s\\-\\%s\\" $xAIF::Settings(DIEREF) [lindex $p 0]]
+                        }
+                    }
+                }
+    
+                set p $c
+                $kyn insert end "\n"
+                #puts "$n"
+            }
+    
+            ##  Output the part list
+            $kyn insert end "\n%Part\n"
+            foreach i [AIF::MCMDie::GetAllDie] {
+                $kyn insert end [format "\\%s\\   \\%s\\\n" [dict get $::mcmdie $i] $i]
+            }
+    
+            ##  If there is a BGA, make sure to put it in the part list
+            #if { $xAIF::Settings(BGA) == 1 } {
+            #    $kyn insert end [format "\\%s\\   \\%s\\\n" $::bga(name) $::bga(refdes)]
+            #}
+    
+            $kyn configure -state disabled
+    
+            #  Draw Bond Wires
+            foreach bw $::bondwires {
+                foreach {net x1 y1 x2 y2} $bw {
+                    #puts [format "Wire (%s) -- X1:  %s  Y1:  %s  X2:  %s  Y2:  %s" $net $x1 $y1 $x2 $y2]
+                    $cnvs create line $x1 $y1 $x2 $y2 -tags "bondwire bondwire-$net" -fill "orange" -width 1
+    
+                    #  Add bond wire to the View Bond Wires menu and make it visible
+                    #  Because a net can have more than one bond wire, need to ensure
+                    #  already hasn't been added or it will result in redundant menus.
+    
+                    if { [array size GUI::bondwires] == 0 || \
+                         [lsearch [array names GUI::bondwires] $net] == -1 } {
+                        set GUI::bondwires($net) on
+                        $vm.bondwires add checkbutton -label "$net" \
+                            -variable GUI::bondwires($net) -onvalue on -offvalue off \
+                            -command  "GUI::Visibility bondwire-$net -mode toggle"
+                    }
+                }
+            }
+    
+            #  Draw Net Lines
+            foreach nl $::netlines {
+                foreach {net x1 y1 x2 y2} $nl {
+                    #puts [format "Net Line (%s) -- X1:  %s  Y1:  %s  X2:  %s  Y2:  %s" $net $x1 $y1 $x2 $y2]
+                    $cnvs create line $x1 $y1 $x2 $y2 -tags "netline netline-$net" -fill "cyan" -width 1
+    
+                    #  Add bond wire to the View Bond Wires menu and make it visible
+                    #  Because a net can have more than one bond wire, need to ensure
+                    #  already hasn't been added or it will result in redundant menus.
+    
+                    if { [array size GUI::netlines] == 0 || \
+                         [lsearch [array names GUI::netlines] $net] == -1 } {
+                        set GUI::netlines($net) on
+                        $vm.netlines add checkbutton -label "$net" \
+                            -variable GUI::netlines($net) -onvalue on -offvalue off \
+                            -command  "GUI::Visibility netline-$net -mode toggle"
+                    }
+                }
+            }
+    
+            #$nlt configure -state disabled
+    
+            ##  Set an initial scale so the die is visible
+            ##  This is an estimate based on trying a couple of
+            ##  die files.
+    
+            set scaleX [expr ($xAIF::widgets(windowSizeX) / (2*$::die(width)) * $xAIF::Settings(ScaleFactor))]
+            #puts [format "A:  %s  B:  %s  C:  %s" $scaleX $xAIF::widgets(windowSizeX) $::die(width)]
+            if { $scaleX > 0 } {
+                #zoom 1 0 0 
+                set extents [$cnvs bbox all]
+                #puts $extents
+                #$cnvs create rectangle $extents -outline green
+                #$cnvs create oval \
+                #    [expr [lindex $extents 0]-2] [expr [lindex $extents 1]-2] \
+                #    [expr [lindex $extents 0]+2] [expr [lindex $extents 1]+2] \
+                #    -fill green
+                #$cnvs create oval \
+                #    [expr [lindex $extents 2]-2] [expr [lindex $extents 3]-2] \
+                #    [expr [lindex $extents 2]+2] [expr [lindex $extents 3]+2] \
+                #    -fill green
+                #zoomMark $cnvs [lindex $extents 2] [lindex $extents 3]
+                #zoomStroke $cnvs [lindex $extents 0] [lindex $extents 1]
+                #zoomArea $cnvs [lindex $extents 0] [lindex $extents 1]
+    
+                #  Set the initial view
+                GUI::View::Zoom $cnvs 25
+            }
+    
+            #destroy $pb
+    
+            return $rv
+        }
+    
+        #
+        #  GUI::Draw::AddPin
+        #
+        proc AddPin { x y pin net pad line_no { tags "diepad" } { color "yellow" } { outline "red" } { angle 0 } } {
+            set cnvs $GUI::widgets(layoutview)
+            set padtxt [expr {$pin == "-" ? $pad : $pin}]
+            #puts [format "Pad Text:  %s (Pin:  %s  Pad:  %s" $padtxt $pin $pad]
+    
+            ##  Figure out the pad shape
+            set shape [AIF::Pad::GetShape $pad]
+    
+            switch -regexp -- $shape {
+                "SQ" -
+                "SQUARE" {
+                    set pw [AIF::Pad::GetWidth $pad]
+                    $cnvs create rectangle [expr {$x-($pw/2.0)}] [expr {$y-($pw/2.0)}] \
+                        [expr {$x + ($pw/2.0)}] [expr {$y + ($pw/2.0)}] -outline $outline \
+                        -fill $color -tags "$tags" 
+    
+                    #  Add text: Use pin number if it was supplied, otherwise pad name
+                    $cnvs create text $x $y -text $padtxt -fill $outline \
+                        -anchor center -font [list arial] -justify center \
+                        -tags "text padnumber padnumber-$pin $tags"
+                }
+                "CIRCLE" -
+                "ROUND" {
+                    set pw [AIF::Pad::GetWidth $pad]
+                    $cnvs create oval [expr {$x-($pw/2.0)}] [expr {$y-($pw/2.0)}] \
+                        [expr {$x + ($pw/2.0)}] [expr {$y + ($pw/2.0)}] -outline $outline \
+                        -fill $color -tags "$tags" 
+    
+                    #  Add text: Use pin number if it was supplied, otherwise pad name
+                    $cnvs create text $x $y -text $padtxt -fill $outline \
+                        -anchor center -font [list arial] -justify center \
+                        -tags "text padnumber padnumber-$pin $tags"
+                }
+                "OBLONG" -
+                "OBROUND" {
+                    set pw [AIF::Pad::GetWidth $pad]
+                    set ph [AIF::Pad::GetHeight $pad]
+    
+                    set x1 [expr $x-($pw/2.0)]
+                    set y1 [expr $y-($ph/2.0)]
+                    set x2 [expr $x+($pw/2.0)]
+                    set y2 [expr $y+($ph/2.0)]
+    
+                    ##  An "oblong" pad is a rectangular pad with rounded ends.  The rounded
+                    ##  end is circular based on the width of the pad.  Ideally we'd draw this
+                    ##  as a single polygon but for now the pad is drawn with two round pads
+                    ##  connected by a rectangular pad.
+    
+                    #  Compose the pad - it is four pieces:  Arc, Segment, Arc, Segment
+    
+                    set padxy {}
+    
+                    #  Top arc
+                    set arc [GUI::ArcPath [expr {$x-($pw/2.0)}] $y1 \
+                        [expr {$x + ($pw/2.0)}] [expr {$y1+$pw}] -start 180 -extent 180 -sides 20]
+                    foreach e $arc { lappend padxy $e }
+    
+                    #  Bottom Arc
+                    set arc [GUI::ArcPath [expr {$x-($pw/2.0)}] \
+                        [expr {$y2-$pw}] [expr {$x + ($pw/2.0)}] $y2 -start 0 -extent 180 -sides 20]
+    
+                    foreach e $arc { lappend padxy $e }
+    
+                    set id [$cnvs create poly $padxy -outline $outline -fill $color -tags "$tags"]
+    
+                    #  Add text: Use pin number if it was supplied, otherwise pad name
+                    $cnvs create text $x $y -text $padtxt -fill $outline \
+                        -anchor center -font [list arial] -justify center \
+                        -tags "text padnumber padnumber-$pin $tags"
+    
+                    #  Handle any angle ajustment
+    
+                    if { $angle != 0 } {
+                        set Ox $x
+                        set Oy $y
+    
+                        set radians [expr {$angle * atan(1) * 4 / 180.0}] ;# Radians
+                        set xy {}
+                        foreach {x y} [$cnvs coords $id] {
+                            # rotates vector (Ox,Oy)->(x,y) by angle clockwise
+    
+                            # Shift the object to the origin
+                            set x [expr {$x - $Ox}]
+                            set y [expr {$y - $Oy}]
+    
+                            #  Rotate the object
+                            set xx [expr {$x * cos($radians) - $y * sin($radians)}]
+                            set yy [expr {$x * sin($radians) + $y * cos($radians)}]
+    
+                            # Shift the object back to the original XY location
+                            set xx [expr {$xx + $Ox}]
+                            set yy [expr {$yy + $Oy}]
+    
+                            lappend xy $xx $yy
+                        }
+                        $cnvs coords $id $xy
+                    }
+    
+                }
+                "RECT" -
+                "RECTANGLE" {
+                    set pw [AIF::Pad::GetWidth $pad]
+                    set ph [AIF::Pad::GetHeight $pad]
+    
+                    set x1 [expr $x-($pw/2.0)]
+                    set y1 [expr $y-($ph/2.0)]
+                    set x2 [expr $x+($pw/2.0)]
+                    set y2 [expr $y+($ph/2.0)]
+    
+                    #puts [format "Pad extents:  X1:  %s  Y1:  %s  X2:  %s  Y2:  %s" $x1 $y1 $x2 $y2]
+    
+                    $cnvs create rectangle $x1 $y1 $x2 $y2 -outline $outline -fill $color -tags "$tags $pad"
+    
+                    #  Add text: Use pin number if it was supplied, otherwise pad name
+                    $cnvs create text $x $y -text $padtxt -fill $outline \
+                        -anchor center -font [list arial] -justify center \
+                        -tags "text padnumber padnumber-$pin $tags"
+                }
+                default {
+                    #error "Error parsing $filename (line: $line_no): $line"
+                    GUI::Transcript -severity warning -msg [format "Skipping line %d in AIF file \"%s\"." $line_no $xAIF::Settings(filename)]
+                    #puts $line
+                }
+            }
+    
+            #$cnvs scale "pads" 0 0 100 100
+    
+            $cnvs configure -scrollregion [$cnvs bbox all]
+        }
+    
+        #
+        #  GUI::Draw::AddOutline
+        #
+        proc AddOutline {} {
+            set x2 [expr ($::die(width) / 2) * $xAIF::Settings(ScaleFactor)]
+            set x1 [expr (-1 * $x2) * $xAIF::Settings(ScaleFactor)]
+            set y2 [expr ($::die(height) / 2) * $xAIF::Settings(ScaleFactor)]
+            set y1 [expr (-1 * $y2) * $xAIF::Settings(ScaleFactor)]
+    
+            set cnvs $GUI::widgets(layoutcview)
+            $cnvs create rectangle $x1 $y1 $x2 $y2 -outline blue -tags "outline"
+    
+            #puts [format "Outline extents:  X1:  %s  Y1:  %s  X2:  %s  Y2:  %s" $x1 $y1 $x2 $y2]:w
+    
+            $cnvs configure -scrollregion [$cnvs bbox all]
+        }
+    
+        #
+        #  GUI::Draw::PartOutline
+        #
+        proc PartOutline { name height width x y { color "green" } { tags "partoutline" } } {
+            #puts [format "Part Outline input:  Name:  %s H:  %s  W:  %s  X:  %s  Y:  %s  C:  %s" $name $height $width $x $y $color]
+    
+            set x1 [expr $x-($width/2.0)]
+            set x2 [expr $x+($width/2.0)]
+            set y1 [expr $y-($height/2.0)]
+            set y2 [expr $y+($height/2.0)]
+    
+            set cnvs $GUI::widgets(layoutview)
+            $cnvs create rectangle $x1 $y1 $x2 $y2 -outline $color -tags "device device-$name $tags"
+            $cnvs create text $x2 $y2 -text $name -fill $color \
+                -anchor sw -font [list arial] -justify right -tags "text device device-$name refdes refdes-$name"
+    
+            #puts [format "Part Outline extents:  X1:  %s  Y1:  %s  X2:  %s  Y2:  %s" $x1 $y1 $x2 $y2]
+    
+            $cnvs configure -scrollregion [$cnvs bbox all]
+        }
+    
+        #
+        #  GUI::Draw::BGAOutline
+        #
+        proc BGAOutline { { color "white" } } {
+            set cnvs $GUI::widgets(layoutview)
+    
+            set x1 [expr -($::bga(width) / 2)]
+            set x2 [expr +($::bga(width) / 2)]
+            set y1 [expr -($::bga(height) / 2)]
+            set y2 [expr +($::bga(height) / 2)]
+            #puts [format "BGA Outline extents:  X1:  %s  Y1:  %s  X2:  %s  Y2:  %s" $x1 $y1 $x2 $y2]
+    
+            #  Does BGA section contain POLYGON outline?  If not, use the height and width
+            if { [lsearch -exact [AIF::Variables BGA] OUTLINE] != -1 } {
+                set poly [split [AIF::GetVar OUTLINE BGA]]
+                set pw [lindex $poly 2]
+                #puts $poly
+                if { [lindex $poly 1] == 1 } {
+                    set points [lreplace $poly  0 3 ]
+                    #puts $points 
+                } else {
+                    GUI::Transcript -severity warning -msg "Only one polygon supported for BGA outline, reverting to derived outline."
+                    set x1 [expr -($::bga(width) / 2)]
+                    set x2 [expr +($::bga(width) / 2)]
+                    set y1 [expr -($::bga(height) / 2)]
+                    set y2 [expr +($::bga(height) / 2)]
+    
+                    set points { $x1 $y1 $x2 $y2 }
+                }
+    
+    
+            } else {
+                set points { $x1 $y1 $x2 $y2 }
+            }
+    
+            $cnvs create polygon $points -outline $color -tags "$::bga(name) bga bgaoutline"
+            $cnvs create text $x2 $y2 -text $::bga(name) -fill $color \
+                -anchor sw -font [list arial] -justify right -tags "$::bga(name) bga text refdes"
+    
+            #  Add some text to note the corner XY coordinates - visual reference only
+            $cnvs create text $x1 $y1 -text [format "X: %.2f  Y: %.2f" $x1 $y1] -fill $color \
+                -anchor sw -font [list arial] -justify left -tags "guides dimension text"
+            $cnvs create text $x1 $y2 -text [format "X: %.2f  Y: %.2f" $x1 $y2] -fill $color \
+                -anchor nw -font [list arial] -justify left -tags "guides dimension text"
+            $cnvs create text $x2 $y1 -text [format "X: %.2f  Y: %.2f" $x2 $y1] -fill $color \
+                -anchor se -font [list arial] -justify left -tags "guides dimension text"
+            $cnvs create text $x2 $y2 -text [format "X: %.2f  Y: %.2f" $x2 $y2] -fill $color \
+                -anchor ne -font [list arial] -justify left -tags "guides dimension text"
+    
+            #  Add cross hairs through the origin - visual reference only
+            $cnvs create line [expr $x1 - $::bga(width) / 4] 0 [expr $x2 +$::bga(width) / 4] 0 \
+                -fill $color -dash . -tags "guides xyaxis"
+            $cnvs create line 0 [expr $y1 - $::bga(height) / 4] 0 [expr $y2 +$::bga(height) / 4] \
+                -fill $color -dash . -tags "guides xyaxis"
+    
+            $cnvs configure -scrollregion [$cnvs bbox all]
+        }
+    
     }
 }

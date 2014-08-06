@@ -80,19 +80,19 @@ namespace eval Netlist {
             ##  netnames.  The netlist text widget contains the netlist.
     
             if { [ regexp {^[[:alpha:][:alnum:]_]*\w} $netname ] == 0 } {
-                Transcript $::ediu(MsgError) [format "Net name \"%s\" is not supported AIF syntax." $netname]
+                GUI::Transcript -severity error -msg [format "Net name \"%s\" is not supported AIF syntax." $netname]
                 set rv -1
             } else {
                 incr connections
     
                 if { [lsearch -exact $nl $netname ] == -1 } {
                     lappend nl $netname
-                    Transcript $::ediu(MsgNote) [format "Found net name \"%s\"." $netname]
+                    GUI::Transcript -severity note -msg [format "Found net name \"%s\"." $netname]
                 }
     
                 if { [lsearch -exact $pads $padname ] == -1 && $padname != "-" } {
                     lappend pads $padname
-                    Transcript $::ediu(MsgNote) [format "Found reference to pad \"%s\"." $padname]
+                    GUI::Transcript -severity note -msg [format "Found reference to pad \"%s\"." $padname]
                 }
             }
         }
@@ -169,7 +169,7 @@ namespace eval Netlist {
             }
 
             if { $kyn == "" } {
-                Transcript $::ediu(MsgWarning) "No KYN file specified, Export aborted."
+                GUI::Transcript -severity warning -msg "No KYN file specified, Export aborted."
                 return
             }
         
@@ -178,7 +178,7 @@ namespace eval Netlist {
             puts $f [$txt get 1.0 end]
             close $f
 
-            Transcript $::ediu(MsgNote) [format "KYN netlist successfully exported to file \"%s\"." $kyn]
+            GUI::Transcript -severity note -msg [format "KYN netlist successfully exported to file \"%s\"." $kyn]
 
             return
         }
@@ -194,7 +194,7 @@ namespace eval Netlist {
             }
 
             if { $plcmnt == "" } {
-                Transcript $::ediu(MsgWarning) "No Placement file specified, Export aborted."
+                GUI::Transcript -severity warning -msg "No Placement file specified, Export aborted."
                 return
             }
         
@@ -207,7 +207,7 @@ namespace eval Netlist {
                 set sect [format "MCM_%s_%s" [dict get $::mcmdie $i] $i]
 
                 ##  If the device has a section, extract the CENTER keyword
-                if { [lsearch [AIF::Sections] $sect] != -1 } {
+                if { [lsearch [xAIF::sections] $sect] != -1 } {
                     set ctr [AIF::GetVar CENTER $sect]
                 }
 
@@ -227,7 +227,7 @@ namespace eval Netlist {
             puts $f $txt
             close $f
 
-            Transcript $::ediu(MsgNote) [format "Placement successfully exported to file \"%s\"." $plcmnt]
+            GUI::Transcript -severity note -msg [format "Placement successfully exported to file \"%s\"." $plcmnt]
 
             return
         }

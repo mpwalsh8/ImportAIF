@@ -161,7 +161,7 @@ namespace eval AIF {
                 } 
                 default {
                     #error "Error parsing $filename (line: $line_no): $line"
-                    Transcript $::ediu(MsgWarning) [format "Skipping line %d in AIF file \"%s\"." $line_no $::ediu(filename)]
+                    GUI::Transcript -severity warning -msg [format "Skipping line %d in AIF file \"%s\"." $line_no $xAIF::Settings(filename)]
                     puts $line
                 }
             }
@@ -186,7 +186,7 @@ namespace eval AIF {
 
     namespace eval BGA {
         #
-        #  AIF::BGASection
+        #  AIF::BGA::Section
         #
         #  Scan the AIF source file for the "DIE" section
         #
@@ -202,13 +202,13 @@ namespace eval AIF {
                 }
 
                 ##  Add the BGA to the list of devices
-                dict lappend ::mcmdie $::ediu(BGAREF) $::bga(name)
+                dict lappend ::mcmdie $xAIF::Settings(BGAREF) $::bga(name)
 
                 foreach i [array names ::bga] {
-                    Transcript $::ediu(MsgNote) [format "BGA \"%s\":  %s" [string toupper $i] $::bga($i)]
+                    GUI::Transcript -severity note -msg [format "BGA \"%s\":  %s" [string toupper $i] $::bga($i)]
                 }
             } else {
-                Transcript $::ediu(MsgError) [format "AIF file \"%s\" does not contain a BGA section." $::ediu(filename)]
+                GUI::Transcript -severity error -msg [format "AIF file \"%s\" does not contain a BGA section." $xAIF::Settings(filename)]
                 return -1
             }
         }
@@ -234,14 +234,14 @@ namespace eval AIF {
                 }
 
                 foreach i [array names ::die] {
-                    Transcript $::ediu(MsgNote) [format "Die \"%s\":  %s" [string toupper $i] $::die($i)]
+                    GUI::Transcript -severity note -msg [format "Die \"%s\":  %s" [string toupper $i] $::die($i)]
                 }
 
                 ##  Need a partition for Cell and PDB generaton when  in CL mode
                 #set ::die(partition) [format "%s_die" $::die(name)]
 
             } else {
-                Transcript $::ediu(MsgError) [format "AIF file \"%s\" does not contain a DIE section." $::ediu(filename)]
+                GUI::Transcript -severity error -msg [format "AIF file \"%s\" does not contain a DIE section." $xAIF::Settings(filename)]
                 return -1
             }
         }
@@ -278,18 +278,18 @@ namespace eval AIF {
                     set refs [split [AIF::GetVar $v MCM_DIE] ","]
 
                     foreach ref $refs {
-                        Transcript $::ediu(MsgNote) [format "Device:  %s  Ref:  %s" $v [string  trim $ref]]
+                        GUI::Transcript -severity note -msg [format "Device:  %s  Ref:  %s" $v [string  trim $ref]]
                         #dict lappend ::mcmdie [string trim $ref] [AIF::GetVar $v MCM_DIE]
                         dict lappend ::mcmdie [string trim $ref] $v
                     }
                 }
 
                 foreach i [GetAllDie] {
-                    Transcript $::ediu(MsgNote) [format "Device \"%s\" with reference designator:  %s" \
+                    GUI::Transcript -severity note -msg [format "Device \"%s\" with reference designator:  %s" \
                         [lindex [dict get $::mcmdie $i] 0] $i]
                 }
             } else {
-                Transcript $::ediu(MsgError) [format "AIF file \"%s\" does not contain a MCM_DIE section." $::ediu(filename)]
+                GUI::Transcript -severity error -msg [format "AIF file \"%s\" does not contain a MCM_DIE section." $xAIF::Settings(filename)]
                 set rv -1
             }
 
@@ -375,35 +375,35 @@ namespace eval AIF {
                 ##  Make sure file format is AIF!
 
                 if { $::database(type) != "AIF" } {
-                    Transcript $::ediu(MsgError) [format "File \"%s\" is not an AIF file." $::ediu(filename)]
+                    GUI::Transcript -severity error -msg [format "File \"%s\" is not an AIF file." $xAIF::Settings(filename)]
                     set rv -1
                 }
 
                 if { ([lsearch [AIF::Variables "DATABASE"] "MCM"] != -1) && ($::database(mcm) == "TRUE") } {
-                    Transcript $::ediu(MsgError) [format "File \"%s\" is an MCM-AIF file." $::ediu(filename)]
-                    set ::ediu(MCMAIF) 1
+                    GUI::Transcript -severity error -msg [format "File \"%s\" is an MCM-AIF file." $xAIF::Settings(filename)]
+                    set xAIF::Settings(MCMAIF) 1
                     set GUI::widgets(AIFType) "File Type:  MCM-AIF"
                 } else {
-                    Transcript $::ediu(MsgError) [format "File \"%s\" is an AIF file." $::ediu(filename)]
-                    set ::ediu(MCMAIF) 0
+                    GUI::Transcript -severity error -msg [format "File \"%s\" is an AIF file." $xAIF::Settings(filename)]
+                    set xAIF::Settings(MCMAIF) 0
                     set GUI::widgets(AIFType) "File Type:  AIF"
                 }
 
                 ##  Does the AIF file contain a BGA section?
-                set ::ediu(BGA) [expr [lsearch [AIF::Sections] "BGA"] != -1 ? 1 : 0]
+                set xAIF::Settings(BGA) [expr [lsearch [AIF::Sections] "BGA"] != -1 ? 1 : 0]
 
                 ##  Check units for legal option - AIF supports UM, MM, CM, INCH, MIL
 
-                if { [lsearch -exact $::units [string tolower $::database(units)]] == -1 } {
-                    Transcript $::ediu(MsgError) [format "Units \"%s\" are not supported AIF syntax." $::database(units)]
+                if { [lsearch -exact $xAIF::units [string tolower $::database(units)]] == -1 } {
+                    GUI::Transcript -severity error -msg [format "Units \"%s\" are not supported AIF syntax." $::database(units)]
                     set rv -1
                 }
 
                 foreach i [array names ::database] {
-                    Transcript $::ediu(MsgNote) [format "Database \"%s\":  %s" [string toupper $i] $::database($i)]
+                    GUI::Transcript -severity note -msg [format "Database \"%s\":  %s" [string toupper $i] $::database($i)]
                 }
             } else {
-                Transcript $::ediu(MsgError) [format "AIF file \"%s\" does not contain a DATABASE section." $::ediu(filename)]
+                GUI::Transcript -severity error -msg [format "AIF file \"%s\" does not contain a DATABASE section." $xAIF::Settings(filename)]
                 set rv -1
             }
 
@@ -456,17 +456,17 @@ namespace eval AIF {
 
                     ##  Check units for legal option - AIF supports UM, MM, CM, INCH, MIL
 
-                    if { [lsearch -exact $::padshapes [string tolower $padshape]] == -1 } {
-                        Transcript $::ediu(MsgError) [format "Pad shape \"%s\" is not supported AIF syntax." $padshape]
+                    if { [lsearch -exact $xAIF::padshapes [string tolower $padshape]] == -1 } {
+                        GUI::Transcript -severity error -msg [format "Pad shape \"%s\" is not supported AIF syntax." $padshape]
                         set rv -1
                     } else {
-                        Transcript $::ediu(MsgNote) [format "Found pad \"%s\" with shape \"%s\"." [string toupper $i] $padshape]
+                        GUI::Transcript -severity note -msg [format "Found pad \"%s\" with shape \"%s\"." [string toupper $i] $padshape]
                     }
                 }
 
-                Transcript $::ediu(MsgNote) [format "AIF source file contains %d %s." [llength [dict keys $::pads]] [ediuPlural [llength [dict keys $::pads]] "pad"]]
+                GUI::Transcript -severity note -msg [format "AIF source file contains %d %s." [llength [dict keys $::pads]] [xAIF::Utility::Plural [llength [dict keys $::pads]] "pad"]]
             } else {
-                Transcript $::ediu(MsgError) [format "AIF file \"%s\" does not contain a PADS section." $::ediu(filename)]
+                GUI::Transcript -severity error -msg [format "AIF file \"%s\" does not contain a PADS section." $xAIF::Settings(filename)]
                 set rv -1
             }
 
@@ -495,11 +495,11 @@ namespace eval AIF {
 
                 Netlist::Load
 
-                Transcript $::ediu(MsgNote) [format "AIF source file contains %d net %s." [ Netlist::GetConnectionCount ] [ediuPlural [Netlist::GetConnectionCount] "connection"]]
-                Transcript $::ediu(MsgNote) [format "AIF source file contains %d unique %s." [Netlist::GetNetCount] [ediuPlural [Netlist::GetNetCount] "net"]]
+                GUI::Transcript -severity note -msg [format "AIF source file contains %d net %s." [ Netlist::GetConnectionCount ] [xAIF::Utility::Plural [Netlist::GetConnectionCount] "connection"]]
+                GUI::Transcript -severity note -msg [format "AIF source file contains %d unique %s." [Netlist::GetNetCount] [xAIF::Utility::Plural [Netlist::GetNetCount] "net"]]
 
             } else {
-                Transcript $::ediu(MsgError) [format "AIF file \"%s\" does not contain a NETLIST section." $::ediu(filename)]
+                GUI::Transcript -severity error -msg [format "AIF file \"%s\" does not contain a NETLIST section." $xAIF::Settings(filename)]
                 set rv -1
             }
 

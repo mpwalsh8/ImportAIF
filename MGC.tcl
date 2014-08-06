@@ -55,26 +55,26 @@ namespace eval MGC {
     proc OpenExpedition {} {
         #  Crank up Expedition
 
-        if { $::ediu(connectMode) } {
+        if { $xAIF::Settings(connectMode) } {
             GUI::Transcript -severity note -msg "Connecting to existing Expedition session."
-            set ::ediu(pcbApp) [::tcom::ref getactiveobject "MGCPCB.ExpeditionPCBApplication"]
+            set xAIF::Settings(pcbApp) [::tcom::ref getactiveobject "MGCPCB.ExpeditionPCBApplication"]
 
             #  Use the active PCB document object
-            set errorCode [catch {set ::ediu(pcbDoc) [$::ediu(pcbApp) ActiveDocument] } errorMessage]
+            set errorCode [catch {set xAIF::Settings(pcbDoc) [$xAIF::Settings(pcbApp) ActiveDocument] } errorMessage]
             if {$errorCode != 0} {
                 GUI::Transcript -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
                 return -code return 1
             }
         } else {
             GUI::Transcript -severity note -msg "Opening Expedition."
-            set ::ediu(pcbApp) [::tcom::ref createobject "MGCPCB.ExpeditionPCBApplication"]
+            set xAIF::Settings(pcbApp) [::tcom::ref createobject "MGCPCB.ExpeditionPCBApplication"]
 
             # Open the database
             GUI::Transcript -severity note -msg "Opening database for Expedition."
 
             #  Create a PCB document object
-            set errorCode [catch {set ::ediu(pcbDoc) [$::ediu(pcbApp) \
-                OpenDocument $::ediu(targetPath)] } errorMessage]
+            set errorCode [catch {set xAIF::Settings(pcbDoc) [$xAIF::Settings(pcbApp) \
+                OpenDocument $xAIF::Settings(targetPath)] } errorMessage]
             if {$errorCode != 0} {
                 GUI::Transcript -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
                 return -code return 1
@@ -82,13 +82,13 @@ namespace eval MGC {
         }
 
         #  Turn off trivial dialog boxes - makes batch operations smoother
-        [$::ediu(pcbApp) Gui] SuppressTrivialDialogs True
+        [$xAIF::Settings(pcbApp) Gui] SuppressTrivialDialogs True
 
         #  Set application visibility
-        $::ediu(pcbApp) Visible $::ediu(appVisible)
+        $xAIF::Settings(pcbApp) Visible $xAIF::Settings(appVisible)
 
         #  Ask Expedition document for the key
-        set key [$::ediu(pcbDoc) Validate "0" ] 
+        set key [$xAIF::Settings(pcbDoc) Validate "0" ] 
 
         #  Get token from license server
         set licenseServer [::tcom::ref createobject "MGCPCBAutomationLicensing.Application"]
@@ -96,16 +96,16 @@ namespace eval MGC {
         set licenseToken [ $licenseServer GetToken $key ] 
 
         #  Ask the document to validate the license token
-        $::ediu(pcbDoc) Validate $licenseToken  
+        $xAIF::Settings(pcbDoc) Validate $licenseToken  
         #$pcbApp LockServer False
         #  Suppress trivial dialog boxes
-        #[$::ediu(pcbDoc) Gui] SuppressTrivialDialogs True
+        #[$xAIF::Settings(pcbDoc) Gui] SuppressTrivialDialogs True
 
-        set ::ediu(targetPath) [$::ediu(pcbDoc) Path][$::ediu(pcbDoc) Name]
-        set GUI::Dashboard::DesignPath [$::ediu(pcbDoc) Path][$::ediu(pcbDoc) Name]
-        #puts [$::ediu(pcbDoc) Path][$::ediu(pcbDoc) Name]
+        set xAIF::Settings(targetPath) [$xAIF::Settings(pcbDoc) Path][$xAIF::Settings(pcbDoc) Name]
+        set GUI::Dashboard::DesignPath [$xAIF::Settings(pcbDoc) Path][$xAIF::Settings(pcbDoc) Name]
+        #puts [$xAIF::Settings(pcbDoc) Path][$xAIF::Settings(pcbDoc) Name]
         GUI::Transcript -severity note -msg [format "Connected to design database:  %s%s" \
-            [$::ediu(pcbDoc) Path] [$::ediu(pcbDoc) Name]]
+            [$xAIF::Settings(pcbDoc) Path] [$xAIF::Settings(pcbDoc) Name]]
     }
 
     #
@@ -117,7 +117,7 @@ namespace eval MGC {
         GUI::Transcript -severity note -msg [format "Opening Padstack Editor in %s mode." $GUI::Dashboard::Mode]
 
         ##  Which mode?  Design or Library?
-        if { $GUI::Dashboard::Mode == $::ediu(designMode) } {
+        if { $GUI::Dashboard::Mode == $xAIF::Settings(designMode) } {
             ##  Invoke Expedition on the design so the Padstack Editor can be started
             ##  Catch any exceptions raised by opening the database
 
@@ -135,13 +135,13 @@ namespace eval MGC {
             } else {
                 GUI::Transcript -severity note -msg "Reusing previously opened instance of Expedition."
             }
-            set ::ediu(pdstkEdtr) [$::ediu(pcbDoc) PadstackEditor]
-            set ::ediu(pdstkEdtrDb) [$::ediu(pdstkEdtr) ActiveDatabase]
-        } elseif { $GUI::Dashboard::Mode == $::ediu(libraryMode) } {
-            set ::ediu(pdstkEdtr) [::tcom::ref createobject "MGCPCBLibraries.PadstackEditorDlg"]
+            set xAIF::Settings(pdstkEdtr) [$xAIF::Settings(pcbDoc) PadstackEditor]
+            set xAIF::Settings(pdstkEdtrDb) [$xAIF::Settings(pdstkEdtr) ActiveDatabase]
+        } elseif { $GUI::Dashboard::Mode == $xAIF::Settings(libraryMode) } {
+            set xAIF::Settings(pdstkEdtr) [::tcom::ref createobject "MGCPCBLibraries.PadstackEditorDlg"]
             # Open the database
-            set errorCode [catch {set ::ediu(pdstkEdtrDb) [$::ediu(pdstkEdtr) \
-                OpenDatabaseEx $::ediu(targetPath) false] } errorMessage]
+            set errorCode [catch {set xAIF::Settings(pdstkEdtrDb) [$xAIF::Settings(pdstkEdtr) \
+                OpenDatabaseEx $xAIF::Settings(targetPath) false] } errorMessage]
             if {$errorCode != 0} {
                 GUI::Transcript -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
                 return -code return 1
@@ -152,7 +152,7 @@ namespace eval MGC {
         }
 
         # Lock the server
-        set errorCode [catch { $::ediu(pdstkEdtr) LockServer } errorMessage]
+        set errorCode [catch { $xAIF::Settings(pdstkEdtr) LockServer } errorMessage]
         if {$errorCode != 0} {
             GUI::Transcript -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
             return -code return 1
@@ -160,7 +160,7 @@ namespace eval MGC {
 
         # Display the dialog box?  Note this isn't necessary
         # but done for clarity and useful for debugging purposes.
-        $::ediu(pdstkEdtr) Visible $::ediu(appVisible)
+        $xAIF::Settings(pdstkEdtr) Visible $xAIF::Settings(appVisible)
     }
 
     #
@@ -169,42 +169,42 @@ namespace eval MGC {
     proc ClosePadstackEditor { { mode "-closedatabase" } } {
         ##  Which mode?  Design or Library?
 
-        if { $GUI::Dashboard::Mode == $::ediu(designMode) } {
+        if { $GUI::Dashboard::Mode == $xAIF::Settings(designMode) } {
             GUI::Transcript -severity note -msg "Closing database for Padstack Editor."
-            set errorCode [catch { $::ediu(pdstkEdtr) UnlockServer } errorMessage]
+            set errorCode [catch { $xAIF::Settings(pdstkEdtr) UnlockServer } errorMessage]
             if {$errorCode != 0} {
                 GUI::Transcript -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
                 return -code return 1
             }
             GUI::Transcript -severity note -msg "Closing Padstack Editor."
             ##  Close Padstack Editor
-            $::ediu(pdstkEdtr) SaveActiveDatabase
-            $::ediu(pdstkEdtr) Quit
+            $xAIF::Settings(pdstkEdtr) SaveActiveDatabase
+            $xAIF::Settings(pdstkEdtr) Quit
             ##  Close the Expedition Database
 
             ##  May want to leave Expedition and the database open ...
             #if { $mode == "-closedatabase" } {
-            #    $::ediu(pcbDoc) Save
-            #    $::ediu(pcbDoc) Close
+            #    $xAIF::Settings(pcbDoc) Save
+            #    $xAIF::Settings(pcbDoc) Close
             #    ##  Close Expedition
-            #    $::ediu(pcbApp) Quit
+            #    $xAIF::Settings(pcbApp) Quit
             #}
-            if { !$::ediu(connectMode) } {
+            if { !$xAIF::Settings(connectMode) } {
                 ##  Close the Expedition Database and terminate Expedition
-                $::ediu(pcbDoc) Close
+                $xAIF::Settings(pcbDoc) Close
                 ##  Close Expedition
-                $::ediu(pcbApp) Quit
+                $xAIF::Settings(pcbApp) Quit
             }
-        } elseif { $GUI::Dashboard::Mode == $::ediu(libraryMode) } {
+        } elseif { $GUI::Dashboard::Mode == $xAIF::Settings(libraryMode) } {
             GUI::Transcript -severity note -msg "Closing database for Padstack Editor."
-            set errorCode [catch { $::ediu(pdstkEdtr) UnlockServer } errorMessage]
+            set errorCode [catch { $xAIF::Settings(pdstkEdtr) UnlockServer } errorMessage]
             if {$errorCode != 0} {
                 GUI::Transcript -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
                 return -code return 1
             }
-            $::ediu(pdstkEdtr) CloseActiveDatabase True
+            $xAIF::Settings(pdstkEdtr) CloseActiveDatabase True
             GUI::Transcript -severity note -msg "Closing Padstack Editor."
-            $::ediu(pdstkEdtr) Quit
+            $xAIF::Settings(pdstkEdtr) Quit
         } else {
             GUI::Transcript -severity error -msg "Mode not set, build aborted."
             return -code return 1
@@ -216,7 +216,7 @@ namespace eval MGC {
     #
     proc OpenCellEditor { } {
         ##  Which mode?  Design or Library?
-        if { $GUI::Dashboard::Mode == $::ediu(designMode) } {
+        if { $GUI::Dashboard::Mode == $xAIF::Settings(designMode) } {
 puts "QQQ"
             ##  Invoke Expedition on the design so the Cell Editor can be started
             ##  Catch any exceptions raised by opening the database
@@ -226,18 +226,18 @@ puts "QQQ"
                 GUI::StatusBar::UpdateStatus -busy off
                 return
             }
-            set ::ediu(cellEdtr) [$::ediu(pcbDoc) CellEditor]
+            set xAIF::Settings(cellEdtr) [$xAIF::Settings(pcbDoc) CellEditor]
             GUI::Transcript -severity note -msg "Using design database for Cell Editor."
-            set ::ediu(cellEdtrDb) [$::ediu(cellEdtr) ActiveDatabase]
-        } elseif { $GUI::Dashboard::Mode == $::ediu(libraryMode) } {
+            set xAIF::Settings(cellEdtrDb) [$xAIF::Settings(cellEdtr) ActiveDatabase]
+        } elseif { $GUI::Dashboard::Mode == $xAIF::Settings(libraryMode) } {
 puts "ZZZ"
-            set ::ediu(cellEdtr) [::tcom::ref createobject "CellEditorAddin.CellEditorDlg"]
-            set ::ediu(pdstkEdtr) [::tcom::ref createobject "MGCPCBLibraries.PadstackEditorDlg"]
+            set xAIF::Settings(cellEdtr) [::tcom::ref createobject "CellEditorAddin.CellEditorDlg"]
+            set xAIF::Settings(pdstkEdtr) [::tcom::ref createobject "MGCPCBLibraries.PadstackEditorDlg"]
             # Open the database
             GUI::Transcript -severity note -msg "Opening library database for Cell Editor."
 
-            set errorCode [catch {set ::ediu(cellEdtrDb) [$::ediu(cellEdtr) \
-                OpenDatabase $::ediu(targetPath) false] } errorMessage]
+            set errorCode [catch {set xAIF::Settings(cellEdtrDb) [$xAIF::Settings(cellEdtr) \
+                OpenDatabase $xAIF::Settings(targetPath) false] } errorMessage]
             if {$errorCode != 0} {
                 GUI::Transcript -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
                 return -code return 1
@@ -247,8 +247,8 @@ puts "ZZZ"
             return -code return 1
         }
 
-        #set ::ediu(cellEdtrDb) [$::ediu(cellEdtr) OpenDatabase $::ediu(targetPath) false]
-        set errorCode [catch { $::ediu(cellEdtr) LockServer } errorMessage]
+        #set xAIF::Settings(cellEdtrDb) [$xAIF::Settings(cellEdtr) OpenDatabase $xAIF::Settings(targetPath) false]
+        set errorCode [catch { $xAIF::Settings(cellEdtr) LockServer } errorMessage]
         if {$errorCode != 0} {
             GUI::Transcript -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
             return -code return 1
@@ -256,7 +256,7 @@ puts "ZZZ"
 
         # Display the dialog box?  Note this isn't necessary
         # but done for clarity and useful for debugging purposes.
-        $::ediu(cellEdtr) Visible $::ediu(appVisible)
+        $xAIF::Settings(cellEdtr) Visible $xAIF::Settings(appVisible)
     }
 
     #
@@ -265,42 +265,42 @@ puts "ZZZ"
     proc CloseCellEditor {} {
         ##  Which mode?  Design or Library?
 
-        if { $GUI::Dashboard::Mode == $::ediu(designMode) } {
+        if { $GUI::Dashboard::Mode == $xAIF::Settings(designMode) } {
             GUI::Transcript -severity note -msg "Closing database for Cell Editor."
-            set errorCode [catch { $::ediu(cellEdtr) UnlockServer } errorMessage]
+            set errorCode [catch { $xAIF::Settings(cellEdtr) UnlockServer } errorMessage]
             if {$errorCode != 0} {
                 GUI::Transcript -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
                 return -code return 1
             }
             GUI::Transcript -severity note -msg "Closing Cell Editor."
             ##  Close Padstack Editor
-            set errorCode [catch { $::ediu(cellEdtr) SaveActiveDatabase } errorMessage]
+            set errorCode [catch { $xAIF::Settings(cellEdtr) SaveActiveDatabase } errorMessage]
             if {$errorCode != 0} {
                 GUI::Transcript -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
                 return -code return 1
             }
-            #$::ediu(cellEdtr) SaveActiveDatabase
-            $::ediu(cellEdtr) Quit
+            #$xAIF::Settings(cellEdtr) SaveActiveDatabase
+            $xAIF::Settings(cellEdtr) Quit
 
             ##  Save the Expedition Database
-            $::ediu(pcbDoc) Save
+            $xAIF::Settings(pcbDoc) Save
 
-            if { !$::ediu(connectMode) } {
+            if { !$xAIF::Settings(connectMode) } {
                 ##  Close the Expedition Database and terminate Expedition
-                $::ediu(pcbDoc) Close
+                $xAIF::Settings(pcbDoc) Close
                 ##  Close Expedition
-                $::ediu(pcbApp) Quit
+                $xAIF::Settings(pcbApp) Quit
             }
-        } elseif { $GUI::Dashboard::Mode == $::ediu(libraryMode) } {
+        } elseif { $GUI::Dashboard::Mode == $xAIF::Settings(libraryMode) } {
             GUI::Transcript -severity note -msg "Closing database for Cell Editor."
-            set errorCode [catch { $::ediu(cellEdtr) UnlockServer } errorMessage]
+            set errorCode [catch { $xAIF::Settings(cellEdtr) UnlockServer } errorMessage]
             if {$errorCode != 0} {
                 GUI::Transcript -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
                 return -code return 1
             }
-            $::ediu(cellEdtr) CloseActiveDatabase True
+            $xAIF::Settings(cellEdtr) CloseActiveDatabase True
             GUI::Transcript -severity note -msg "Closing Cell Editor."
-            $::ediu(cellEdtr) Quit
+            $xAIF::Settings(cellEdtr) Quit
         } else {
             GUI::Transcript -severity error -msg "Mode not set, build aborted."
             return -code return 1
@@ -312,7 +312,7 @@ puts "ZZZ"
     #
     proc OpenPDBEditor {} {
         ##  Which mode?  Design or Library?
-        if { $GUI::Dashboard::Mode == $::ediu(designMode) } {
+        if { $GUI::Dashboard::Mode == $xAIF::Settings(designMode) } {
             ##  Invoke Expedition on the design so the PDB Editor can be started
             ##  Catch any exceptions raised by opening the database
             set errorCode [catch { MGC::OpenExpedition } errorMessage]
@@ -321,16 +321,16 @@ puts "ZZZ"
                 GUI::StatusBar::UpdateStatus -busy off
                 return
             }
-            set ::ediu(partEdtr) [$::ediu(pcbDoc) PartEditor]
+            set xAIF::Settings(partEdtr) [$xAIF::Settings(pcbDoc) PartEditor]
             GUI::Transcript -severity note -msg "Using design database for PDB Editor."
-            set ::ediu(partEdtrDb) [$::ediu(partEdtr) ActiveDatabase]
-        } elseif { $GUI::Dashboard::Mode == $::ediu(libraryMode) } {
-            set ::ediu(partEdtr) [::tcom::ref createobject "MGCPCBLibraries.PartsEditorDlg"]
+            set xAIF::Settings(partEdtrDb) [$xAIF::Settings(partEdtr) ActiveDatabase]
+        } elseif { $GUI::Dashboard::Mode == $xAIF::Settings(libraryMode) } {
+            set xAIF::Settings(partEdtr) [::tcom::ref createobject "MGCPCBLibraries.PartsEditorDlg"]
             # Open the database
             GUI::Transcript -severity note -msg "Opening library database for PDB Editor."
 
-            set errorCode [catch {set ::ediu(partEdtrDb) [$::ediu(partEdtr) \
-                OpenDatabaseEx $::ediu(targetPath) false] } errorMessage]
+            set errorCode [catch {set xAIF::Settings(partEdtrDb) [$xAIF::Settings(partEdtr) \
+                OpenDatabaseEx $xAIF::Settings(targetPath) false] } errorMessage]
             if {$errorCode != 0} {
                 GUI::Transcript -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
                 return -code return 1
@@ -343,8 +343,8 @@ puts "ZZZ"
         }
 puts "OpenPDBEdtr - 1"
 
-        #set ::ediu(partEdtrDb) [$::ediu(partEdtr) OpenDatabase $::ediu(targetPath) false]
-        set errorCode [catch { $::ediu(partEdtr) LockServer } errorMessage]
+        #set xAIF::Settings(partEdtrDb) [$xAIF::Settings(partEdtr) OpenDatabase $xAIF::Settings(targetPath) false]
+        set errorCode [catch { $xAIF::Settings(partEdtr) LockServer } errorMessage]
         if {$errorCode != 0} {
             GUI::Transcript -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
             return -code return 1
@@ -354,7 +354,7 @@ puts "OpenPDBEdtr - 1"
 
         # Display the dialog box?  Note this isn't necessary
         # but done for clarity and useful for debugging purposes.
-        $::ediu(partEdtr) Visible $::ediu(appVisible)
+        $xAIF::Settings(partEdtr) Visible $xAIF::Settings(appVisible)
 
         #return -code return 0
     }
@@ -365,43 +365,43 @@ puts "OpenPDBEdtr - 1"
     proc ClosePDBEditor { } {
         ##  Which mode?  Design or Library?
 
-        if { $GUI::Dashboard::Mode == $::ediu(designMode) } {
+        if { $GUI::Dashboard::Mode == $xAIF::Settings(designMode) } {
             GUI::Transcript -severity note -msg "Closing database for PDB Editor."
-            set errorCode [catch { $::ediu(partEdtr) UnlockServer } errorMessage]
+            set errorCode [catch { $xAIF::Settings(partEdtr) UnlockServer } errorMessage]
             if {$errorCode != 0} {
                 GUI::Transcript -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
                 return -code return 1
             }
             GUI::Transcript -severity note -msg "Closing PDB Editor."
             ##  Close Padstack Editor
-            $::ediu(partEdtr) SaveActiveDatabase
-            $::ediu(partEdtr) Quit
+            $xAIF::Settings(partEdtr) SaveActiveDatabase
+            $xAIF::Settings(partEdtr) Quit
             ##  Close the Expedition Database
             ##  Need to save?
-            if { [$::ediu(pcbDoc) IsSaved] == "False" } {
-                $::ediu(pcbDOc) Save
+            if { [$xAIF::Settings(pcbDoc) IsSaved] == "False" } {
+                $xAIF::Settings(pcbDOc) Save
             }
-            #$::ediu(pcbDoc) Save
-            #$::ediu(pcbDoc) Close
+            #$xAIF::Settings(pcbDoc) Save
+            #$xAIF::Settings(pcbDoc) Close
             ##  Close Expedition
-            #$::ediu(pcbApp) Quit
+            #$xAIF::Settings(pcbApp) Quit
 
-            if { !$::ediu(connectMode) } {
+            if { !$xAIF::Settings(connectMode) } {
                 ##  Close the Expedition Database and terminate Expedition
-                $::ediu(pcbDoc) Close
+                $xAIF::Settings(pcbDoc) Close
                 ##  Close Expedition
-                $::ediu(pcbApp) Quit
+                $xAIF::Settings(pcbApp) Quit
             }
-        } elseif { $GUI::Dashboard::Mode == $::ediu(libraryMode) } {
+        } elseif { $GUI::Dashboard::Mode == $xAIF::Settings(libraryMode) } {
             GUI::Transcript -severity note -msg "Closing database for PDB Editor."
-            set errorCode [catch { $::ediu(partEdtr) UnlockServer } errorMessage]
+            set errorCode [catch { $xAIF::Settings(partEdtr) UnlockServer } errorMessage]
             if {$errorCode != 0} {
                 GUI::Transcript -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
                 return -code return 1
             }
-            $::ediu(partEdtr) CloseActiveDatabase True
+            $xAIF::Settings(partEdtr) CloseActiveDatabase True
             GUI::Transcript -severity note -msg "Closing PDB Editor."
-            $::ediu(partEdtr) Quit
+            $xAIF::Settings(partEdtr) Quit
         } else {
             GUI::Transcript -severity error -msg "Mode not set, build aborted."
             return -code return 1
@@ -416,16 +416,16 @@ puts "OpenPDBEdtr - 1"
 
         ##  Prompt the user for a Central Library database if not supplied
 
-        if { $f != $::ediu(Nothing) } {
-            set ::ediu(targetPath) $f
+        if { $f != $xAIF::Settings(Nothing) } {
+            set xAIF::Settings(targetPath) $f
         } else {
-            set ::ediu(targetPath) [tk_getOpenFile -filetypes {{LMC .lmc}}]
+            set xAIF::Settings(targetPath) [tk_getOpenFile -filetypes {{LMC .lmc}}]
         }
 
-        if {$::ediu(targetPath) == "" } {
+        if {$xAIF::Settings(targetPath) == "" } {
             GUI::Transcript -severity warning -msg "No Central Library selected."
         } else {
-            GUI::Transcript -severity note -msg [format "Central Library \"%s\" set as library target." $::ediu(targetPath)]
+            GUI::Transcript -severity note -msg [format "Central Library \"%s\" set as library target." $xAIF::Settings(targetPath)]
         }
 
         ##  Invoke the Cell Editor and open the LMC
@@ -433,30 +433,30 @@ puts "OpenPDBEdtr - 1"
 
         set errorCode [catch { MGC::OpenCellEditor } errorMessage]
         if {$errorCode != 0} {
-            set ::ediu(targetPath) ""
+            set xAIF::Settings(targetPath) ""
             GUI::StatusBar::UpdateStatus -busy off
             return -code return 1
         }
 
         ##  Need to prompt for Cell partition
 
-        puts "cellEdtrDb:  ------>$::ediu(cellEdtrDb)<-----"
+        puts "cellEdtrDb:  ------>$xAIF::Settings(cellEdtrDb)<-----"
         ##  Can't list partitions when application is visible so if it is,
         ##  hide it temporarily while the list of partitions is queried.
 
-        set visbility $::ediu(appVisible)
+        set visbility $xAIF::Settings(appVisible)
 
-        $::ediu(cellEdtr) Visible False
-        set partitions [$::ediu(cellEdtrDb) Partitions]
-        $::ediu(cellEdtr) Visible $visbility
+        $xAIF::Settings(cellEdtr) Visible False
+        set partitions [$xAIF::Settings(cellEdtrDb) Partitions]
+        $xAIF::Settings(cellEdtr) Visible $visbility
 
         GUI::Transcript -severity note -msg [format "Found %s cell %s." [$partitions Count] \
-            [ediuPlural [$partitions Count] "partition"]]
+            [xAIF::Utility::Plural [$partitions Count] "partition"]]
 
-        set ::ediu(cellEdtrPrtnNames) {}
+        set xAIF::Settings(cellEdtrPrtnNames) {}
         for {set i 1} {$i <= [$partitions Count]} {incr i} {
             set partition [$partitions Item $i]
-            lappend ::ediu(cellEdtrPrtnNames) [$partition Name]
+            lappend xAIF::Settings(cellEdtrPrtnNames) [$partition Name]
             GUI::Transcript -severity note -msg [format "Found cell partition \"%s.\"" [$partition Name]]
         }
     
@@ -467,22 +467,22 @@ puts "OpenPDBEdtr - 1"
 
         set errorCode [catch { MGC::OpenPDBEditor } errorMessage]
         if {$errorCode != 0} {
-            set ::ediu(targetPath) ""
+            set xAIF::Settings(targetPath) ""
             GUI::StatusBar::UpdateStatus -busy off
             return -code return 1
         }
 
         ##  Need to prompt for PDB partition
 
-        set partitions [$::ediu(partEdtrDb) Partitions]
+        set partitions [$xAIF::Settings(partEdtrDb) Partitions]
 
         GUI::Transcript -severity note -msg [format "Found %s part %s." [$partitions Count] \
-            [ediuPlural [$partitions Count] "partition"]]
+            [xAIF::Utility::Plural [$partitions Count] "partition"]]
 
-        set ::ediu(partEdtrPrtnNames) {}
+        set xAIF::Settings(partEdtrPrtnNames) {}
         for {set i 1} {$i <= [$partitions Count]} {incr i} {
             set partition [$partitions Item $i]
-            lappend ::ediu(partEdtrPrtnNames) [$partition Name]
+            lappend xAIF::Settings(partEdtrPrtnNames) [$partition Name]
             GUI::Transcript -severity note -msg [format "Found part partition \"%s.\"" [$partition Name]]
         }
 
@@ -505,14 +505,14 @@ puts "OpenPDBEdtr - 1"
         #
         proc Pad { { mode "-replace" } } {
             GUI::StatusBar::UpdateStatus -busy on
-            set ::ediu(sTime) [clock format [clock seconds] -format "%m/%d/%Y %T"]
+            set xAIF::Settings(sTime) [clock format [clock seconds] -format "%m/%d/%Y %T"]
 
             ##  Make sure a Target library or design has been defined
 
-            if {$::ediu(targetPath) == $::ediu(Nothing) && $::ediu(connectMode) != True } {
-                if {$GUI::Dashboard::Mode == $::ediu(designMode)} {
+            if {$xAIF::Settings(targetPath) == $xAIF::Settings(Nothing) && $xAIF::Settings(connectMode) != True } {
+                if {$GUI::Dashboard::Mode == $xAIF::Settings(designMode)} {
                     GUI::Transcript -severity error -msg "No Design (PCB) specified, build aborted."
-                } elseif {$GUI::Dashboard::Mode == $::ediu(libraryMode)} {
+                } elseif {$GUI::Dashboard::Mode == $xAIF::Settings(libraryMode)} {
                     GUI::Transcript -severity error -msg "No Central Library (LMC) specified, build aborted."
                 } else {
                     GUI::Transcript -severity error -msg "Mode not set, build aborted."
@@ -535,7 +535,7 @@ puts "OpenPDBEdtr - 1"
 
             set shape [MapEnum::Shape $::padGeom(shape)]
 
-            if { $shape == $::ediu(Nothing) } {
+            if { $shape == $xAIF::Settings(Nothing) } {
                 GUI::Transcript -severity error -msg "Unsupported pad shape, build aborted."
                 GUI::StatusBar::UpdateStatus -busy off
                 return
@@ -555,12 +555,12 @@ puts "OpenPDBEdtr - 1"
 
             #  Does the pad exist?
 
-            set oldPadName [$::ediu(pdstkEdtrDb) FindPad $padName]
+            set oldPadName [$xAIF::Settings(pdstkEdtrDb) FindPad $padName]
             #puts "Old Pad Name:  ----->$oldPadName<>$padName<-------"
 
             #  Echo some information about what will happen.
 
-            if {$oldPadName == $::ediu(Nothing)} {
+            if {$oldPadName == $xAIF::Settings(Nothing)} {
                 GUI::Transcript -severity note -msg [format "Pad \"%s\" does not exist." $padName]
             } elseif {$mode == "-replace" } {
                 GUI::Transcript -severity warning -msg [format "Pad \"%s\" already exists and will be replaced." $padName]
@@ -582,7 +582,7 @@ puts "OpenPDBEdtr - 1"
             }
 
             ##  Ready to build a new pad
-            set newPad [$::ediu(pdstkEdtrDb) NewPad]
+            set newPad [$xAIF::Settings(pdstkEdtrDb) NewPad]
 
             $newPad -set Name $padName
             #puts "------>$padName<----------"
@@ -602,9 +602,9 @@ puts "OpenPDBEdtr - 1"
             MGC::ClosePadstackEditor
 
             ##  Report some time statistics
-            set ::ediu(cTime) [clock format [clock seconds] -format "%m/%d/%Y %T"]
-            GUI::Transcript -severity note -msg [format "Start Time:  %s" $::ediu(sTime)]
-            GUI::Transcript -severity note -msg [format "Completion Time:  %s" $::ediu(cTime)]
+            set xAIF::Settings(cTime) [clock format [clock seconds] -format "%m/%d/%Y %T"]
+            GUI::Transcript -severity note -msg [format "Start Time:  %s" $xAIF::Settings(sTime)]
+            GUI::Transcript -severity note -msg [format "Completion Time:  %s" $xAIF::Settings(cTime)]
 
             GUI::StatusBar::UpdateStatus -busy off
         }
@@ -614,16 +614,16 @@ puts "OpenPDBEdtr - 1"
         #
         proc Padstack { { mode "-replace" } } {
             GUI::StatusBar::UpdateStatus -busy on
-            set ::ediu(sTime) [clock format [clock seconds] -format "%m/%d/%Y %T"]
+            set xAIF::Settings(sTime) [clock format [clock seconds] -format "%m/%d/%Y %T"]
 
             ##  Extract pad details from AIF file
 
             ##  Make sure a Target library or design has been defined
 
-            if {$::ediu(targetPath) == $::ediu(Nothing) && $::ediu(connectMode) != True } {
-                if {$GUI::Dashboard::Mode == $::ediu(designMode)} {
+            if {$xAIF::Settings(targetPath) == $xAIF::Settings(Nothing) && $xAIF::Settings(connectMode) != True } {
+                if {$GUI::Dashboard::Mode == $xAIF::Settings(designMode)} {
                     GUI::Transcript -severity error -msg "No Design (PCB) specified, build aborted."
-                } elseif {$GUI::Dashboard::Mode == $::ediu(libraryMode)} {
+                } elseif {$GUI::Dashboard::Mode == $xAIF::Settings(libraryMode)} {
                     GUI::Transcript -severity error -msg "No Central Library (LMC) specified, build aborted."
                 } else {
                     GUI::Transcript -severity error -msg "Mode not set, build aborted."
@@ -655,9 +655,9 @@ puts "OpenPDBEdtr - 1"
             }
 
             #  Look for the pad that the AIF references
-            set pad [$::ediu(pdstkEdtrDb) FindPad $padName]
+            set pad [$xAIF::Settings(pdstkEdtrDb) FindPad $padName]
 
-            if {$pad == $::ediu(Nothing)} {
+            if {$pad == $xAIF::Settings(Nothing)} {
                 GUI::Transcript -severity error -msg [format "Pad \"%s\" is not defined, padstack \"%s\" build aborted." $padName $::padGeom(name)]
                 GUI::StatusBar::UpdateStatus -busy off
                 return
@@ -665,11 +665,11 @@ puts "OpenPDBEdtr - 1"
 
             #  Does the pad exist?
 
-            set oldPadstackName [$::ediu(pdstkEdtrDb) FindPadstack $::padGeom(name)]
+            set oldPadstackName [$xAIF::Settings(pdstkEdtrDb) FindPadstack $::padGeom(name)]
 
             #  Echo some information about what will happen.
 
-            if {$oldPadstackName == $::ediu(Nothing)} {
+            if {$oldPadstackName == $xAIF::Settings(Nothing)} {
                 GUI::Transcript -severity note -msg [format "Padstack \"%s\" does not exist." $padName]
             } elseif {$mode == "-replace" } {
                 GUI::Transcript -severity warning -msg [format "Padstack \"%s\" already exists and will be replaced." $::padGeom(name)]
@@ -690,7 +690,7 @@ puts "OpenPDBEdtr - 1"
             }
 
             ##  Ready to build the new padstack
-            set newPadstack [$::ediu(pdstkEdtrDb) NewPadstack]
+            set newPadstack [$xAIF::Settings(pdstkEdtrDb) NewPadstack]
 
             $newPadstack -set Name $::padGeom(name)
 
@@ -728,9 +728,9 @@ puts "OpenPDBEdtr - 1"
             MGC::ClosePadstackEditor
 
             ##  Report some time statistics
-            set ::ediu(cTime) [clock format [clock seconds] -format "%m/%d/%Y %T"]
-            GUI::Transcript -severity note -msg [format "Start Time:  %s" $::ediu(sTime)]
-            GUI::Transcript -severity note -msg [format "Completion Time:  %s" $::ediu(cTime)]
+            set xAIF::Settings(cTime) [clock format [clock seconds] -format "%m/%d/%Y %T"]
+            GUI::Transcript -severity note -msg [format "Start Time:  %s" $xAIF::Settings(sTime)]
+            GUI::Transcript -severity note -msg [format "Completion Time:  %s" $xAIF::Settings(cTime)]
 
             GUI::StatusBar::UpdateStatus -busy off
         }
@@ -751,7 +751,7 @@ puts "OpenPDBEdtr - 1"
                 }
             }
 
-            set ::ediu(cellEdtrPrtnName) $V(-partition)
+            set xAIF::Settings(cellEdtrPrtnName) $V(-partition)
 
             ##  Check mirror option, make sure it is valid
             if { [lsearch [list none x y xy] $V(-mirror)] == -1 } {
@@ -778,14 +778,14 @@ puts "OpenPDBEdtr - 1"
             }
 
             GUI::StatusBar::UpdateStatus -busy on
-            set ::ediu(sTime) [clock format [clock seconds] -format "%m/%d/%Y %T"]
+            set xAIF::Settings(sTime) [clock format [clock seconds] -format "%m/%d/%Y %T"]
 
             ##  Make sure a Target library or design has been defined
 
-            if {$::ediu(targetPath) == $::ediu(Nothing) && $::ediu(connectMode) != True } {
-                if {$GUI::Dashboard::Mode == $::ediu(designMode)} {
+            if {$xAIF::Settings(targetPath) == $xAIF::Settings(Nothing) && $xAIF::Settings(connectMode) != True } {
+                if {$GUI::Dashboard::Mode == $xAIF::Settings(designMode)} {
                     GUI::Transcript -severity error -msg "No Design (PCB) specified, build aborted."
-                } elseif {$GUI::Dashboard::Mode == $::ediu(libraryMode)} {
+                } elseif {$GUI::Dashboard::Mode == $xAIF::Settings(libraryMode)} {
                     GUI::Transcript -severity error -msg "No Central Library (LMC) specified, build aborted."
                 } else {
                     puts $GUI::Dashboard::Mode
@@ -811,24 +811,24 @@ puts "OpenPDBEdtr - 1"
             ##  mode than it is for design mode.  In design mode there
             ##  isn't a "partition" so none of the partition logic applies.
 
-            if { $GUI::Dashboard::Mode == $::ediu(libraryMode) } {
+            if { $GUI::Dashboard::Mode == $xAIF::Settings(libraryMode) } {
 
                 #  Prompt for the Partition if not supplied with -partition
 
                 if { [string equal $V(-partition) ""] } {
-                    set ::ediu(cellEdtrPrtnName) \
-                        [AIFForms::SelectOneFromList "Select Target Cell Partition" $::ediu(cellEdtrPrtnNames)]
+                    set xAIF::Settings(cellEdtrPrtnName) \
+                        [AIFForms::SelectOneFromList "Select Target Cell Partition" $xAIF::Settings(cellEdtrPrtnNames)]
 
-                    if { [string equal $::ediu(cellEdtrPrtnName) ""] } {
+                    if { [string equal $xAIF::Settings(cellEdtrPrtnName) ""] } {
                         GUI::Transcript -severity error -msg "No Cell Partition selected, build aborted."
                         MGC::CloseCellEditor
                         GUI::StatusBar::UpdateStatus -busy off
                         return
                     } else {
-                        set ::ediu(cellEdtrPrtnName) [lindex $::ediu(cellEdtrPrtnName) 1]
+                        set xAIF::Settings(cellEdtrPrtnName) [lindex $xAIF::Settings(cellEdtrPrtnName) 1]
                     }
                 } else {
-                    set ::ediu(cellEdtrPrtnName) $V(-partition)
+                    set xAIF::Settings(cellEdtrPrtnName) $V(-partition)
                 }
 
                 #  Does the cell exist?  Before we can check, we need a
@@ -838,14 +838,14 @@ puts "OpenPDBEdtr - 1"
 
                 #  Cannot access partition list when application is
                 #  visible so if it is, hide it temporarily.
-                set visibility $::ediu(appVisible)
+                set visibility $xAIF::Settings(appVisible)
 
-                $::ediu(cellEdtr) Visible False
-                set partitions [$::ediu(cellEdtrDb) Partitions]
-                $::ediu(cellEdtr) Visible $visibility
+                $xAIF::Settings(cellEdtr) Visible False
+                set partitions [$xAIF::Settings(cellEdtrDb) Partitions]
+                $xAIF::Settings(cellEdtr) Visible $visibility
 
                 GUI::Transcript -severity note -msg [format "Found %s cell %s." [$partitions Count] \
-                    [ediuPlural [$partitions Count] "partition"]]
+                    [xAIF::Utility::Plural [$partitions Count] "partition"]]
 
                 set pNames {}
                 for {set i 1} {$i <= [$partitions Count]} {incr i} {
@@ -855,15 +855,15 @@ puts "OpenPDBEdtr - 1"
 
                 #  Does the partition exist?
 
-                if { [lsearch $pNames $::ediu(cellEdtrPrtnName)] == -1 } {
+                if { [lsearch $pNames $xAIF::Settings(cellEdtrPrtnName)] == -1 } {
                     GUI::Transcript -severity note -msg [format "Creating partition \"%s\" for cell \"%s\"." \
                         $::die(partition) $target]
 
-                    set partition [$::ediu(cellEdtrDb) NewPartition $::ediu(cellEdtrPrtnName)]
+                    set partition [$xAIF::Settings(cellEdtrDb) NewPartition $xAIF::Settings(cellEdtrPrtnName)]
                 } else {
                     GUI::Transcript -severity note -msg [format "Using existing partition \"%s\" for cell \"%s\"." \
-                        $::ediu(cellEdtrPrtnName) $target]
-                    set partition [$partitions Item [expr [lsearch $pNames $::ediu(cellEdtrPrtnName)] +1]]
+                        $xAIF::Settings(cellEdtrPrtnName) $target]
+                    set partition [$partitions Item [expr [lsearch $pNames $xAIF::Settings(cellEdtrPrtnName)] +1]]
                 }
 
                 #  Now that the partition work is doene, does the cell exist?
@@ -873,12 +873,12 @@ puts "OpenPDBEdtr - 1"
                 if { [expr { $V(-partition) ne "" }] } {
                     GUI::Transcript -severity warning -msg "-partition switch is ignored in Design Mode."
                 }
-                set partition [$::ediu(cellEdtrDb) ActivePartition]
+                set partition [$xAIF::Settings(cellEdtrDb) ActivePartition]
                 set cells [$partition Cells]
             }
 
             GUI::Transcript -severity note -msg [format "Found %s %s." [$cells Count] \
-                [ediuPlural [$cells Count] "cell"]]
+                [xAIF::Utility::Plural [$cells Count] "cell"]]
 
             set cNames {}
             for {set i 1} {$i <= [$cells Count]} {incr i} {
@@ -950,7 +950,7 @@ puts "OpenPDBEdtr - 1"
                     return
                 }
 
-                $::ediu(cellEdtr) SaveActiveDatabase
+                $xAIF::Settings(cellEdtr) SaveActiveDatabase
             }
 
             ##  Build a new cell.  The first part of this is done in
@@ -1015,16 +1015,16 @@ puts "OpenPDBEdtr - 1"
             set pads [Netlist::GetPads]
 
             foreach pad $pads {
-                set padstack($pad) [$::ediu(pdstkEdtrDb) FindPadstack $pad]
+                set padstack($pad) [$xAIF::Settings(pdstkEdtrDb) FindPadstack $pad]
 
                 #  Echo some information about what will happen.
 
-                if {$padstack($pad) == $::ediu(Nothing)} {
+                if {$padstack($pad) == $xAIF::Settings(Nothing)} {
                     GUI::Transcript -severity error -msg \
                         [format "Reference Padstack \"%s\" does not exist, build aborted." $pad]
                     $cellEditor Close False
 
-                    if { $GUI::Dashboard::Mode == $::ediu(designMode) } {
+                    if { $GUI::Dashboard::Mode == $xAIF::Settings(designMode) } {
                         MGC::ClosePadstackEditor -dontclosedatabase
                     } else {
                         MGC::ClosePadstackEditor
@@ -1037,7 +1037,7 @@ puts "OpenPDBEdtr - 1"
             }
 
             ##  To fix Tcom bug?
-            if { $GUI::Dashboard::Mode == $::ediu(designMode) } {
+            if { $GUI::Dashboard::Mode == $xAIF::Settings(designMode) } {
                 MGC::ClosePadstackEditor -dontclosedatabase
             } else {
                 MGC::ClosePadstackEditor
@@ -1096,8 +1096,8 @@ puts "OpenPDBEdtr - 1"
                 set skip False
 
         if { 0 } {
-                if { $::ediu(sparseMode) } {
-                    if { [lsearch $::ediu(sparsepinnames) $diePadFields(pinnum)] == -1 } {
+                if { $xAIF::Settings(sparseMode) } {
+                    if { [lsearch $xAIF::Settings(sparsepinnames) $diePadFields(pinnum)] == -1 } {
                         set skip True
                     }
                 }
@@ -1139,7 +1139,7 @@ puts "OpenPDBEdtr - 1"
 
             ## Define the placement outline
 
-            if { $::ediu(MCMAIF) == 1 } {
+            if { $xAIF::Settings(MCMAIF) == 1 } {
                 ##  Device might be the BGA ... need to account
                 ##  for that possibility before trying to extract
                 ##  the height and width from a non-existant section
@@ -1197,7 +1197,7 @@ puts "OpenPDBEdtr - 1"
             GUI::Transcript -severity note -msg [format "New cell \"%s\" (%s) saved." $target $time]
             $cellEditor Close False
 
-        ##    if { $GUI::Dashboard::Mode == $::ediu(designMode) } {
+        ##    if { $GUI::Dashboard::Mode == $xAIF::Settings(designMode) } {
         ##        MGC::ClosePadstackEditor -dontclosedatabase
         ##    } else {
         ##        MGC::ClosePadstackEditor
@@ -1205,9 +1205,9 @@ puts "OpenPDBEdtr - 1"
             MGC::CloseCellEditor
 
             ##  Report some time statistics
-            set ::ediu(cTime) [clock format [clock seconds] -format "%m/%d/%Y %T"]
-            GUI::Transcript -severity note -msg [format "Start Time:  %s" $::ediu(sTime)]
-            GUI::Transcript -severity note -msg [format "Completion Time:  %s" $::ediu(cTime)]
+            set xAIF::Settings(cTime) [clock format [clock seconds] -format "%m/%d/%Y %T"]
+            GUI::Transcript -severity note -msg [format "Start Time:  %s" $xAIF::Settings(sTime)]
+            GUI::Transcript -severity note -msg [format "Completion Time:  %s" $xAIF::Settings(cTime)]
 
             GUI::StatusBar::UpdateStatus -busy off
         }
@@ -1224,17 +1224,17 @@ puts "OpenPDBEdtr - 1"
                 set V($a) $value
             }
 
-            set ::ediu(partEdtrPrtnName) $V(-partition)
+            set xAIF::Settings(partEdtrPrtnName) $V(-partition)
 
             GUI::StatusBar::UpdateStatus -busy on
-            set ::ediu(sTime) [clock format [clock seconds] -format "%m/%d/%Y %T"]
+            set xAIF::Settings(sTime) [clock format [clock seconds] -format "%m/%d/%Y %T"]
 
             ##  Make sure a Target library or design has been defined
 
-            if {$::ediu(targetPath) == $::ediu(Nothing) && $::ediu(connectMode) != True } {
-                if {$GUI::Dashboard::Mode == $::ediu(designMode)} {
+            if {$xAIF::Settings(targetPath) == $xAIF::Settings(Nothing) && $xAIF::Settings(connectMode) != True } {
+                if {$GUI::Dashboard::Mode == $xAIF::Settings(designMode)} {
                     GUI::Transcript -severity error -msg "No Design (PCB) specified, build aborted."
-                } elseif {$GUI::Dashboard::Mode == $::ediu(libraryMode)} {
+                } elseif {$GUI::Dashboard::Mode == $xAIF::Settings(libraryMode)} {
                     GUI::Transcript -severity error -msg "No Central Library (LMC) specified, build aborted."
                 } else {
                     GUI::Transcript -severity error -msg "Mode not set, build aborted."
@@ -1258,7 +1258,7 @@ puts "OpenPDBEdtr - 1"
             ##  mode than it is for design mode.  In design mode there
             ##  isn't a "partition" so none of the partition logic applies.
 
-            if { $GUI::Dashboard::Mode == $::ediu(libraryMode) } {
+            if { $GUI::Dashboard::Mode == $xAIF::Settings(libraryMode) } {
                 #  Does the part exist?  Before we can check, we need a
                 #  partition.  There isn't a clear name as to what the
                 #  partition name should be so we'll use the name of the
@@ -1267,26 +1267,26 @@ puts "OpenPDBEdtr - 1"
                 #  Prompt for the Partition if not supplied with -partition
 
                 if { [string equal $V(-partition) ""] } {
-                    set ::ediu(partEdtrPrtnName) \
-                        [AIFForms::SelectOneFromList "Select Target Part Partition" $::ediu(partEdtrPrtnNames)]
+                    set xAIF::Settings(partEdtrPrtnName) \
+                        [AIFForms::SelectOneFromList "Select Target Part Partition" $xAIF::Settings(partEdtrPrtnNames)]
 
-                    if { [string equal $::ediu(partEdtrPrtnName) ""] } {
+                    if { [string equal $xAIF::Settings(partEdtrPrtnName) ""] } {
                         GUI::Transcript -severity error -msg "No Part Partition selected, build aborted."
                         MGC::CloseCellEditor
                         GUI::StatusBar::UpdateStatus -busy off
                         return
                     } else {
-                        set ::ediu(partEdtrPrtnName) [lindex $::ediu(partEdtrPrtnName) 1]
+                        set xAIF::Settings(partEdtrPrtnName) [lindex $xAIF::Settings(partEdtrPrtnName) 1]
                     }
                 } else {
-                    set ::ediu(partEdtrPrtnName) $V(-partition)
+                    set xAIF::Settings(partEdtrPrtnName) $V(-partition)
                 }
 
 
-                set partitions [$::ediu(partEdtrDb) Partitions]
+                set partitions [$xAIF::Settings(partEdtrDb) Partitions]
 
                 GUI::Transcript -severity note -msg [format "Found %s part %s." [$partitions Count] \
-                    [ediuPlural [$partitions Count] "partition"]]
+                    [xAIF::Utility::Plural [$partitions Count] "partition"]]
 
                 set pNames {}
                 for {set i 1} {$i <= [$partitions Count]} {incr i} {
@@ -1296,15 +1296,15 @@ puts "OpenPDBEdtr - 1"
 
                 #  Does the partition exist?
 
-                if { [lsearch $pNames $::ediu(partEdtrPrtnName)] == -1 } {
+                if { [lsearch $pNames $xAIF::Settings(partEdtrPrtnName)] == -1 } {
                     GUI::Transcript -severity note -msg [format "Creating partition \"%s\" for part \"%s\"." \
-                        $::ediu(partEdtrPrtnName) $device]
+                        $xAIF::Settings(partEdtrPrtnName) $device]
 
-                    set partition [$::ediu(partEdtrDb) NewPartition $::ediu(partEdtrPrtnName)]
+                    set partition [$xAIF::Settings(partEdtrDb) NewPartition $xAIF::Settings(partEdtrPrtnName)]
                 } else {
                     GUI::Transcript -severity note -msg [format "Using existing partition \"%s\" for part \"%s\"." \
-                        $::ediu(partEdtrPrtnName) $device]
-                    set partition [$partitions Item [expr [lsearch $pNames $::ediu(partEdtrPrtnName)] +1]]
+                        $xAIF::Settings(partEdtrPrtnName) $device]
+                    set partition [$partitions Item [expr [lsearch $pNames $xAIF::Settings(partEdtrPrtnName)] +1]]
                 }
 
                 #  Now that the partition work is doene, does the part exist?
@@ -1314,12 +1314,12 @@ puts "OpenPDBEdtr - 1"
                 if { [expr { $V(-partition) ne "" }] } {
                     GUI::Transcript -severity warning -msg "-partition switch is ignored in Design Mode."
                 }
-                set partition [$::ediu(partEdtrDb) ActivePartition]
+                set partition [$xAIF::Settings(partEdtrDb) ActivePartition]
                 set parts [$partition Parts]
             }
 
             GUI::Transcript -severity note -msg [format "Found %s %s." [$parts Count] \
-                [ediuPlural [$parts Count] "part"]]
+                [xAIF::Utility::Plural [$parts Count] "part"]]
 
             set cNames {}
             for {set i 1} {$i <= [$parts Count]} {incr i} {
@@ -1350,7 +1350,7 @@ puts "OpenPDBEdtr - 1"
                 }
             }
 
-            $::ediu(partEdtr) SaveActiveDatabase
+            $xAIF::Settings(partEdtr) SaveActiveDatabase
 
             ##  Generate a new part.  The first part of this is done in
             ##  in the PDB Editor which is part of the Library Manager.
@@ -1437,8 +1437,8 @@ puts "OpenPDBEdtr - 1"
 
 
                 ## Need to handle sparse mode?
-                if { $::ediu(sparseMode) } {
-                    #if { $i in ::ediu(sparsepinnumbers) $i } {
+                if { $xAIF::Settings(sparseMode) } {
+                    #if { $i in xAIF::Settings(sparsepinnumbers) $i } {
                     #    $slot PutPin [expr $i] [format "%s" $i]
                     #}
                 } else {
@@ -1456,9 +1456,9 @@ puts "OpenPDBEdtr - 1"
             MGC::ClosePDBEditor
 
             ##  Report some time statistics
-            set ::ediu(cTime) [clock format [clock seconds] -format "%m/%d/%Y %T"]
-            GUI::Transcript -severity note -msg [format "Start Time:  %s" $::ediu(sTime)]
-            GUI::Transcript -severity note -msg [format "Completion Time:  %s" $::ediu(cTime)]
+            set xAIF::Settings(cTime) [clock format [clock seconds] -format "%m/%d/%Y %T"]
+            GUI::Transcript -severity note -msg [format "Start Time:  %s" $xAIF::Settings(sTime)]
+            GUI::Transcript -severity note -msg [format "Completion Time:  %s" $xAIF::Settings(cTime)]
             GUI::StatusBar::UpdateStatus -busy off
         }
 
@@ -1640,7 +1640,7 @@ puts "OpenPDBEdtr - 1"
         ##
         proc Setup {} {
             variable WBParameters
-            printArray WBParameters
+            xAIF::Utility::PrintArray WBParameters
             puts "MGC::WireBond::Setup"
             $GUI::widgets(notebook) select $GUI::widgets(wirebondparams)
         }
@@ -1651,7 +1651,7 @@ puts "OpenPDBEdtr - 1"
         proc ApplyProperies {} {
             puts "MGC::WireBond::ApplyProperies"
             ##  Which mode?  Design or Library?
-            if { $GUI::Dashboard::Mode == $::ediu(designMode) } {
+            if { $GUI::Dashboard::Mode == $xAIF::Settings(designMode) } {
                 ##  Invoke Expedition on the design so the Cell Editor can be started
                 ##  Catch any exceptions raised by opening the database
                 set errorCode [catch { MGC::OpenExpedition } errorMessage]
@@ -1660,7 +1660,7 @@ puts "OpenPDBEdtr - 1"
                     GUI::StatusBar::UpdateStatus -busy off
                     return
                 }
-                set ::ediu(cellEdtr) [$::ediu(pcbDoc) CellEditor]
+                set xAIF::Settings(cellEdtr) [$xAIF::Settings(pcbDoc) CellEditor]
             } else {
                 GUI::Transcript -severity error -msg "Bond Pad placement is only available in design mode."
                 return
@@ -1678,13 +1678,13 @@ puts "OpenPDBEdtr - 1"
             }
 
             ##  Apply the properties to the PCB Doc
-            $::ediu(pcbDoc) PutProperty "WBParameters" $GUI::Dashboard::WBParameters
+            $xAIF::Settings(pcbDoc) PutProperty "WBParameters" $GUI::Dashboard::WBParameters
             GUI::Transcript -severity note -msg "Wire Bond property \"WBParameters\" applied to design."
-            $::ediu(pcbDoc) PutProperty "WBDRCProperty" $GUI::Dashboard::WBDRCProperty
+            $xAIF::Settings(pcbDoc) PutProperty "WBDRCProperty" $GUI::Dashboard::WBDRCProperty
             GUI::Transcript -severity note -msg "Wire Bond property \"WBDRCProperty\" applied to design."
 
             ##  Apply default wire model to all components
-            set comps [$::ediu(pcbDoc) Components]
+            set comps [$xAIF::Settings(pcbDoc) Components]
             ::tcom::foreach comp $comps {
                 $comp PutProperty "WBParameters" {[Model=[DefaultWireModel]][PADS=[]]}
                 GUI::Transcript -severity note -msg [format "Wire Bond property \"WBParameters\" applied to component \"%s\"." [$comp RefDes]]
@@ -1698,7 +1698,7 @@ puts "OpenPDBEdtr - 1"
             puts "MGC::WireBond::PlaceBondPads"
 
             ##  Which mode?  Design or Library?
-            if { $GUI::Dashboard::Mode == $::ediu(designMode) } {
+            if { $GUI::Dashboard::Mode == $xAIF::Settings(designMode) } {
                 ##  Invoke Expedition on the design so the Cell Editor can be started
                 ##  Catch any exceptions raised by opening the database
                 set errorCode [catch { MGC::OpenExpedition } errorMessage]
@@ -1713,7 +1713,7 @@ puts "OpenPDBEdtr - 1"
             }
 
             ##  Start a transaction with DRC to get Bond Pads placed ...
-            $::ediu(pcbDoc) TransactionStart [expr $::MGCPCB::EPcbDRCMode(epcbDRCModeNone)]
+            $xAIF::Settings(pcbDoc) TransactionStart [expr $::MGCPCB::EPcbDRCMode(epcbDRCModeNone)]
             
             foreach i $::bondpads {
 
@@ -1725,14 +1725,14 @@ puts "OpenPDBEdtr - 1"
 
                 ##  Need to find the padstack ...
                 ##  Make sure the Bond Pad exists and is defined as a Bond Pad
-                set padstacks [$::ediu(pcbDoc) PadstackNames \
+                set padstacks [$xAIF::Settings(pcbDoc) PadstackNames \
                     [expr $::MGCPCB::EPcbPadstackObjectType(epcbPadstackObjectBondPad)]]
 
                 if { [lsearch $padstacks $bondpad(FINNAME)] == -1} {
                     GUI::Transcript -severity error -msg [format \
                         "Bond Pad \"%s\" does not appear in the design or is not defined as a Bond Pad." \
                         $bondpad(FINNAME)]
-                    $::ediu(pcbDoc) TransactionEnd True
+                    $xAIF::Settings(pcbDoc) TransactionEnd True
                     return
                 } else {
                     GUI::Transcript -severity note -msg [format \
@@ -1740,14 +1740,14 @@ puts "OpenPDBEdtr - 1"
                 }
 
                 ##  Activate the Bond Pad padstack
-                set padstack [$::ediu(pcbDoc) \
+                set padstack [$xAIF::Settings(pcbDoc) \
                     PutPadstack [expr 1] [expr 1] $bondpad(FINNAME)]
 
-                set net [$::ediu(pcbDoc) FindNet $bondpad(NETNAME)]
+                set net [$xAIF::Settings(pcbDoc) FindNet $bondpad(NETNAME)]
 
                 if { [string equal $net ""] } {
                     GUI::Transcript -severity warning -msg [format "Net \"%s\" was not found, may be a No Connect, using \"(Net0)\" as net." $bondpad(NETNAME)]
-                    set net [$::ediu(pcbDoc) FindNet "(Net0)"]
+                    set net [$xAIF::Settings(pcbDoc) FindNet "(Net0)"]
                 } else {
                     GUI::Transcript -severity note -msg [format "Net \"%s\" was found." $bondpad(NETNAME)]
                 }
@@ -1756,7 +1756,7 @@ puts "OpenPDBEdtr - 1"
                 GUI::Transcript -severity note -msg \
                     [format "Placing Bond Pad \"%s\" for Net \"%s\" (X: %s  Y: %s  R: %s)." \
                     $bondpad(FINNAME) $bondpad(NETNAME) $bondpad(FIN_X) $bondpad(FIN_Y) $bondpad(ANGLE)]
-                set bpo [$::ediu(pcbDoc) PutBondPad \
+                set bpo [$xAIF::Settings(pcbDoc) PutBondPad \
                     [expr $bondpad(FIN_X)] [expr $bondpad(FIN_Y)] $padstack $net]
                 $bpo -set Orientation \
                     [expr $::MGCPCB::EPcbAngleUnit(epcbAngleUnitDegrees)] [expr $bondpad(ANGLE)]
@@ -1764,7 +1764,7 @@ puts "OpenPDBEdtr - 1"
                 puts [format "---------->  %s" [$bpo Name]]
                 puts [format "Orientation:  %s" [$bpo -get Orientation]]
             }
-            $::ediu(pcbDoc) TransactionEnd True
+            $xAIF::Settings(pcbDoc) TransactionEnd True
         }
 
         ##
@@ -1774,7 +1774,7 @@ puts "OpenPDBEdtr - 1"
             puts "MGC::WireBond::PlaceBondWires"
 
             ##  Which mode?  Design or Library?
-            if { $GUI::Dashboard::Mode == $::ediu(designMode) } {
+            if { $GUI::Dashboard::Mode == $xAIF::Settings(designMode) } {
                 ##  Invoke Expedition on the design so the Cell Editor can be started
                 ##  Catch any exceptions raised by opening the database
                 set errorCode [catch { MGC::OpenExpedition } errorMessage]
@@ -1791,7 +1791,7 @@ puts "OpenPDBEdtr - 1"
             GUI::StatusBar::UpdateStatus -busy on
 
             ##  Start a transaction with DRC to get Bond Pads placed ...
-            $::ediu(pcbDoc) TransactionStart [expr $::MGCPCB::EPcbDRCMode(epcbDRCModeNone)]
+            $xAIF::Settings(pcbDoc) TransactionStart [expr $::MGCPCB::EPcbDRCMode(epcbDRCModeNone)]
 
             ##  Place each bond wire based on From XY and To XY
             foreach i $::bondwires {
@@ -1802,13 +1802,13 @@ puts "OpenPDBEdtr - 1"
                 set bondwire(TO_Y) [lindex $i 4]
 
                 ##  Try and "pick" the "FROM" Die Pin at the XY location.
-                $::ediu(pcbDoc) UnSelectAll
+                $xAIF::Settings(pcbDoc) UnSelectAll
                 #puts "Picking FROM at X:  $bondwire(FROM_X)  Y:  $bondwire(FROM_Y)"
-                set objs [$::ediu(pcbDoc) Pick \
+                set objs [$xAIF::Settings(pcbDoc) Pick \
                     [expr double($bondwire(FROM_X))] [expr double($bondwire(FROM_Y))] \
                     [expr double($bondwire(FROM_X))] [expr double($bondwire(FROM_Y))] \
                     [expr $::MGCPCB::EPcbObjectClassType(epcbObjectClassPadstackObject)] \
-                    [$::ediu(pcbDoc) LayerStack]]
+                    [$xAIF::Settings(pcbDoc) LayerStack]]
 
                 ##  Making sure exactly "one" object was picked isn't possible - too many
                 ##  things can be stacked on top of one another on different layers.  Need
@@ -1833,7 +1833,7 @@ puts "OpenPDBEdtr - 1"
                         [format "Unable to pick die pad at bond wire origin (X: %f  Y: %f), bond wire skipped (Net: %s  From (%f, %f) To (%f, %f)." \
                         $bondwire(FROM_X) $bondwire(FROM_Y) $bondwire(NETNAME) \
                         $bondwire(FROM_X) $bondwire(FROM_Y) $bondwire(TO_X) $bondwire(TO_Y)]
-$::ediu(pcbDoc) TransactionEnd True
+$xAIF::Settings(pcbDoc) TransactionEnd True
 break
                         continue
                 } else {
@@ -1848,14 +1848,14 @@ break
 
                 ##  Try and "pick" the "TO" Bond Pad at the XY location.
 
-                $::ediu(pcbDoc) UnSelectAll
+                $xAIF::Settings(pcbDoc) UnSelectAll
 
                 #puts "Picking TO at X:  $bondwire(TO_X)  Y:  $bondwire(TO_Y)"
-                set objs [$::ediu(pcbDoc) Pick \
+                set objs [$xAIF::Settings(pcbDoc) Pick \
                     [expr double($bondwire(TO_X))] [expr double($bondwire(TO_Y))] \
                     [expr double($bondwire(TO_X))] [expr double($bondwire(TO_Y))] \
                     [expr $::MGCPCB::EPcbObjectClassType(epcbObjectClassPadstackObject)] \
-                    [$::ediu(pcbDoc) LayerStack]]
+                    [$xAIF::Settings(pcbDoc) LayerStack]]
 
                 ##  Making sure exactly "one" object was picked isn't possible - too many
                 ##  things can be stacked on top of one another on different layers.  Need
@@ -1897,7 +1897,7 @@ break
                 set bpX [$BondPad PositionX]
                 set bpY [$BondPad PositionY]
 
-                set bw [$::ediu(pcbDoc) PutBondWire $DiePin $dpX $dpY $BondPad $bpX $bpY]
+                set bw [$xAIF::Settings(pcbDoc) PutBondWire $DiePin $dpX $dpY $BondPad $bpX $bpY]
                 GUI::Transcript -severity note -msg [format "Bond Wire successfully placed for net \"%s\" from (%f,%f) to (%f,%f)." \
                     $bondwire(NETNAME) $bondwire(FROM_X) $bondwire(FROM_Y) $bondwire(TO_X) $bondwire(TO_Y)]
 
@@ -1908,7 +1908,7 @@ break
                 $bw -set WireModelName $MGC::WireBond::WBParameters(Model)
             }
 
-            $::ediu(pcbDoc) TransactionEnd True
+            $xAIF::Settings(pcbDoc) TransactionEnd True
             GUI::StatusBar::UpdateStatus -busy off
         }
 

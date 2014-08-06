@@ -68,7 +68,7 @@ namespace eval MapEnum {
                 return $::PadstackEditorLib::EPsDBPadShape(epsdbPadShapeOblong)
             }
             default {
-                return $::ediu(Nothing)
+                return $xAIF::Settings(Nothing)
             }
         }
     }
@@ -92,7 +92,7 @@ namespace eval MapEnum {
                     return $::PadstackEditorLib::EPsDBUnit(epsdbUnitMils)
                 }
                 default {
-                    return $::ediu(Nothing)
+                    return $xAIF::Settings(Nothing)
                 }
             }
         } elseif { $type == "cell" } {
@@ -110,11 +110,11 @@ namespace eval MapEnum {
                     return $::CellEditorAddinLib::ECellDBUnit(ecelldbUnitMils)
                 }
                 default {
-                    return $::ediu(Nothing)
+                    return $xAIF::Settings(Nothing)
                 }
             }
         } else {
-            return $::ediu(Nothing)
+            return $xAIF::Settings(Nothing)
         }
     }
 }
