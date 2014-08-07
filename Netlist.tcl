@@ -207,7 +207,7 @@ namespace eval Netlist {
                 set sect [format "MCM_%s_%s" [dict get $::mcmdie $i] $i]
 
                 ##  If the device has a section, extract the CENTER keyword
-                if { [lsearch [xAIF::sections] $sect] != -1 } {
+                if { [lsearch [AIF::Sections] $sect] != -1 } {
                     set ctr [AIF::GetVar CENTER $sect]
                 }
 
