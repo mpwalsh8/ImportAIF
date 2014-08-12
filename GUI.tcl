@@ -95,7 +95,7 @@ namespace eval GUI {
     ##
     proc Build {} {
         #  Define fixed with font used for displaying text
-        font create EDIUFont -family Courier -size 10 -weight bold
+        font create xAIFFont -family Courier -size 10 -weight bold
 
         ##  Build menus and notebook structure
         GUI::Build::Menus
@@ -116,12 +116,12 @@ namespace eval GUI {
         grid    rowconfigure . 0 -weight 1
 
         #  Configure the main window
-        wm title . $xAIF::Settings(EDIU).
+        wm title . $xAIF::Settings(xAIF).
         wm geometry . 1024x768
         . configure -menu .menubar -width 200 -height 150
 
         #  Bind some function keys
-        bind . "<Key F1>" { ediuHelpAbout }
+        bind . "<Key F1>" { GUI::Help::About }
         bind . "<Key F5>" { GUI::Dashboard::SelectAIFFile }
         bind . "<Key F6>" { GUI::File::CloseAIF }
 
@@ -335,9 +335,9 @@ namespace eval GUI {
                 -underline 7 -command MGC::WireBond::ExportWireModel
             #$fm add separator
             #$fm add command -label "Open Sparse Pins ..." \
-                -underline 1 -command ediuSparsePinsFileOpen
+                -underline 1 -command GUI::File::OpenSparsePins
             #$fm add command -label "Close Sparse Pins " \
-                #-underline 1 -command ediuSparsePinsFileClose
+                #-underline 1 -command GUI::File::CloseSparsePins
             if {[llength [info commands console]]} {
                 $fm add separator
 	            $fm add command -label "Show Console" \
@@ -370,7 +370,7 @@ namespace eval GUI {
                 -underline 2 -command GUI::Dashboard::SelectCentralLibrary
             #$sm add separator
             #$sm add checkbutton -label "Sparse Mode" -underline 0 \
-                #-variable xAIF::Settings(sparseMode) -command ediuToggleSparseMode
+                #-variable xAIF::Settings(sparseMode) -command GUI::Dashboard::ToggleSparseMode
             $sm add separator
             $sm add checkbutton -label "Application Visibility" \
                 -variable GUI::Dashboard::Visibility -onvalue on -offvalue off \
@@ -393,19 +393,19 @@ namespace eval GUI {
             $vm add cascade -label "Zoom In" -underline 5 -menu $vm.in
             menu $vm.in -tearoff 0
             $vm.in add cascade -label "2x" -underline 0 \
-                 -command {ediuGraphicViewZoom 2.0}
+                 -command { GUI::View::Zoom $GUI::widgets(layoutview) 2.0 }
             $vm.in add command -label "5x" -underline 0 \
-                 -command {ediuGraphicViewZoom 5.0}
+                 -command { GUI::View::Zoom $GUI::widgets(layoutview)  5.0 }
             $vm.in add command -label "10x" -underline 0 \
-                 -command {ediuGraphicViewZoom 10.0}
+                 -command { GUI::View::Zoom $GUI::widgets(layoutview)  10.0 }
             $vm add cascade -label "Zoom Out" -underline 5 -menu $vm.out
             menu $vm.out -tearoff 0
             $vm.out add cascade -label "2x" -underline 0 \
-                 -command {ediuGraphicViewZoom 0.5}
+                 -command { GUI::View::Zoom $GUI::widgets(layoutview)  0.5 }
             $vm.out add command -label "5x" -underline 0 \
-                 -command {ediuGraphicViewZoom 0.2}
+                 -command { GUI::View::Zoom $GUI::widgets(layoutview)  0.2 }
             $vm.out add command -label "10x" -underline 0 \
-                 -command {ediuGraphicViewZoom 0.1}
+                 -command { GUI::View::Zoom $GUI::widgets(layoutview)  0.1 }
 
             $vm add separator
 
@@ -557,10 +557,10 @@ if { 0 } {
             $mb add cascade -label "Help" -menu $mb.help -underline 0
             $hm add command -label "About ..." \
                 -accelerator "F1" -underline 0 \
-                -command ediuHelpAbout
+                -command GUI::Help::About
             $hm add command -label "Version ..." \
                 -underline 0 \
-                -command ediuHelpVersion
+                -command GUI::Help::Version
         }
 
         ##
@@ -704,7 +704,7 @@ if { 0 } {
                 set tftext [ctext $tf.text -wrap none \
                     -xscrollcommand [list $tf.tftextscrollx set] \
                     -yscrollcommand [list $tf.tftextscrolly set]]
-                $tftext configure -font EDIUFont -state disabled
+                $tftext configure -font xAIFFont -state disabled
                 set GUI::widgets(transcript) $tftext
                 ttk::scrollbar $tf.tftextscrolly -orient vertical -command [list $tftext yview]
                 ttk::scrollbar $tf.tftextscrollx -orient horizontal -command [list $tftext xview]
@@ -722,7 +722,7 @@ if { 0 } {
                 set sftext [ctext $sf.text -wrap none \
                     -xscrollcommand [list $sf.sftextscrollx set] \
                     -yscrollcommand [list $sf.sftextscrolly set]]
-                $sftext configure -font EDIUFont -state disabled
+                $sftext configure -font xAIFFont -state disabled
                 set GUI::widgets(sourceview) $sftext
                 ttk::scrollbar $sf.sftextscrolly -orient vertical -command [list $sftext yview]
                 ttk::scrollbar $sf.sftextscrollx -orient horizontal -command [list $sftext xview]
@@ -741,7 +741,7 @@ if { 0 } {
                     -xscrollcommand [list $nf.nftextscrollx set] \
                     -yscrollcommand [list $nf.nftextscrolly set]]
 
-                $nftext configure -font EDIUFont -state disabled
+                $nftext configure -font xAIFFont -state disabled
                 set GUI::widgets(netlistview) $nftext
                 ttk::scrollbar $nf.nftextscrolly -orient vertical -command [list $nftext yview]
                 ttk::scrollbar $nf.nftextscrollx -orient horizontal -command [list $nftext xview]
@@ -759,7 +759,7 @@ if { 0 } {
                 set ssftext [ctext $ssf.text -wrap none \
                     -xscrollcommand [list $ssf.ssftextscrollx set] \
                     -yscrollcommand [list $ssf.ssftextscrolly set]]
-                $ssftext configure -font EDIUFont -state disabled
+                $ssftext configure -font xAIFFont -state disabled
                 set GUI::widgets(sparsepinsview) $ssftext
                 ttk::scrollbar $ssf.ssftextscrolly -orient vertical -command [list $ssftext yview]
                 ttk::scrollbar $ssf.ssftextscrollx -orient horizontal -command [list $ssftext xview]
@@ -803,7 +803,7 @@ if { 0 } {
                     -xscrollcommand [list $knltf.nftextscrollx set] \
                     -yscrollcommand [list $knltf.nftextscrolly set]]
 
-                $knltftext configure -font EDIUFont -state disabled
+                $knltftext configure -font xAIFFont -state disabled
                 set GUI::widgets(kynnetlistview) $knltftext
                 ttk::scrollbar $knltf.nftextscrolly -orient vertical -command [list $knltftext yview]
                 ttk::scrollbar $knltf.nftextscrollx -orient horizontal -command [list $knltftext xview]
@@ -1020,7 +1020,7 @@ if { 0 } {
             set tftext [text $wbpf.wbrule.text -wrap word  -height 10 \
                 -xscrollcommand [list $wbpf.wbrule.tftextscrollx set] \
                 -yscrollcommand [list $wbpf.wbrule.tftextscrolly set]]
-            $tftext configure -font EDIUFont -state disabled
+            $tftext configure -font xAIFFont -state disabled
             ttk::scrollbar $wbpf.wbrule.tftextscrolly -orient vertical -command [list $tftext yview]
             ttk::scrollbar $wbpf.wbrule.tftextscrollx -orient horizontal -command [list $tftext xview]
             grid $tftext -row 0 -column 0 -in $wbpf.wbrule -sticky nsew
@@ -1706,7 +1706,7 @@ if { 0 } {
         #  GUI::File::CloseAIF
         #
         #  Close the AIF file and flush anything stored in
-        #  EDIU memory.  Clear the text widget for the source
+        #  xAIF memory.  Clear the text widget for the source
         #  view and the canvas widget for the graphic view.
         #
         proc CloseAIF {} {
@@ -1828,10 +1828,10 @@ if { 0 } {
         }
 
         #
-        #  ediuSparsePinsFileClose
+        #  GUI::File::CloseSparsePins
         #
         #  Close the sparse rules file and flush anything stored
-        #  in EDIU memory.  Clear the text widget for the sparse
+        #  in xAIF memory.  Clear the text widget for the sparse
         #  rules.
         #
         proc CloseSparsePins {} {
@@ -1868,7 +1868,6 @@ if { 0 } {
             $cnvs delete all
     
             ##  Add the outline
-            #ediuGraphicViewAddOutline
     
             ##  Draw the BGA outline (if it exists)
             if { $xAIF::Settings(BGA) == 1 } {
@@ -2531,5 +2530,32 @@ if { 0 } {
             $cnvs configure -scrollregion [$cnvs bbox all]
         }
     
+    }
+
+    namespace eval Help {
+        #
+        #  GUI::Help::About
+        #
+        proc About {} {
+            tk_messageBox -type ok -message "$xAIF::Settings(xAIF)\nVersion 1.0" \
+                -icon info -title "About"
+        }
+
+        #
+        #  GUI::Help::Version
+        #
+        proc Version {} {
+            tk_messageBox -type ok -message "$xAIF::Settings(xAIF)\nVersion 1.0" \
+                -icon info -title "Version"
+        }
+
+        #
+        #  GUI::Help::NotImplemented
+        #
+        #  Stub procedure for GUI development to prevent Tcl and Tk errors.
+        #
+        proc NotImplemented {} {
+            tk_messageBox -type ok -icon info -message "This operation has not been implemented."
+        }
     }
 }

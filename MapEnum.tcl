@@ -47,7 +47,7 @@
 
 namespace eval MapEnum {
     #
-    #  ediuMapShapeToEnum
+    #  MapEnum::Shape
     #
     proc Shape { shape } {
         switch -exact -- [string toupper $shape] {
@@ -74,7 +74,7 @@ namespace eval MapEnum {
     }
     
     #
-    #  ediuMapUnitsToEnum
+    #  MapEnum::Units
     #
     proc Units { units { type "pad" } } {
         if { $type == "pad" } {

@@ -354,7 +354,7 @@ namespace eval AIF {
     ##
     namespace eval Database {
         #
-        #  ediuAIFDatabaseSection
+        #  AIF::Database::Section
         #
         #  Scan the AIF source file for the "DATABASE" section
         #

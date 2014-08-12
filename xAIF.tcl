@@ -100,9 +100,8 @@ package require csv
 package require inifile
 package require tablelist
 package require Tk 8.4
-#package require math::bigfloat
 
-##  Load the Mentor DLLs.
+##  Load the Mentor DLLs for EE 794/795
 ::tcom::import "$env(SDD_HOME)/wg/$env(SDD_PLATFORM)/bin/ExpeditionPCB.exe"
 ::tcom::import "$env(SDD_HOME)/wg/$env(SDD_PLATFORM)/lib/CellEditorAddin.dll"
 ::tcom::import "$env(SDD_HOME)/common/$env(SDD_PLATFORM)/lib/PDBEditor.dll"
@@ -150,7 +149,7 @@ namespace eval xAIF {
             layoutview ""
             netlistview ""
             #sparsepinsview ""
-            EDIU "Xpedition xAIF - AIF Import Utility"
+            xAIF "Xpedition xAIF - AIF Import Utility"
             MsgNote 0
             MsgWarning 1
             MsgError 2
@@ -255,93 +254,6 @@ namespace eval xAIF {
     }
 
     #
-    #  HelpAbout
-    #
-    proc HelpAbout {} {
-        tk_messageBox -type ok -message "$xAIF::Settings(EDIU)\nVersion 1.0" \
-            -icon info -title "About"
-    }
-
-    #
-    #  HelpVersion
-    #
-    proc HelpVersion {} {
-        tk_messageBox -type ok -message "$xAIF::Settings(EDIU)\nVersion 1.0" \
-            -icon info -title "Version"
-    }
-
-    #
-    #  NotImplemented
-    #
-    #  Stub procedure for GUI development to prevent Tcl and Tk errors.
-    #
-    proc NotImplemented {} {
-        tk_messageBox -type ok -icon info -message "This operation has not been implemented."
-    }
-
-    #
-    #  UpdateStatus
-    #
-    #  Update the status panes with relevant informaiton.
-    #
-    proc UpdateStatus-deprecated {mode} {
-        if { $xAIF::Settings(connectMode) } {
-            set xAIF::widgets(mode) [format "Mode:  %s (Connect Mode)" $xAIF::Settings(mode)]
-        } else {
-            set xAIF::widgets(mode) [format "Mode:  %s" $xAIF::Settings(mode)]
-        }
-        set xAIF::widgets(AIFFile) [format "AIF File:  %-50s" $xAIF::Settings(filename)]
-
-        ##  Need to determine what mode to update the target path widget
-        if { $xAIF::Settings(mode) == $xAIF::Settings(designMode) } {
-            set xAIF::widgets(targetPath) [format "Design Path:  %-40s" $xAIF::Settings(targetPath)]
-        } elseif { $xAIF::Settings(mode) == $xAIF::Settings(libraryMode) } {
-            set xAIF::widgets(targetPath) [format "Library Path:  %-40s" $xAIF::Settings(targetPath)]
-        } else {
-            set xAIF::widgets(targetPath) [format "%-40s" "N/A"]
-        }
-
-        ##  Set the color of the status light
-        set slf $GUI::widgets(statuslight)
-        if { $mode == $xAIF::Settings(busy) } {
-            $slf configure -background red
-        } else {
-            $slf configure -background green
-        }
-
-    }
-
-    #
-    #  ediuAIFName
-    #
-    #  Scan the AIF source file for the "die_name" section
-    #
-    proc deprecated-ediuAIFName {} {
-
-        GUI::Transcript -severity note -msg [format "Scanning AIF source for \"%s\"." $xAIF::sections(die)]
-
-        set txt $GUI::widgets(sourceview)
-        set dn [$txt search $xAIF::sections(die) 1.0 end]
-
-        ##  Was the die found?
-
-        if { $dn != $xAIF::Settings(Nothing)} {
-            set dnl [lindex [split $dn .] 0]
-            GUI::Transcript -severity note -msg [format "Found section \"%s\" in AIF on line %s." $xAIF::sections(die) $dnl]
-
-            ##  Need the text from the die line, drop the terminating semicolon
-            set dnlt [$txt get $dnl.0 "$dnl.end - 1 chars"]
-
-            ##  Extract the shape, height, and width from the dieShape
-            set xAIF::die(name) [lindex [split $dnlt] 1]
-            set xAIF::die(partition) [format "%s_die" $::die(name)]
-            GUI::Transcript -severity note -msg [format "Extracted die name (%s)." $::die(name)]
-        } else {
-            GUI::Transcript -severity error -msg [format "AIF does not contain section \"%s\"." $xAIF::sections(die)]
-        }
-    }
-
-    #
     #  xAIF::Utility
     #
     namespace eval Utility {
@@ -387,21 +299,9 @@ xAIF::Init
 GUI::Build
 GUI::Menus::DesignMode
 GUI::StatusBar::UpdateStatus -busy off
-#GUI::Transcript -severity note -msg "$xAIF::Settings(EDIU) ready."
-#ediuChooseCellPartitionDialog
-#puts $retString
+GUI::Transcript -severity note -msg "$xAIF::Settings(xAIF) ready."
 #set GUI::Dashboard::Mode $xAIF::Settings(libraryMode)
 #GUI::Dashboard::SelectCentralLibrary "C:/Users/mike/Documents/Sandbox2/Sandbox2.lmc"
 #set xAIF::Settings(mode) $xAIF::Settings(designMode)
-#ediuSetupOpenPCB "C:/Users/mike/Documents/a_simple_design_ee794/a_simple_design.pcb"
-#catch { ediuAIFFileOpen "c:/users/mike/desktop/ImportAIF/data/Demo1.aif" } retString
-#catch { ediuAIFFileOpen "c:/users/mike/desktop/ImportAIF/data/Demo4.aif" } retString
-#catch { ediuAIFFileOpen "c:/users/mike/desktop/ImportAIF/data/MCMSampleC.aif" } retString
-#catch { ediuAIFFileOpen "c:/users/mike/desktop/ImportAIF/data/BGA_w2_Dies.aif" } retString
-##catch { ediuAIFFileOpen "c:/users/mike/desktop/ImportAIF/data/BGA_w2_Dies-2.aif" } retString
-#catch { ediuAIFFileOpen "c:/users/mike/desktop/ImportAIF/data/BGA_w2_Dies-3.aif" } retString
-#catch { ediuAIFFileOpen "c:/users/mike/desktop/ImportAIF/data/Test2.aif" } retString
 #catch { GUI::Dashboard::SelectAIFFile "c:/users/mike/desktop/ImportAIF/data/Test1.aif" } retString
 #GUI::Visibility text -all true -mode off
-#set xAIF::Settings(cellEdtrPrtnNames) { a b c d e f }
-#ediuAIFFileOpen
