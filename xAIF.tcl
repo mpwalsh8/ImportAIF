@@ -158,16 +158,18 @@ namespace eval xAIF {
             pdstkEdtrDb ""
             cellEdtr ""
             cellEdtrDb ""
-            cellEdtrPrtn ""
+            cellEdtrPrtn "xAIF-Work"
             cellEdtrPrtnName ""
             cellEdtrPrtnNames {}
             partEdtr ""
             partEdtrDb ""
-            partEdtrPrtn ""
+            partEdtrPrtn "xAIF-Work"
             partEdtrPrtnName ""
             partEdtrPrtnNames {}
             pcbApp ""
             pcbDoc ""
+            libApp ""
+            libLib ""
             appVisible True
             connectMode True
             sTime ""
@@ -383,6 +385,7 @@ foreach script { AIF.tcl Forms.tcl GUI.tcl MapEnum.tcl MGC.tcl Netlist.tcl } {
 console show
 xAIF::Init
 GUI::Build
+GUI::Menus::DesignMode
 GUI::StatusBar::UpdateStatus -busy off
 #GUI::Transcript -severity note -msg "$xAIF::Settings(EDIU) ready."
 #ediuChooseCellPartitionDialog

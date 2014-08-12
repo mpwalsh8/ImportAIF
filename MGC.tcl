@@ -57,7 +57,12 @@ namespace eval MGC {
 
         if { $xAIF::Settings(connectMode) } {
             GUI::Transcript -severity note -msg "Connecting to existing Expedition session."
-            set xAIF::Settings(pcbApp) [::tcom::ref getactiveobject "MGCPCB.ExpeditionPCBApplication"]
+            #  Need to make sure Xpedition is actually running ...
+            set errorCode [catch { set xAIF::Settings(pcbApp) [::tcom::ref getactiveobject "MGCPCB.ExpeditionPCBApplication"] } errorMessage]
+            if {$errorCode != 0} {
+                GUI::Transcript -severity error -msg "Unable to connect to Xpedition, is Xpedition running?"
+                return -code return 1
+            }
 
             #  Use the active PCB document object
             set errorCode [catch {set xAIF::Settings(pcbDoc) [$xAIF::Settings(pcbApp) ActiveDocument] } errorMessage]
@@ -65,9 +70,16 @@ namespace eval MGC {
                 GUI::Transcript -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
                 return -code return 1
             }
+
+            #  Make sure API returned an active database - no error code which is odd ...
+            if { [string equal $xAIF::Settings(pcbDoc) ""] } {
+                GUI::Transcript -severity error -msg "Unable to connect to Xpedition design, is Xpedition database open?"
+                return -code return 1
+            }
         } else {
             GUI::Transcript -severity note -msg "Opening Expedition."
             set xAIF::Settings(pcbApp) [::tcom::ref createobject "MGCPCB.ExpeditionPCBApplication"]
+            $xAIF::Settings(pcbApp) Visible $xAIF::Settings(appVisible)
 
             # Open the database
             GUI::Transcript -severity note -msg "Opening database for Expedition."
@@ -109,6 +121,71 @@ namespace eval MGC {
     }
 
     #
+    #  Open Library Manager, open the database
+    #
+    proc OpenLibraryManager {} {
+puts "X0"
+        #  Crank up Library Manager
+
+        if { $xAIF::Settings(connectMode) } {
+            GUI::Transcript -severity note -msg "Connecting to existing Library Manager session."
+            #  Need to make sure Xpedition is actually running ...
+            set errorCode [catch { set xAIF::Settings(libApp) [::tcom::ref getactiveobject "LibraryManager.Application"] } errorMessage]
+            if {$errorCode != 0} {
+                GUI::Transcript -severity error -msg "Unable to connect to Library Manager, is Library Manager running?"
+                return -code return 1
+            }
+
+            #  Use the active LMC library object
+            set errorCode [catch {set xAIF::Settings(libLib) [$xAIF::Settings(libApp) ActiveLibrary] } errorMessage]
+puts "X1"
+puts $xAIF::Settings(libLib)
+            if {$errorCode != 0} {
+puts "X2"
+                GUI::Transcript -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
+                return -code return 1
+            }
+
+            #  Make sure API returned an active database - no error code which is odd ...
+            if { [string equal $xAIF::Settings(libLib) ""] } {
+                GUI::Transcript -severity error -msg "Unable to connect to Library Manager library, is Library Manager library open?"
+                return -code return 1
+            }
+puts "X3"
+        } else {
+            GUI::Transcript -severity note -msg "Opening Library Manager."
+            set xAIF::Settings(libApp) [::tcom::ref createobject "LibraryManager.Application"]
+            $xAIF::Settings(libApp) Visible $xAIF::Settings(appVisible)
+
+            # Open the database
+            GUI::Transcript -severity note -msg "Opening library database for Library Manager."
+
+            #  Create a LMC library object
+            set errorCode [catch {set xAIF::Settings(linLib) [$xAIF::Settings(libApp) \
+                OpenLibrary $xAIF::Settings(targetPath)] } errorMessage]
+            if {$errorCode != 0} {
+                GUI::Transcript -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
+                return -code return 1
+            }
+        }
+puts "X4"
+
+        #  Turn off trivial dialog boxes - makes batch operations smoother
+        #[$xAIF::Settings(libApp) Gui] SuppressTrivialDialogs True
+
+        #  Set application visibility
+        #$xAIF::Settings(libApp) Visible $xAIF::Settings(appVisible)
+
+        set GUI::Dashboard::LibraryPath [$xAIF::Settings(libLib) FullName]
+        set xAIF::Settings(targetPath) $GUI::Dashboard::LibraryPath
+
+        #  Close the library so the other editors can operate on it.
+        $xAIF::Settings(libLib) Close
+        GUI::Transcript -severity note -msg [format "Connected to Central Library database:  %s" \
+            $GUI::Dashboard::LibraryPath]
+    }
+
+    #
     #  Open the Padstack Editor
     #
     proc OpenPadstackEditor { { mode "-opendatabase" } } {
@@ -129,8 +206,9 @@ namespace eval MGC {
                 set errorCode [catch { MGC::OpenExpedition } errorMessage]
                 if {$errorCode != 0} {
                     GUI::Transcript -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
+                    GUI::Transcript -severity error -msg "Unable to connect to Xpedition, is Xpedition running?"
                     GUI::StatusBar::UpdateStatus -busy off
-                    return
+                    return -code return 1
                 }
             } else {
                 GUI::Transcript -severity note -msg "Reusing previously opened instance of Expedition."
@@ -217,12 +295,12 @@ namespace eval MGC {
     proc OpenCellEditor { } {
         ##  Which mode?  Design or Library?
         if { $GUI::Dashboard::Mode == $xAIF::Settings(designMode) } {
-puts "QQQ"
             ##  Invoke Expedition on the design so the Cell Editor can be started
             ##  Catch any exceptions raised by opening the database
             set errorCode [catch { MGC::OpenExpedition } errorMessage]
             if {$errorCode != 0} {
                 GUI::Transcript -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
+                GUI::Transcript -severity error -msg "Unable to connect to Xpedition, is Xpedition running?"
                 GUI::StatusBar::UpdateStatus -busy off
                 return
             }
@@ -230,14 +308,18 @@ puts "QQQ"
             GUI::Transcript -severity note -msg "Using design database for Cell Editor."
             set xAIF::Settings(cellEdtrDb) [$xAIF::Settings(cellEdtr) ActiveDatabase]
         } elseif { $GUI::Dashboard::Mode == $xAIF::Settings(libraryMode) } {
-puts "ZZZ"
+puts "Z1"
             set xAIF::Settings(cellEdtr) [::tcom::ref createobject "CellEditorAddin.CellEditorDlg"]
+puts "Z2"
             set xAIF::Settings(pdstkEdtr) [::tcom::ref createobject "MGCPCBLibraries.PadstackEditorDlg"]
+puts "Z3"
             # Open the database
             GUI::Transcript -severity note -msg "Opening library database for Cell Editor."
+puts "Z4"
 
             set errorCode [catch {set xAIF::Settings(cellEdtrDb) [$xAIF::Settings(cellEdtr) \
                 OpenDatabase $xAIF::Settings(targetPath) false] } errorMessage]
+puts "Z5"
             if {$errorCode != 0} {
                 GUI::Transcript -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
                 return -code return 1
@@ -246,6 +328,7 @@ puts "ZZZ"
             GUI::Transcript -severity error -msg "Mode not set, build aborted."
             return -code return 1
         }
+puts "Z6"
 
         #set xAIF::Settings(cellEdtrDb) [$xAIF::Settings(cellEdtr) OpenDatabase $xAIF::Settings(targetPath) false]
         set errorCode [catch { $xAIF::Settings(cellEdtr) LockServer } errorMessage]
@@ -318,6 +401,7 @@ puts "ZZZ"
             set errorCode [catch { MGC::OpenExpedition } errorMessage]
             if {$errorCode != 0} {
                 GUI::Transcript -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
+                GUI::Transcript -severity error -msg "Unable to connect to Xpedition, is Xpedition running?"
                 GUI::StatusBar::UpdateStatus -busy off
                 return
             }
@@ -428,15 +512,17 @@ puts "OpenPDBEdtr - 1"
             GUI::Transcript -severity note -msg [format "Central Library \"%s\" set as library target." $xAIF::Settings(targetPath)]
         }
 
+puts "QQQ"
         ##  Invoke the Cell Editor and open the LMC
         ##  Catch any exceptions raised by opening the database
 
         set errorCode [catch { MGC::OpenCellEditor } errorMessage]
         if {$errorCode != 0} {
-            set xAIF::Settings(targetPath) ""
+            #set xAIF::Settings(targetPath) ""
             GUI::StatusBar::UpdateStatus -busy off
             return -code return 1
         }
+puts "QQQ"
 
         ##  Need to prompt for Cell partition
 
@@ -509,7 +595,7 @@ puts "OpenPDBEdtr - 1"
 
             ##  Make sure a Target library or design has been defined
 
-            if {$xAIF::Settings(targetPath) == $xAIF::Settings(Nothing) && $xAIF::Settings(connectMode) != True } {
+            if { [string equal $xAIF::Settings(targetPath) ""] && [ string is true $xAIF::Settings(connectMode)] } {
                 if {$GUI::Dashboard::Mode == $xAIF::Settings(designMode)} {
                     GUI::Transcript -severity error -msg "No Design (PCB) specified, build aborted."
                 } elseif {$GUI::Dashboard::Mode == $xAIF::Settings(libraryMode)} {
@@ -1657,6 +1743,7 @@ puts "OpenPDBEdtr - 1"
                 set errorCode [catch { MGC::OpenExpedition } errorMessage]
                 if {$errorCode != 0} {
                     GUI::Transcript -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
+                    GUI::Transcript -severity error -msg "Unable to connect to Xpedition, is Xpedition running?"
                     GUI::StatusBar::UpdateStatus -busy off
                     return
                 }
@@ -1704,6 +1791,7 @@ puts "OpenPDBEdtr - 1"
                 set errorCode [catch { MGC::OpenExpedition } errorMessage]
                 if {$errorCode != 0} {
                     GUI::Transcript -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
+                    GUI::Transcript -severity error -msg "Unable to connect to Xpedition, is Xpedition running?"
                     GUI::StatusBar::UpdateStatus -busy off
                     return
                 }
@@ -1780,6 +1868,7 @@ puts "OpenPDBEdtr - 1"
                 set errorCode [catch { MGC::OpenExpedition } errorMessage]
                 if {$errorCode != 0} {
                     GUI::Transcript -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
+                    GUI::Transcript -severity error -msg "Unable to connect to Xpedition, is Xpedition running?"
                     GUI::StatusBar::UpdateStatus -busy off
                     return
                 }

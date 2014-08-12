@@ -1066,8 +1066,35 @@ if { 0 } {
         proc CentralLibraryMode {} {
             $GUI::widgets(setupmenu) entryconfigure  3 -state disabled
             $GUI::widgets(setupmenu) entryconfigure 4 -state normal
-            $GUI::widgets(setupmenu) entryconfigure 7 -state disabled
-            #set xAIF::Settings(targetPath) $xAIF::Settings(Nothing)
+            #$GUI::widgets(setupmenu) entryconfigure 7 -state disabled
+
+            ##  Disable the GUI based on mode
+            set dbf $GUI::widgets(dashboard).frame
+            $dbf.design.e configure -state disabled
+            $dbf.design.b configure -state disabled
+            $dbf.library.le configure -state normal
+            $dbf.library.lb configure -state normal
+            $dbf.library.ce configure -state normal
+            $dbf.library.cb configure -state normal
+            $dbf.library.pe configure -state normal
+            $dbf.library.pb configure -state normal
+
+            ##  If "Connect Mode" is on, go get the active library and populate the Dashboard
+
+            if { $xAIF::Settings(connectMode) } {
+                ##  Invoke Expedition on the design so the Cell Editor can be started
+                ##  Catch any exceptions raised by opening the database
+                set errorCode [catch { MGC::OpenLibraryManager } errorMessage]
+                if {$errorCode != 0} {
+                    GUI::Transcript -severity error -msg "Unable to connect to Library Manager, is Library Manager running?"
+                    GUI::StatusBar::UpdateStatus -busy off
+                } else {
+                    set GUI::Dashboard::LibraryPath  [$xAIF::Settings(libLib) FullName]
+                }
+            }
+
+            set xAIF::Settings(targetPath) GUI::Dashboard::LibraryPath
+            GUI::Transcript -severity note -msg "Central Library Mode enabled."
             GUI::StatusBar::UpdateStatus -busy off
         }
 
@@ -1077,8 +1104,36 @@ if { 0 } {
         proc DesignMode {} {
             $GUI::widgets(setupmenu) entryconfigure  3 -state normal
             $GUI::widgets(setupmenu) entryconfigure 4 -state disabled
-            $GUI::widgets(setupmenu) entryconfigure 7 -state normal
-            #set xAIF::Settings(targetPath) $xAIF::Settings(Nothing)
+            #$GUI::widgets(setupmenu) entryconfigure 7 -state normal
+
+            ##  Disable the GUI based on mode
+            set dbf $GUI::widgets(dashboard).frame
+            $dbf.design.e configure -state normal
+            $dbf.design.b configure -state normal
+            $dbf.library.le configure -state disabled
+            $dbf.library.lb configure -state disabled
+            $dbf.library.ce configure -state disabled
+            $dbf.library.cb configure -state disabled
+            $dbf.library.pe configure -state disabled
+            $dbf.library.pb configure -state disabled
+
+            ##  If "Connect Mode" is on, go get the active design and populate the Dashboard
+
+            if { $xAIF::Settings(connectMode) } {
+                ##  Invoke Expedition on the design so the Cell Editor can be started
+                ##  Catch any exceptions raised by opening the database
+                set errorCode [catch { MGC::OpenExpedition } errorMessage]
+                if {$errorCode != 0} {
+                    GUI::Transcript -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
+                    GUI::Transcript -severity error -msg "Unable to connect to Xpedition, is Xpedition running?"
+                    GUI::StatusBar::UpdateStatus -busy off
+                } else {
+                    set GUI::Dashboard::FullDesignPath  [$xAIF::Settings(pcbDoc) FullName]
+                }
+            }
+
+            set xAIF::Settings(targetPath) GUI::Dashboard::FullDesignPath
+            GUI::Transcript -severity note -msg "Design Mode enabled."
             GUI::StatusBar::UpdateStatus -busy off
         }
 
@@ -1105,8 +1160,8 @@ if { 0 } {
         variable DesignName ""
         variable FullDesignPath ""
         variable LibraryPath ""
-        variable CellPartition ""
-        variable PartPartition ""
+        variable CellPartition "xAIF-Work"
+        variable PartPartition "xAIF-Work"
         variable ConnectMode on
         variable Visibility on
         variable CellGeneration
@@ -1148,7 +1203,7 @@ if { 0 } {
             set db $GUI::widgets(dashboard)
 
             if { [string equal $f ""] } {
-                set GUI::Dashboard::LibraryPath [tk_getOpenFile -filetypes {{LMC .lmc}}]
+                set GUI::Dashboard::LibraryPath [tk_getOpenFile -filetypes {{LMC .lmc} { LLM .llm}}]
             } else {
                 set GUI::Dashboard::LibraryPath $f
             }
@@ -1225,6 +1280,12 @@ if { 0 } {
                 $GUI::widgets(progressbar) stop
             } 
 
+            if { $GUI::Dashboard::Mode == $xAIF::Settings(designMode) } {
+                set $xAIF::Settings(targetPath) $GUI::Dashboard::FullDesignPath
+            } else {
+                set $xAIF::Settings(targetPath) $GUI::Dashboard::LibraryPath
+            }
+            set $xAIF::Settings(targetPath)
             update idletasks
         }
     }
