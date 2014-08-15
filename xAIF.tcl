@@ -170,7 +170,7 @@ namespace eval xAIF {
             libApp ""
             libLib ""
             appVisible True
-            connectMode True
+            connectMode off
             sTime ""
             cTime ""
             consoleEcho "True"

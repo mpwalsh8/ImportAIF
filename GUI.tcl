@@ -374,12 +374,12 @@ namespace eval GUI {
             $sm add separator
             $sm add checkbutton -label "Application Visibility" \
                 -variable GUI::Dashboard::Visibility -onvalue on -offvalue off \
-                -command  {GUI::Transcript -severity note -msg [format "Application visibility is now %s." \
+                -command  { GUI::Transcript -severity note -msg [format "Application visibility is now %s." \
                 [expr [string is true $GUI::Dashboard::Visibility] ? "on" : "off"]] }
             $sm add checkbutton -label "Connect to Running Application" \
-                -variable xAIF::Settings(connectMode) -onvalue True -offvalue False \
-                -command  {GUI::Transcript -severity note -msg [format "Application Connect mode is now %s." \
-                [expr $xAIF::Settings(connectMode) ? "on" : "off"]] ; GUI::StatusBar::UpdateStatus -busy off }
+                -variable xAIF::Settings(connectMode) -onvalue on -offvalue off \
+                -command  { GUI::Transcript -severity note -msg [format "Application Connect mode is now %s." \
+                $xAIF::Settings(connectMode) ] ; GUI::StatusBar::UpdateStatus -busy off }
         }
 
         ##
@@ -825,8 +825,9 @@ if { 0 } {
             ##  Mode
             labelframe $dbf.mode -pady 2 -text "Mode" -padx 2
             foreach { i j } [list $xAIF::Settings(designMode) "Design" $xAIF::Settings(libraryMode) "Central Library" ] {
-                radiobutton $dbf.mode.b$i -text "$j" -variable GUI::Dashboard::Mode \
-	            -relief flat -value $i
+                radiobutton $dbf.mode.b$i -text "$j" -variable GUI::Dashboard::Mode -relief flat -value $i \
+                    -command { if { [string equal $GUI::Dashboard::Mode $xAIF::Settings(designMode)] } \
+                    { GUI::Menus::DesignMode } else { GUI::Menus::CentralLibraryMode } }
                 pack $dbf.mode.b$i  -side top -pady 2 -anchor w
             }
 
@@ -847,25 +848,37 @@ if { 0 } {
 
             ##  Cell Generation
             labelframe $dbf.cellgeneration -pady 2 -text "Cell Generation" -padx 2
-            foreach { i j } { MirrorNone "Default" MirrorX "Mirror X Coordinates" MirrorY "Mirror Y Coordinates" MirrorXY "Mirror X and Y Coordinates" } {
+            foreach { i j } { MirrorNone "Default" MirrorX "Mirror across Y-Axis" MirrorY "Mirror across X-Axis" MirrorXY "Mirror across X & Y Axis" } {
                 checkbutton $dbf.cellgeneration.b$i -text "$j" -variable GUI::Dashboard::CellGeneration($i) \
 	            -relief flat -onvalue on -offvalue off
                 pack $dbf.cellgeneration.b$i  -side top -pady 2 -anchor w
+            }
+
+            ##  BGA Generation
+            labelframe $dbf.bgageneration -pady 2 -text "BGA Generation" -padx 2
+            foreach { i j } { std Standard mso "Mount Side Opposite" } {
+                radiobutton $dbf.bgageneration.b$i -text "$j" -variable GUI::Dashboard::BGAGeneration \
+	            -relief flat -value $i
+                pack $dbf.bgageneration.b$i  -side top -pady 2 -anchor w
             }
 
             ##  Visibility
             labelframe $dbf.visibility -pady 2 -text "Application Visibility" -padx 2
             foreach { i j } { on On off Off } {
                 radiobutton $dbf.visibility.b$i -text "$j" -variable GUI::Dashboard::Visibility \
-	            -relief flat -value $i
+	                -relief flat -value $i -command { GUI::Transcript -severity note -msg \
+                    [format "Application visibility is now %s." \
+                    [expr [string is true $GUI::Dashboard::Visibility] ? "on" : "off"]] }
                 pack $dbf.visibility.b$i  -side top -pady 2 -anchor w
             }
 
             ##  Connection
             labelframe $dbf.connection -pady 2 -text "Application Connection" -padx 2
             foreach { i j } { on On off Off } {
-                radiobutton $dbf.connection.b$i -text "$j" -variable GUI::Dashboard::ConnectMode \
-	            -relief flat -value $i
+                radiobutton $dbf.connection.b$i -text "$j" -variable xAIF::Settings(connectMode) \
+	                -relief flat -value $i -command {GUI::Transcript -severity note -msg \
+                    [format "Application Connect mode is now %s." \
+                    $xAIF::Settings(connectMode) ] ; GUI::StatusBar::UpdateStatus -busy off }
                 pack $dbf.connection.b$i  -side top -pady 2 -anchor w
             }
 
@@ -926,13 +939,14 @@ if { 0 } {
             grid $dbf.aiffile        -row 0 -column 0 -sticky new -padx 10 -pady 8 -columnspan 2
             grid $dbf.design         -row 1 -column 0 -sticky new -padx 10 -pady 8 -columnspan 2
             grid $dbf.library        -row 2 -column 0 -sticky new -padx 10 -pady 8 -columnspan 2
-            grid $dbf.sep1           -row 0 -column 2 -sticky nsew -padx 3 -pady 3 -rowspan 5
+            grid $dbf.sep1           -row 0 -column 2 -sticky nsew -padx 3 -pady 3 -rowspan 3
             grid $dbf.mode           -row 0 -column 3 -sticky new -padx 10 -pady 8
             grid $dbf.connection     -row 1 -column 3 -sticky new -padx 10 -pady 8
             grid $dbf.visibility     -row 2 -column 3 -sticky new -padx 10 -pady 8
-            grid $dbf.sep2           -row 3 -column 0 -sticky nsew -padx 3 -pady 3 -columnspan 2
+            grid $dbf.sep2           -row 3 -column 0 -sticky nsew -padx 3 -pady 3 -columnspan 4
             grid $dbf.cellgeneration -row 4 -column 0 -sticky new -padx 10 -pady 8
-            grid $dbf.cellsuffix     -row 4 -column 1 -sticky new -padx 10 -pady 8
+            grid $dbf.cellsuffix     -row 4 -column 1 -sticky new -padx 10 -pady 8 -columnspan 2
+            grid $dbf.bgageneration -row 4 -column 3 -sticky new -padx 10 -pady 8
             grid $dbf.sep3           -row 5 -column 0 -sticky nsew -padx 3 -pady 3 -columnspan 5
             grid $dbf.wbparameters   -row 6 -column 0 -sticky new -padx 10 -pady 8 -columnspan 5
             grid $dbf.wbdrcproperty  -row 7 -column 0 -sticky new -padx 10 -pady 8 -columnspan 5
@@ -1166,6 +1180,7 @@ if { 0 } {
         variable Visibility on
         variable CellGeneration
         variable CellSuffix none
+        variable BGAGeneration "std"
         variable WBParameters
         #variable WBParameters {[Model=[BallWedgeShared]][Padstack=[BF150x65]][XStart=[0um]][YStart=[0um]][XEnd=[0um]][YEnd=[0um]]}
         variable WBDRCProperty
@@ -1601,8 +1616,6 @@ if { 0 } {
                     $xAIF::Settings(BackSlash) $xAIF::Settings(LeftBracket) $xAIF::sections($i) $xAIF::Settings(BackSlash) $xAIF::Settings(RightBracket) ]
             }
 
-            set sectionRegExp [format "%s)" $sectionRegExp]
-
             set ignored {}
             set ignoreRegExp ""
             foreach i [array names xAIF::ignored] {
@@ -1634,8 +1647,8 @@ if { 0 } {
                 $txt insert end [read $f]
                 GUI::Transcript -severity note -msg [format "Scanning AIF file \"%s\" for sections." $xAIF::Settings(filename)]
                 #ctext::addHighlightClass $txt diesections blue $sections
-                ctext::addHighlightClassForRegexp $txt diesections blue $sectionRegExp
-                ctext::addHighlightClassForRegexp $txt ignoredsections red $ignoreRegExp
+                #ctext::addHighlightClassForRegexp $txt diesections blue $sectionRegExp
+                #ctext::addHighlightClassForRegexp $txt ignoredsections red $ignoreRegExp
                 $txt highlight 1.0 end
                 $txt configure -state disabled
                 close $f
@@ -2085,7 +2098,7 @@ if { 0 } {
     
                     GUI::Draw::AddPin $nlr(PAD_X) $nlr(PAD_Y) $nlr(PADNUM) $nlr(NETNAME) $nlr(PADNAME) $line_no "diepad pad pad-$nlr(PADNAME) $ref"
                     if { ![dict exists $::padtypes $nlr(PADNAME)] } {
-                        dict lappend ::padtypes $nlr(PADNAME) "diepad"
+                        dict lappend ::padtypes $nlr(PADNAME) "smdpad"
                     }
                 } else {
                     GUI::Transcript -severity warning -msg [format "Skipping die pad for net \"%s\" on line %d, no pad assignment." $netname, $line_no]

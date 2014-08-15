@@ -55,12 +55,13 @@ namespace eval MGC {
     proc OpenExpedition {} {
         #  Crank up Expedition
 
-        if { $xAIF::Settings(connectMode) } {
+        if { [string is true $xAIF::Settings(connectMode)] } {
             GUI::Transcript -severity note -msg "Connecting to existing Expedition session."
             #  Need to make sure Xpedition is actually running ...
             set errorCode [catch { set xAIF::Settings(pcbApp) [::tcom::ref getactiveobject "MGCPCB.ExpeditionPCBApplication"] } errorMessage]
             if {$errorCode != 0} {
                 GUI::Transcript -severity error -msg "Unable to connect to Xpedition, is Xpedition running?"
+                set xAIF::Settings(connectMode) off
                 return -code return 1
             }
 
@@ -74,9 +75,11 @@ namespace eval MGC {
             #  Make sure API returned an active database - no error code which is odd ...
             if { [string equal $xAIF::Settings(pcbDoc) ""] } {
                 GUI::Transcript -severity error -msg "Unable to connect to Xpedition design, is Xpedition database open?"
+                set xAIF::Settings(connectMode) off
                 return -code return 1
             }
         } else {
+            set xAIF::Settings(targetPath) $GUI::Dashboard::DesignPath
             GUI::Transcript -severity note -msg "Opening Expedition."
             set xAIF::Settings(pcbApp) [::tcom::ref createobject "MGCPCB.ExpeditionPCBApplication"]
             $xAIF::Settings(pcbApp) Visible $xAIF::Settings(appVisible)
@@ -127,12 +130,13 @@ namespace eval MGC {
 puts "X0"
         #  Crank up Library Manager
 
-        if { $xAIF::Settings(connectMode) } {
+        if { [string is true $xAIF::Settings(connectMode)] } {
             GUI::Transcript -severity note -msg "Connecting to existing Library Manager session."
             #  Need to make sure Xpedition is actually running ...
             set errorCode [catch { set xAIF::Settings(libApp) [::tcom::ref getactiveobject "LibraryManager.Application"] } errorMessage]
             if {$errorCode != 0} {
                 GUI::Transcript -severity error -msg "Unable to connect to Library Manager, is Library Manager running?"
+                set xAIF::Settings(connectMode) off
                 return -code return 1
             }
 
@@ -267,7 +271,7 @@ puts "X4"
             #    ##  Close Expedition
             #    $xAIF::Settings(pcbApp) Quit
             #}
-            if { !$xAIF::Settings(connectMode) } {
+            if { [string is false $xAIF::Settings(connectMode)] } {
                 ##  Close the Expedition Database and terminate Expedition
                 $xAIF::Settings(pcbDoc) Close
                 ##  Close Expedition
@@ -295,6 +299,7 @@ puts "X4"
     proc OpenCellEditor { } {
         ##  Which mode?  Design or Library?
         if { $GUI::Dashboard::Mode == $xAIF::Settings(designMode) } {
+            set xAIF::Settings(targetPath) $GUI::Dashboard::DesignPath
             ##  Invoke Expedition on the design so the Cell Editor can be started
             ##  Catch any exceptions raised by opening the database
             set errorCode [catch { MGC::OpenExpedition } errorMessage]
@@ -308,6 +313,7 @@ puts "X4"
             GUI::Transcript -severity note -msg "Using design database for Cell Editor."
             set xAIF::Settings(cellEdtrDb) [$xAIF::Settings(cellEdtr) ActiveDatabase]
         } elseif { $GUI::Dashboard::Mode == $xAIF::Settings(libraryMode) } {
+            set xAIF::Settings(targetPath) $GUI::Dashboard::LibraryPath
 puts "Z1"
             set xAIF::Settings(cellEdtr) [::tcom::ref createobject "CellEditorAddin.CellEditorDlg"]
 puts "Z2"
@@ -368,7 +374,7 @@ puts "Z6"
             ##  Save the Expedition Database
             $xAIF::Settings(pcbDoc) Save
 
-            if { !$xAIF::Settings(connectMode) } {
+            if { [string is false $xAIF::Settings(connectMode)] } {
                 ##  Close the Expedition Database and terminate Expedition
                 $xAIF::Settings(pcbDoc) Close
                 ##  Close Expedition
@@ -394,28 +400,36 @@ puts "Z6"
     #  Open the PDB Editor
     #
     proc OpenPDBEditor {} {
+puts "P1"
         ##  Which mode?  Design or Library?
         if { $GUI::Dashboard::Mode == $xAIF::Settings(designMode) } {
+            set xAIF::Settings(targetPath) $GUI::Dashboard::DesignPath
             ##  Invoke Expedition on the design so the PDB Editor can be started
             ##  Catch any exceptions raised by opening the database
             set errorCode [catch { MGC::OpenExpedition } errorMessage]
             if {$errorCode != 0} {
+puts "P2"
                 GUI::Transcript -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
                 GUI::Transcript -severity error -msg "Unable to connect to Xpedition, is Xpedition running?"
                 GUI::StatusBar::UpdateStatus -busy off
-                return
+                return -code return 1
             }
+puts "P3"
             set xAIF::Settings(partEdtr) [$xAIF::Settings(pcbDoc) PartEditor]
             GUI::Transcript -severity note -msg "Using design database for PDB Editor."
             set xAIF::Settings(partEdtrDb) [$xAIF::Settings(partEdtr) ActiveDatabase]
         } elseif { $GUI::Dashboard::Mode == $xAIF::Settings(libraryMode) } {
+            set xAIF::Settings(targetPath) $GUI::Dashboard::LibraryPath
+puts "P4"
             set xAIF::Settings(partEdtr) [::tcom::ref createobject "MGCPCBLibraries.PartsEditorDlg"]
             # Open the database
             GUI::Transcript -severity note -msg "Opening library database for PDB Editor."
-
+puts $xAIF::Settings(partEdtr)
+puts $xAIF::Settings(targetPath)
             set errorCode [catch {set xAIF::Settings(partEdtrDb) [$xAIF::Settings(partEdtr) \
                 OpenDatabaseEx $xAIF::Settings(targetPath) false] } errorMessage]
             if {$errorCode != 0} {
+puts "P5"
                 GUI::Transcript -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
                 return -code return 1
             }
@@ -425,6 +439,7 @@ puts "Z6"
             GUI::Transcript -severity error -msg "Mode not set, build aborted."
             return -code return 1
         }
+puts "P6"
 puts "OpenPDBEdtr - 1"
 
         #set xAIF::Settings(partEdtrDb) [$xAIF::Settings(partEdtr) OpenDatabase $xAIF::Settings(targetPath) false]
@@ -470,7 +485,7 @@ puts "OpenPDBEdtr - 1"
             ##  Close Expedition
             #$xAIF::Settings(pcbApp) Quit
 
-            if { !$xAIF::Settings(connectMode) } {
+            if { [string is false $xAIF::Settings(connectMode)] } {
                 ##  Close the Expedition Database and terminate Expedition
                 $xAIF::Settings(pcbDoc) Close
                 ##  Close Expedition
@@ -500,10 +515,10 @@ puts "OpenPDBEdtr - 1"
 
         ##  Prompt the user for a Central Library database if not supplied
 
-        if { $f != $xAIF::Settings(Nothing) } {
-            set xAIF::Settings(targetPath) $f
+        if { [string equal $f ""] } {
+            set $GUI::Dashboard::LibraryPath $f
         } else {
-            set xAIF::Settings(targetPath) [tk_getOpenFile -filetypes {{LMC .lmc}}]
+            set $GUI::Dashboard::LibraryPath [tk_getOpenFile -filetypes {{LMC .lmc}}]
         }
 
         if {$xAIF::Settings(targetPath) == "" } {
@@ -512,7 +527,8 @@ puts "OpenPDBEdtr - 1"
             GUI::Transcript -severity note -msg [format "Central Library \"%s\" set as library target." $xAIF::Settings(targetPath)]
         }
 
-puts "QQQ"
+        set xAIF::Settings(targetPath) $GUI::Dashboard::LibraryPath
+
         ##  Invoke the Cell Editor and open the LMC
         ##  Catch any exceptions raised by opening the database
 
@@ -522,11 +538,10 @@ puts "QQQ"
             GUI::StatusBar::UpdateStatus -busy off
             return -code return 1
         }
-puts "QQQ"
 
         ##  Need to prompt for Cell partition
 
-        puts "cellEdtrDb:  ------>$xAIF::Settings(cellEdtrDb)<-----"
+        #puts "cellEdtrDb:  ------>$xAIF::Settings(cellEdtrDb)<-----"
         ##  Can't list partitions when application is visible so if it is,
         ##  hide it temporarily while the list of partitions is queried.
 
@@ -553,7 +568,7 @@ puts "QQQ"
 
         set errorCode [catch { MGC::OpenPDBEditor } errorMessage]
         if {$errorCode != 0} {
-            set xAIF::Settings(targetPath) ""
+            #set xAIF::Settings(targetPath) ""
             GUI::StatusBar::UpdateStatus -busy off
             return -code return 1
         }
@@ -706,7 +721,7 @@ puts "QQQ"
 
             ##  Make sure a Target library or design has been defined
 
-            if {$xAIF::Settings(targetPath) == $xAIF::Settings(Nothing) && $xAIF::Settings(connectMode) != True } {
+            if {$xAIF::Settings(targetPath) == $xAIF::Settings(Nothing) && [string is false $xAIF::Settings(connectMode)] } {
                 if {$GUI::Dashboard::Mode == $xAIF::Settings(designMode)} {
                     GUI::Transcript -severity error -msg "No Design (PCB) specified, build aborted."
                 } elseif {$GUI::Dashboard::Mode == $xAIF::Settings(libraryMode)} {
@@ -784,7 +799,7 @@ puts "QQQ"
             ##  the netlist.  If for some reason the pad doesn't appear in the netlist
 
             if { ![dict exist $::padtypes $::padGeom(name)] } {
-                dict lappend ::padtypes $::padGeom(name) "diepad"
+                dict lappend ::padtypes $::padGeom(name) "smdpad"
             }
 
             switch -exact [dict get $::padtypes $::padGeom(name)] {
@@ -797,6 +812,7 @@ puts "QQQ"
                 "diepad" {
                     $newPadstack -set Type $::PadstackEditorLib::EPsDBPadstackType(epsdbPadstackTypePartStackPin)
                 }
+                "smdpad" -
                 default {
                     $newPadstack -set Type $::PadstackEditorLib::EPsDBPadstackType(epsdbPadstackTypePinSMD)
                 }
@@ -868,7 +884,7 @@ puts "QQQ"
 
             ##  Make sure a Target library or design has been defined
 
-            if {$xAIF::Settings(targetPath) == $xAIF::Settings(Nothing) && $xAIF::Settings(connectMode) != True } {
+            if {$xAIF::Settings(targetPath) == $xAIF::Settings(Nothing) && [string is false $xAIF::Settings(connectMode)] } {
                 if {$GUI::Dashboard::Mode == $xAIF::Settings(designMode)} {
                     GUI::Transcript -severity error -msg "No Design (PCB) specified, build aborted."
                 } elseif {$GUI::Dashboard::Mode == $xAIF::Settings(libraryMode)} {
@@ -1050,7 +1066,15 @@ puts "QQQ"
 
             $newCell -set Name $target
             $newCell -set Description $target
-            $newCell -set MountType [expr $::CellEditorAddinLib::ECellDBMountType(ecelldbMountTypeSurface)]
+
+            #  Need to support Mount Side Opposite for APD compatibility
+            #  For Mount Side Opposite use ecelldbMountTypeMixed?
+            if { 0 } {
+                $newCell -set MountType [expr $::CellEditorAddinLib::ECellDBMountType(ecelldbMountTypeMixed)]
+            } else {
+                $newCell -set MountType [expr $::CellEditorAddinLib::ECellDBMountType(ecelldbMountTypeSurface)]
+            }
+
             #$newCell -set LayerCount [expr 2]
             $newCell -set PinCount [expr $devicePinCount]
             #puts [format "--->  devicePinCount:  %s" $devicePinCount]
@@ -1201,6 +1225,11 @@ puts "QQQ"
                     $pin CurrentPadstack $padstack
                     $pin SetName $diePadFields(pinnum)
 
+                    ##  Support for Mount Side Opposite
+                    if { 1 } {
+                        $pin Side [expr $::MGCPCB::EPcbSide(epcbSideOpposite)]
+                    }
+
                     set errorCode [catch { $pin Place \
                         [expr $diePadFields(padx)] [expr $diePadFields(pady)] [expr 0] } errorMessage]
                     if {$errorCode != 0} {
@@ -1317,7 +1346,7 @@ puts "QQQ"
 
             ##  Make sure a Target library or design has been defined
 
-            if {$xAIF::Settings(targetPath) == $xAIF::Settings(Nothing) && $xAIF::Settings(connectMode) != True } {
+            if {$xAIF::Settings(targetPath) == $xAIF::Settings(Nothing) && [string is false $xAIF::Settings(connectMode)] } {
                 if {$GUI::Dashboard::Mode == $xAIF::Settings(designMode)} {
                     GUI::Transcript -severity error -msg "No Design (PCB) specified, build aborted."
                 } elseif {$GUI::Dashboard::Mode == $xAIF::Settings(libraryMode)} {

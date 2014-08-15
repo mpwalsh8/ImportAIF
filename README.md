@@ -27,3 +27,27 @@ Installation and Operation
 Xpedition xAIF is currently a work-in-progress.  Download (or clone) Xpedition xAIF from GitHub.  Invoke the application using Wish to open xAIF.tcl (the main entry point). 
 
 The full AIF specification has not been implemented.  Unsupported keywords in the AIF file are noted in red text when viewing the source.
+
+Usage
+-
+In order to generate a usable Xpedition design from an AIF source file, do the following:
+
+1. Setup a file folder structure to store the library and design data which will be generated from the AIF file.  The design data can be generated into an existing Central Library however it is recommended that a new, and empty, Central Library be used as a sandbox.
+	1. Create a top level folder:  ExampleAIF
+	2. Create a folder for design data:  ExampleAIF\Design
+	3. Create a folder for the Central Library:  ExampleAIF\Library
+4. Open Library Manager and create (File > New) a Central Library in the ExampleAIF\Library folder.
+5. Open XpeditionPCB and navigate to the 4 Layer template which will be created in the Central Library  which was just created.  This template is for a 4 layer key-in netlist PCB design, some of the settings will be changed to support the package design being imported via AIF.
+	1. Within XpeditionPCB, use File > Save As to save the design into the ExampleAIF\Design folder created previously.  The user will be prompted with several questions.  
+	3. There is no need to worry about Central Library association yet, it will be handled later via Project Integration.
+	4. Use "Design" for the project name when prompted.
+	5. After the Save, close the database within XpeditionPCB (File > Close)
+	6. From Windows Explorer, navigate to ExampleAIF\Design where the PCB database will still be called "template.pcb".  Rename this file to "Design.pcb" so it matches the "Design.prj" file.
+	7. No further changes are required at this point.
+8. Invoke Xpedition xAIF which will bring up the UI.
+	1. Load the AIF source file (File > Open or use the Select AIF button on the Dashboard tab).  The process of loading  the AIF file can take several minutes depending on the size and complexity of the design.
+	2. Once loaded, examine the various tabs to visualize the design (Layout tab) and AIF processing (AIF Netlist tab).
+	3. Set xAIF in Central Library mode (from the Dashboard or Setup pulldown menu).  If Library Manager is running, xAIF will attempt to connect to it to retrieve the Central Library it will use to target the library elements which will be generated.  If Library Manager is not running, use the Library button to navigate to the LMC created earlier.
+		1. If the LMC has existing Cell and Part partitions they can be specified by choosing the appropriate button.
+		2. xAIF will create partitions if none exist to store generated cells and PDBs.
+	3. 
