@@ -167,6 +167,7 @@ namespace eval GUI {
 
         if { $xAIF::Settings(consoleEcho) } {
             puts $msg
+            flush stdout
         }
     }
 
@@ -326,6 +327,9 @@ namespace eval GUI {
                 -accelerator "F5" -underline 0 -command GUI::Dashboard::SelectAIFFile
             $fm add command -label "Close AIF" \
                 -accelerator "F6" -underline 0 -command GUI::File::CloseAIF
+            $fm add separator
+            $fm add command -label "Create Design Stub ..." \
+                -underline 7 -command MGC::Generate::DesignStub
             $fm add separator
             $fm add command -label "Export KYN ..." \
                 -underline 7 -command Netlist::Export::KYN
@@ -1215,6 +1219,7 @@ if { 0 } {
         ##  GUI::Dashboard::SelectCentralLibrary
         ##
         proc SelectCentralLibrary { { f "" } } {
+puts "GUI::Dashboard::SelectCentralLibrary"
             set db $GUI::widgets(dashboard)
 
             if { [string equal $f ""] } {

@@ -294,7 +294,7 @@ puts "X4"
     }
 
     #
-    #  Open the Cell Editor
+    #  MGC::OpenCellEditor - open the Cell Editor
     #
     proc OpenCellEditor { } {
         ##  Which mode?  Design or Library?
@@ -319,13 +319,21 @@ puts "Z1"
 puts "Z2"
             set xAIF::Settings(pdstkEdtr) [::tcom::ref createobject "MGCPCBLibraries.PadstackEditorDlg"]
 puts "Z3"
+flush stdout
             # Open the database
             GUI::Transcript -severity note -msg "Opening library database for Cell Editor."
 puts "Z4"
+flush stdout
 
+set sTime [clock format [clock seconds] -format "%m/%d/%Y %T"]
             set errorCode [catch {set xAIF::Settings(cellEdtrDb) [$xAIF::Settings(cellEdtr) \
                 OpenDatabase $xAIF::Settings(targetPath) false] } errorMessage]
+set cTime [clock format [clock seconds] -format "%m/%d/%Y %T"]
+GUI::Transcript -severity note -msg [format "Start Time:  %s" $sTime]
+GUI::Transcript -severity note -msg [format "Completion Time:  %s" $cTime]
+
 puts "Z5"
+flush stdout
             if {$errorCode != 0} {
                 GUI::Transcript -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
                 return -code return 1
@@ -516,13 +524,17 @@ puts "OpenPDBEdtr - 1"
         ##  Prompt the user for a Central Library database if not supplied
 
         if { [string equal $f ""] } {
-            set $GUI::Dashboard::LibraryPath $f
-        } else {
             set $GUI::Dashboard::LibraryPath [tk_getOpenFile -filetypes {{LMC .lmc}}]
+        } else {
+            set $GUI::Dashboard::LibraryPath $f
         }
+
+        ##  Set the Library Path to the target
+        set xAIF::Settings(targetPath) $f
 
         if {$xAIF::Settings(targetPath) == "" } {
             GUI::Transcript -severity warning -msg "No Central Library selected."
+            return
         } else {
             GUI::Transcript -severity note -msg [format "Central Library \"%s\" set as library target." $xAIF::Settings(targetPath)]
         }
@@ -841,6 +853,7 @@ puts "OpenPDBEdtr - 1"
         #  MGC::Generate::Cell
         #
         proc Cell { device args } {
+puts "Y1"
             ##  Process command arguments
             array set V [list -partition $GUI::Dashboard::CellPartition -mirror none] ;# Default values
             foreach {a value} $args {
@@ -852,6 +865,7 @@ puts "OpenPDBEdtr - 1"
                     set V($a) $value
                 }
             }
+puts "Y2"
 
             set xAIF::Settings(cellEdtrPrtnName) $V(-partition)
 
@@ -862,6 +876,7 @@ puts "OpenPDBEdtr - 1"
                 return
             }
 
+puts "Y3"
             ##  Set the target cell name based on the mirror switch
             switch -exact $V(-mirror) {
                 x {
@@ -883,6 +898,7 @@ puts "OpenPDBEdtr - 1"
             set xAIF::Settings(sTime) [clock format [clock seconds] -format "%m/%d/%Y %T"]
 
             ##  Make sure a Target library or design has been defined
+puts "Y4"
 
             if {$xAIF::Settings(targetPath) == $xAIF::Settings(Nothing) && [string is false $xAIF::Settings(connectMode)] } {
                 if {$GUI::Dashboard::Mode == $xAIF::Settings(designMode)} {
@@ -901,6 +917,7 @@ puts "OpenPDBEdtr - 1"
             ##  Invoke the Cell Editor and open the LMC or PCB
             ##  Catch any exceptions raised by opening the database
 
+puts "Y5"
             set errorCode [catch { MGC::OpenCellEditor } errorMessage]
             if {$errorCode != 0} {
                 GUI::Transcript -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
@@ -913,6 +930,7 @@ puts "OpenPDBEdtr - 1"
             ##  mode than it is for design mode.  In design mode there
             ##  isn't a "partition" so none of the partition logic applies.
 
+puts "Y6"
             if { $GUI::Dashboard::Mode == $xAIF::Settings(libraryMode) } {
 
                 #  Prompt for the Partition if not supplied with -partition
@@ -942,6 +960,7 @@ puts "OpenPDBEdtr - 1"
                 #  visible so if it is, hide it temporarily.
                 set visibility $xAIF::Settings(appVisible)
 
+puts "Y7"
                 $xAIF::Settings(cellEdtr) Visible False
                 set partitions [$xAIF::Settings(cellEdtrDb) Partitions]
                 $xAIF::Settings(cellEdtr) Visible $visibility
@@ -1069,7 +1088,7 @@ puts "OpenPDBEdtr - 1"
 
             #  Need to support Mount Side Opposite for APD compatibility
             #  For Mount Side Opposite use ecelldbMountTypeMixed?
-            if { 0 } {
+            if { 1 } {
                 $newCell -set MountType [expr $::CellEditorAddinLib::ECellDBMountType(ecelldbMountTypeMixed)]
             } else {
                 $newCell -set MountType [expr $::CellEditorAddinLib::ECellDBMountType(ecelldbMountTypeSurface)]
@@ -1145,6 +1164,7 @@ puts "OpenPDBEdtr - 1"
                     return -1
                 }
             }
+puts "K1"
 
             ##  To fix Tcom bug?
             if { $GUI::Dashboard::Mode == $xAIF::Settings(designMode) } {
@@ -1164,7 +1184,7 @@ puts "OpenPDBEdtr - 1"
             unset padstack
 
             set pins [$cellEditor Pins]
-            #puts [format "-->  Array Size of pins:  %s" [$pins Count]]
+puts [format "-->  Array Size of pins:  %s" [$pins Count]]
 
             ##  Start Transations for performance reasons
             $cellEditor TransactionStart [expr $::MGCPCB::EPcbDRCMode(epcbDRCModeDRC)]
@@ -1226,20 +1246,23 @@ puts "OpenPDBEdtr - 1"
                     $pin SetName $diePadFields(pinnum)
 
                     ##  Support for Mount Side Opposite
-                    if { 1 } {
+                    if { 0 } {
+puts [$pin Side]
+puts [expr $::MGCPCB::EPcbSide(epcbSideOpposite)]
                         $pin Side [expr $::MGCPCB::EPcbSide(epcbSideOpposite)]
+puts [$pin Side]
                     }
 
                     set errorCode [catch { $pin Place \
                         [expr $diePadFields(padx)] [expr $diePadFields(pady)] [expr 0] } errorMessage]
                     if {$errorCode != 0} {
                         GUI::Transcript -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
-                        #puts [format "Error:  %s  Pin:  %d  Handle:  %s" $errorMessage $i $pin]
+                        puts [format "Error:  %s  Pin:  %d  Handle:  %s" $errorMessage $i $pin]
 
-                        #puts [$pin IsValid]
-                        #puts [$pin Name]
-                        #puts [format "-->  Array Size of pins:  %s" [$pins Count]]
-                        #puts [$cellEditor Name]
+                        puts [$pin IsValid]
+                        puts [$pin Name]
+                        puts [format "-->  Array Size of pins:  %s" [$pins Count]]
+                        puts [$cellEditor Name]
                         break
                     }
                 } else {
@@ -1247,6 +1270,11 @@ puts "OpenPDBEdtr - 1"
                         $diePadFields(pinnum) $diePadFields(padname)]
                 }
 
+                ##  Support for Mount Side Opposite
+                if { 0 } {
+                    $pin Side [expr $::MGCPCB::EPcbSide(epcbSideOpposite)]
+puts [expr $::MGCPCB::EPcbSide(epcbSideOpposite)]
+                }
                 set pin ::tcom::null
 
                 incr i
@@ -1307,7 +1335,9 @@ puts "OpenPDBEdtr - 1"
             ##  Save edits and close the Cell Editor
             set time [clock format [clock seconds] -format "%m/%d/%Y %T"]
             GUI::Transcript -severity note -msg [format "Saving new cell \"%s\" (%s)." $target $time]
+            GUI::Transcript -severity note -msg "Starting Save!"
             $cellEditor Save
+            GUI::Transcript -severity note -msg "Save Done!"
             set time [clock format [clock seconds] -format "%m/%d/%Y %T"]
             GUI::Transcript -severity note -msg [format "New cell \"%s\" (%s) saved." $target $time]
             $cellEditor Close False
@@ -1650,6 +1680,48 @@ puts "OpenPDBEdtr - 1"
         proc PDBs { } {
             foreach i [AIFForms::SelectFromList "Select PDB(s)" [array names ::devices]] {
                 MGC::Generate::PDB [lindex $i 1]
+            }
+        }
+
+        #
+        #  MGC::Generate::DesignStub
+        #
+        #  This procedure will create (if they don't exist) several folders under
+        #  the specified folder that are used when building up a design.  These
+        #  folders hold things like the netlist, placement, and wire bond information.
+        #
+        proc DesignStub { { d "" } } {
+            GUI::StatusBar::UpdateStatus -busy on
+
+            ##  Prompt the user for a Diectory if not supplied
+
+            if { [string equal $d ""] } {
+                set rootstub [tk_chooseDirectory]
+            } else {
+                set rootstub $d
+            }
+
+            if { [string equal stub ""] } {
+                GUI::Transcript -severity warning -msg "No target directory selected."
+                return
+            } else {
+                GUI::Transcript -severity note -msg [format "Design Stub \"%s\" will be populated." $rootstub]
+            }
+
+            ##  Try and create the Logic directory (netlist lives here ...)
+            set stubs { Config Layout Logic }
+
+            foreach stub $stubs {
+                if { ! [ file isdirectory $rootstub/$stub ] } {
+                    file mkdir $rootstub/$stub
+                    if { [ file isdirectory $rootstub/$stub ] } {
+                        GUI::Transcript -severity note -msg [format "Design Stub \"%s\" was created." $rootstub/$stub]
+                    } else {
+                        GUI::Transcript -severity warning -msg [format "Design Stub \"%s\" was not created." $rootstub/$stub]
+                    }
+                } else {
+                        GUI::Transcript -severity note -msg [format "Design Stub \"%s\" alreasy exists." $rootstub/$stub]
+                }
             }
         }
     }
