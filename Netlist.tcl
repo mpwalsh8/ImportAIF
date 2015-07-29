@@ -223,6 +223,31 @@ namespace eval Netlist {
                 append txt [format ".REF %s %s,%s 0 top\n" $i $X $Y]
             }
 
+            ##  If this AIF file does not contain a MCM_DIE section then
+            ##  the DIE will not appear in the device list and needs to be
+            ##  exported separately.
+
+            if { [lsearch -exact $::AIF::sections MCM_DIE] == -1 } {
+                set ctr "0,0"
+
+                ##  If the device has a section, extract the CENTER keyword
+                if { [lsearch [AIF::Sections] "DIE"] != -1 } {
+                    set ctr [AIF::GetVar CENTER "DIE"]
+                }
+
+                ##  Split the CENTER keyword into an X and Y, handle space or comma
+                if { [string first , $ctr] != -1 } {
+                    set X [string trim [lindex [split $ctr ,] 0]]
+                    set Y [string trim [lindex [split $ctr ,] 1]]
+                } else {
+                    set X [string trim [lindex [split $ctr] 0]]
+                    set Y [string trim [lindex [split $ctr] 1]]
+                }
+
+                append txt [format ".REF %s %s,%s 0 top\n" $::die(refdes) $X $Y]
+                GUI::Transcript -severity note -msg [format "Standard AIF file, adding die (\"%s\") to the placement file." $::die(refdes)]
+            }
+
             set f [open $plcmnt "w+"]
             puts $f $txt
             close $f
