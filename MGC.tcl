@@ -1245,6 +1245,9 @@ puts [format "-->  Array Size of pins:  %s" [$pins Count]]
                     $pin CurrentPadstack $padstack
                     $pin SetName $diePadFields(pinnum)
 
+                    ##  Automation Defect:  dts0101097939
+                    ##  Defect prevents the ability for Pin.Side to operate as documented.
+                    ##  Fixed in VX.2
                     ##  Support for Mount Side Opposite
                     if { 0 } {
 puts [$pin Side]
@@ -1301,6 +1304,9 @@ puts [expr $::MGCPCB::EPcbSide(epcbSideOpposite)]
                     set width [AIF::GetVar WIDTH $section]
                     set height [AIF::GetVar HEIGHT $section]
                 }
+            } elseif { $device == "BGA" } {
+                set width [AIF::GetVar WIDTH BGA]
+                set height [AIF::GetVar HEIGHT BGA]
             } else {
                 set width [AIF::GetVar WIDTH DIE]
                 set height [AIF::GetVar HEIGHT DIE]
@@ -1316,18 +1322,29 @@ puts [expr $::MGCPCB::EPcbSide(epcbSideOpposite)]
             ##  Object Rectangle.  A rectangle will have 5 points in the points
             ##  array - 5 is passed as the number of points to PutPlacemetOutline.
 
+            set ptsArrayNumPts 5
             set ptsArray [[$cellEditorDoc Utility] CreateRectXYR $x1 $y1 $x2 $y2]
 
-            ##  Need some sort of a thickness value - there isn't one in the AIF file
-            ##  We'll assume 50 microns for now, may offer user ability to define later.
+            ##  If the device is the BGA, need to see if it has a polygon outline
 
-            set th [[$cellEditorDoc Utility] ConvertUnit [expr 50.0] \
+            if { $device == "BGA" } {
+                if {} {
+                }
+            }
+
+            ##  Need some sort of a thickness value - there isn't one in the AIF file
+            ##  We'll assume 1 micron for now, may offer user ability to define later.
+
+            set th [[$cellEditorDoc Utility] ConvertUnit [expr 1.0] \
                 [expr $::CellEditorAddinLib::ECellDBUnit(ecelldbUnitUM)] \
                 [expr [MapEnum::Units $::database(units) "cell"]]]
 
             ##  Add the Placment Outline
-            $cellEditor PutPlacementOutline [expr $::MGCPCB::EPcbSide(epcbSideMount)] 5 $ptsArray \
-                [expr $th] [expr 0] $component [expr [MapEnum::Units $::database(units) "cell"]]
+            $cellEditor PutPlacementOutline [expr $::MGCPCB::EPcbSide(epcbSideMount)] [expr $ptsArrayNumPts] \
+                $ptsArray [expr $th] [expr 0] $component [expr [MapEnum::Units $::database(units) "cell"]]
+puts "-------------->"
+puts $ptsArray
+puts "-------------->"
 
             ##  Terminate transactions
             $cellEditor TransactionEnd True
