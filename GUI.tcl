@@ -687,9 +687,11 @@ if { 0 } {
                 button $bf.zoomout2x -text "Zoom Out 2x" -command "GUI::View::Zoom $lvfcanvas 0.50" -relief groove -padx 3
                 button $bf.zoomin5x  -text "Zoom In 5x"  -command "GUI::View::Zoom $lvfcanvas 5.00" -relief groove -padx 3
                 button $bf.zoomout5x -text "Zoom Out 5x" -command "GUI::View::Zoom $lvfcanvas 0.20" -relief groove -padx 3
+                button $bf.invertxaxis -text "Invert X Axis" -command "$lvfcanvas scale all 0 0 -1 1" -relief groove -padx 3
+                button $bf.invertyaxis -text "Invert Y Axis" -command "$lvfcanvas scale all 0 0 1 -1" -relief groove -padx 3
                 #grid $bf.zoomin $bf.zoomout -sticky ew -columnspan 1
                 #grid $bf.zoomin $bf.zoomout $bf.zoomfit
-                grid $bf.zoomin $bf.zoomout $bf.zoomin2x $bf.zoomout2x $bf.zoomin5x $bf.zoomout5x
+                grid $bf.zoomin $bf.zoomout $bf.zoomin2x $bf.zoomout2x $bf.zoomin5x $bf.zoomout5x $bf.invertxaxis $bf.invertyaxis
                 grid $bf -in $lvf -sticky w
 
                 grid columnconfigure $lvf 0 -weight 1
@@ -2237,6 +2239,15 @@ puts "GUI::Dashboard::SelectCentralLibrary"
             foreach i [AIF::MCMDie::GetAllDie] {
                 $kyn insert end [format "\\%s\\   \\%s\\\n" [dict get $::mcmdie $i] $i]
             }
+
+            ##  If this AIF file does not contain a MCM_DIE section then
+            ##  the DIE will not appear in the part list and needs to be
+            ##  added separately.
+
+            if { [lsearch -exact $::AIF::sections MCM_DIE] == -1 } {
+                $kyn insert end [format "\\%s\\   \\%s\\\n" $::die(name) $::die(refdes)]
+            }
+
     
             ##  If there is a BGA, make sure to put it in the part list
             #if { $xAIF::Settings(BGA) == 1 } {
