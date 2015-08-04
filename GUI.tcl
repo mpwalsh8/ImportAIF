@@ -313,6 +313,7 @@ namespace eval GUI {
             GUI::Build::SetupPulldown $mb
             GUI::Build::ViewPulldown $mb
             GUI::Build::GeneratePulldown $mb
+            GUI::Build::DesignPulldown $mb
             GUI::Build::WireBondPulldown $mb
             GUI::Build::HelpPulldown $mb
         }
@@ -536,6 +537,26 @@ if { 0 } {
             }
 
         ##
+        ##  GUI::Build::DesignPulldown
+        ##
+        proc DesignPulldown { mb } {
+            set dm [menu $mb.design -tearoff 0]
+            set GUI::widgets(designmenu) $dm
+            $mb add cascade -label "Design" -menu $mb.design -underline 0
+            $dm add command -label "Set Package Outline" \
+                -underline 4 -command MGC::Design::SetPackageOutline
+            $dm add command -label "Set Route Border" \
+                -underline 4 -command MGC::Design::SetRouteBorder
+            $dm add command -label "Set Manufacturing Outline" \
+                -underline 4 -command MGC::Design::SetManufacturingOutline
+            $dm add command -label "Set Test Fixture Outline" \
+                -underline 4 -command MGC::Design::SetTestFixtureOutline
+            $dm add separator
+            $dm add command -label "Check Database Units" \
+                -underline 6 -command MGC::Design::CheckDatabaseUnits
+            }
+
+        ##
         ##  GUI::Build::WireBondPulldown
         ##
         proc WireBondPulldown { mb } {
@@ -722,7 +743,7 @@ if { 0 } {
             }
 
             ##
-            ##  GUI::Build:Notebook::TranscriptFrame
+            ##  GUI::Build:Notebook::AIFSourceFrame
             ##
             proc AIFSourceFrame { sf } {
                 set sftext [ctext $sf.text -wrap none \
@@ -1088,6 +1109,13 @@ if { 0 } {
             $GUI::widgets(setupmenu) entryconfigure 4 -state normal
             #$GUI::widgets(setupmenu) entryconfigure 7 -state disabled
 
+            ##  Disable the Design pulldown menu
+            $GUI::widgets(designmenu) entryconfigure 0 -state disabled
+            $GUI::widgets(designmenu) entryconfigure 1 -state disabled
+            $GUI::widgets(designmenu) entryconfigure 2 -state disabled
+            $GUI::widgets(designmenu) entryconfigure 3 -state disabled
+            $GUI::widgets(designmenu) entryconfigure 5 -state disabled
+
             ##  Disable the GUI based on mode
             set dbf $GUI::widgets(dashboard).frame
             $dbf.design.e configure -state disabled
@@ -1125,6 +1153,13 @@ if { 0 } {
             $GUI::widgets(setupmenu) entryconfigure  3 -state normal
             $GUI::widgets(setupmenu) entryconfigure 4 -state disabled
             #$GUI::widgets(setupmenu) entryconfigure 7 -state normal
+
+            ##  Enable the Design pulldown menu
+            $GUI::widgets(designmenu) entryconfigure 0 -state normal
+            $GUI::widgets(designmenu) entryconfigure 1 -state normal
+            $GUI::widgets(designmenu) entryconfigure 2 -state normal
+            $GUI::widgets(designmenu) entryconfigure 3 -state normal
+            $GUI::widgets(designmenu) entryconfigure 5 -state normal
 
             ##  Disable the GUI based on mode
             set dbf $GUI::widgets(dashboard).frame
@@ -1245,7 +1280,7 @@ puts "GUI::Dashboard::SelectCentralLibrary"
         ##
         proc SelectCellPartition {} {
             set GUI::Dashboard::CellPartition \
-                [AIFForms::SelectOneFromList "Select Target Cell Partition" $xAIF::Settings(cellEdtrPrtnNames)]
+                [AIFForms::ListBox::SelectOneFromList "Select Target Cell Partition" $xAIF::Settings(cellEdtrPrtnNames)]
 
             if { [string equal $GUI::Dashboard::CellPartition ""] } {
                 GUI::Transcript -severity error -msg "No Cell Partition selected."
@@ -1259,7 +1294,7 @@ puts "GUI::Dashboard::SelectCentralLibrary"
         ##
         proc SelectPartPartition {} {
             set GUI::Dashboard::PartPartition \
-                [AIFForms::SelectOneFromList "Select Target Part Partition" $xAIF::Settings(partEdtrPrtnNames)]
+                [AIFForms::ListBox::SelectOneFromList "Select Target Part Partition" $xAIF::Settings(partEdtrPrtnNames)]
 
             if { [string equal $GUI::Dashboard::PartPartition ""] } {
                 GUI::Transcript -severity error -msg "No Part Partition selected."
