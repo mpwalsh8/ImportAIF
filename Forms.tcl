@@ -46,129 +46,131 @@
 #
 
 namespace eval AIFForms {
-    variable widgets
-    variable lblist [list]
-    variable rv
-    variable selectmode multiple
-
-    array set widgets {
-        lb .aifListBox
-    }
-
-    ##  Select From List
-    proc SelectFromList { { p "Select From List" } { l [list] } } {
-        variable rv
-        variable lblist
-        variable selectmode
-
-        set lblist $l
-        set selectmode multiple
-        set rv [list]
-        SelectFromListBoxDialog $p
-        return $rv
-    }
-
-    ##  Select One From List
-    proc SelectOneFromList { { p "Select One From List" } { l [list] } } {
-        variable rv
-        variable lblist
-        variable selectmode
-
-        set lblist $l
-        set selectmode single
-        SelectFromListBoxDialog $p
-
-        if { [info exists rv] > 0 } {
-            return [lindex $rv 0]
-        } else {
-            return
-        }
-    }
-
-    ##  Select From List Box
-    proc SelectFromListBox {} {
-        variable rv
+    namespace eval ListBox {
         variable widgets
+        variable lblist [list]
+        variable rv
+        variable selectmode multiple
 
-        set rv [list]
-        set dlg $widgets(lb)
+        array set widgets {
+            lb .aifListBox
+        }
 
-        ##  If there is a selection, capture value and index
-        if { [$dlg.f.sf.list curselection] != "" } {
-            foreach i [$dlg.f.sf.list curselection] {
-                lappend rv [list $i [$dlg.f.sf.list get $i]]
+        ##  Select From List
+        proc SelectFromList { { p "Select From List" } { l [list] } } {
+            variable rv
+            variable lblist
+            variable selectmode
+
+            set lblist $l
+            set selectmode multiple
+            set rv [list]
+            SelectFromListBoxDialog $p
+            return $rv
+        }
+
+        ##  Select One From List
+        proc SelectOneFromList { { p "Select One From List" } { l [list] } } {
+            variable rv
+            variable lblist
+            variable selectmode
+
+            set lblist $l
+            set selectmode single
+            SelectFromListBoxDialog $p
+
+            if { [info exists rv] > 0 } {
+                return [lindex $rv 0]
+            } else {
+                return
             }
         }
 
-        ##  Clean up and return
-        destroy $dlg
-        #return $rv
-    }
+        ##  Select From List Box
+        proc SelectFromListBox {} {
+            variable rv
+            variable widgets
 
-    #
-    #  Select From List Box Dialog
-    #
-    proc SelectFromListBoxDialog { { p "Select From List Box" } } {
-        variable lblist
-        variable widgets
-        variable selectmode
+            set rv [list]
+            set dlg $widgets(lb)
 
-        set dlg $widgets(lb)
-    
-        #  Create the top level window and withdraw it
-        toplevel  $dlg
-        wm withdraw $dlg
-    
-        #  Create the frame
-        ttk::frame $dlg.f -relief flat
-    
-        #  Create a sub-frame to hold all the pieces
-        ttk::labelframe $dlg.f.sf -text $p
-        listbox $dlg.f.sf.list -relief raised -borderwidth 2 -selectmode $selectmode \
-            -yscrollcommand "$dlg.f.sf.scroll set" -listvariable AIFForms::lblist
-        ttk::scrollbar $dlg.f.sf.scroll -command "$dlg.f.sf.list yview"
-        pack $dlg.f.sf.list $dlg.f.sf.scroll \
-            -side left -fill both -expand 1 -in $dlg.f.sf
-        grid rowconfigure $dlg.f.sf 0 -weight 1
-        grid columnconfigure $dlg.f.sf 0 -weight 1
-    
-        #  Layout the dialog box
-        grid config $dlg.f.sf.list -row 0 -column 0 -sticky wnse
-        grid config $dlg.f.sf.scroll -row 0 -column 1 -sticky ns
-        pack $dlg.f.sf -padx 25 -pady 25 -fill both -in $dlg.f -expand 1
-    
-        #  Action buttons
-    
-        ttk::frame $dlg.f.buttons -relief flat
-    
-        ttk::button $dlg.f.buttons.ok -text "Ok" -command { AIFForms::SelectFromListBox }
-        ttk::button $dlg.f.buttons.cancel -text "Cancel" -command { destroy $AIFForms::widgets(lb) }
-        
-        pack $dlg.f.buttons.ok -side left
-        pack $dlg.f.buttons.cancel -side right
-        pack $dlg.f.buttons -padx 5 -pady 10 -ipadx 10
-    
-        pack $dlg.f.buttons -in $dlg.f -expand 1
-    
-        grid rowconfigure $dlg.f 0 -weight 1
-        grid rowconfigure $dlg.f 1 -weight 0
-    
-        pack $dlg.f -fill x -expand 1
-    
-        #  Window manager settings for dialog
-        wm title $dlg $p
-        wm protocol $dlg WM_DELETE_WINDOW {
-            $widgets(lb).f.buttons.cancel invoke
+            ##  If there is a selection, capture value and index
+            if { [$dlg.f.sf.list curselection] != "" } {
+                foreach i [$dlg.f.sf.list curselection] {
+                    lappend rv [list $i [$dlg.f.sf.list get $i]]
+                }
+            }
+
+            ##  Clean up and return
+            destroy $dlg
+            #return $rv
         }
-        wm transient $dlg
-    
-        #  Ready to display the dialog
-        wm deiconify $dlg
-    
-        #  Make this a modal dialog
-        catch { tk visibility $dlg }
-        #focus $dlg.f.sf.namet
-        catch { grab set $dlg }
-        catch { tkwait window $dlg }
+
+        #
+        #  Select From List Box Dialog
+        #
+        proc SelectFromListBoxDialog { { p "Select From List Box" } } {
+            variable lblist
+            variable widgets
+            variable selectmode
+
+            set dlg $widgets(lb)
+
+            #  Create the top level window and withdraw it
+            toplevel  $dlg
+            wm withdraw $dlg
+
+            #  Create the frame
+            ttk::frame $dlg.f -relief flat
+
+            #  Create a sub-frame to hold all the pieces
+            ttk::labelframe $dlg.f.sf -text $p
+            listbox $dlg.f.sf.list -relief raised -borderwidth 2 -selectmode $selectmode \
+                -yscrollcommand "$dlg.f.sf.scroll set" -listvariable AIFForms::lblist
+            ttk::scrollbar $dlg.f.sf.scroll -command "$dlg.f.sf.list yview"
+            pack $dlg.f.sf.list $dlg.f.sf.scroll \
+                -side left -fill both -expand 1 -in $dlg.f.sf
+            grid rowconfigure $dlg.f.sf 0 -weight 1
+            grid columnconfigure $dlg.f.sf 0 -weight 1
+
+            #  Layout the dialog box
+            grid config $dlg.f.sf.list -row 0 -column 0 -sticky wnse
+            grid config $dlg.f.sf.scroll -row 0 -column 1 -sticky ns
+            pack $dlg.f.sf -padx 25 -pady 25 -fill both -in $dlg.f -expand 1
+
+            #  Action buttons
+
+            ttk::frame $dlg.f.buttons -relief flat
+
+            ttk::button $dlg.f.buttons.ok -text "Ok" -command { AIFForms::SelectFromListBox }
+            ttk::button $dlg.f.buttons.cancel -text "Cancel" -command { destroy $AIFForms::widgets(lb) }
+
+            pack $dlg.f.buttons.ok -side left
+            pack $dlg.f.buttons.cancel -side right
+            pack $dlg.f.buttons -padx 5 -pady 10 -ipadx 10
+
+            pack $dlg.f.buttons -in $dlg.f -expand 1
+
+            grid rowconfigure $dlg.f 0 -weight 1
+            grid rowconfigure $dlg.f 1 -weight 0
+
+            pack $dlg.f -fill x -expand 1
+
+            #  Window manager settings for dialog
+            wm title $dlg $p
+            wm protocol $dlg WM_DELETE_WINDOW {
+                $widgets(lb).f.buttons.cancel invoke
+            }
+            wm transient $dlg
+
+            #  Ready to display the dialog
+            wm deiconify $dlg
+
+            #  Make this a modal dialog
+            catch { tk visibility $dlg }
+            #focus $dlg.f.sf.namet
+            catch { grab set $dlg }
+            catch { tkwait window $dlg }
+        }
     }
 }
