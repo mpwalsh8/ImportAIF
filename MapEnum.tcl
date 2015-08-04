@@ -113,7 +113,45 @@ namespace eval MapEnum {
                     return $xAIF::Settings(Nothing)
                 }
             }
+        } elseif { $type == "pcb" } {
+            switch -exact -- [string toupper $units] {
+                "UM" {
+                    return $::MGCPCB::EPcbUnit(epcbUnitUM)
+                }
+                "MM" {
+                    return $::MGCPCB::EPcbUnit(epcbUnitMM)
+                }
+                "INCH" {
+                    return $::MGCPCB::EPcbUnit(epcbUnitInch)
+                }
+                "MIL" {
+                    return $::MGCPCB::EPcbUnit(epcbUnitMils)
+                }
+                default {
+                    return $xAIF::Settings(Nothing)
+                }
+            }
         } else {
+            return $xAIF::Settings(Nothing)
+        }
+    }
+
+    #
+    #  MapEnum::ToUnits
+    #
+    proc ToUnits { enum } {
+        if { $enum == [expr $::MGCPCB::EPcbUnit(epcbUnitUM)] } {
+            return "UM"
+        } elseif { $enum == [expr $::MGCPCB::EPcbUnit(epcbUnitMM)] } {
+            return "MM"
+        } elseif { [expr $::MGCPCB::EPcbUnit(epcbUnitInch)] } {
+            return "INCH"
+        } elseif { [expr $::MGCPCB::EPcbUnit(epcbUnitMils)] } {
+            return "MIL"
+        } else {
+            puts $::MGCPCB::EPcbUnit(epcbUnitInch)
+            GUI::Transcript -severity warning -msg [format "Unknown units (%s)." $enum]
+
             return $xAIF::Settings(Nothing)
         }
     }
