@@ -937,7 +937,7 @@ puts "Y6"
 
                 if { [string equal $V(-partition) ""] } {
                     set xAIF::Settings(cellEdtrPrtnName) \
-                        [AIFForms::SelectOneFromList "Select Target Cell Partition" $xAIF::Settings(cellEdtrPrtnNames)]
+                        [AIFForms::ListBox::SelectOneFromList "Select Target Cell Partition" $xAIF::Settings(cellEdtrPrtnNames)]
 
                     if { [string equal $xAIF::Settings(cellEdtrPrtnName) ""] } {
                         GUI::Transcript -severity error -msg "No Cell Partition selected, build aborted."
@@ -1430,7 +1430,7 @@ puts "-------------->"
 
                 if { [string equal $V(-partition) ""] } {
                     set xAIF::Settings(partEdtrPrtnName) \
-                        [AIFForms::SelectOneFromList "Select Target Part Partition" $xAIF::Settings(partEdtrPrtnNames)]
+                        [AIFForms::ListBox::SelectOneFromList "Select Target Part Partition" $xAIF::Settings(partEdtrPrtnNames)]
 
                     if { [string equal $xAIF::Settings(partEdtrPrtnName) ""] } {
                         GUI::Transcript -severity error -msg "No Part Partition selected, build aborted."
@@ -1633,7 +1633,7 @@ puts "-------------->"
         #
 
         proc Pads { } {
-            foreach i [AIFForms::SelectFromList "Select Pad(s)" [AIF::Pad::GetAllPads]] {
+            foreach i [AIFForms::ListBox::SelectFromList "Select Pad(s)" [AIF::Pad::GetAllPads]] {
                 set p [lindex $i 1]
                 set ::padGeom(name) $p
                 set ::padGeom(shape) [AIF::Pad::GetShape $p]
@@ -1655,7 +1655,7 @@ puts "-------------->"
         #
 
         proc Padstacks { } {
-            foreach i [AIFForms::SelectFromList "Select Pad(s)" [AIF::Pad::GetAllPads]] {
+            foreach i [AIFForms::ListBox::SelectFromList "Select Pad(s)" [AIF::Pad::GetAllPads]] {
                 set p [lindex $i 1]
                 set ::padGeom(name) $p
                 set ::padGeom(shape) [AIF::Pad::GetShape $p]
@@ -1677,7 +1677,7 @@ puts "-------------->"
         #
 
         proc Cells { } {
-            foreach i [AIFForms::SelectFromList "Select Cell(s)" [array names ::devices]] {
+            foreach i [AIFForms::ListBox::SelectFromList "Select Cell(s)" [array names ::devices]] {
                 foreach j [array names GUI::Dashboard::CellGeneration] {
                     if { [string is true $GUI::Dashboard::CellGeneration($j)] } {
                         MGC::Generate::Cell [lindex $i 1] -mirror [string tolower [string trimleft $j Mirror]]
@@ -1695,7 +1695,7 @@ puts "-------------->"
         #
 
         proc PDBs { } {
-            foreach i [AIFForms::SelectFromList "Select PDB(s)" [array names ::devices]] {
+            foreach i [AIFForms::ListBox::SelectFromList "Select PDB(s)" [array names ::devices]] {
                 MGC::Generate::PDB [lindex $i 1]
             }
         }
@@ -1742,6 +1742,171 @@ puts "-------------->"
             }
         }
     }
+
+    ##
+    ##  Define the Generate namespace and procedure supporting operations
+    ##
+    namespace eval Design {
+        #
+        #  MGC::Design::SetPackageOutline
+        #
+        proc DrawOutline { args } {
+            ##  Process command arguments
+            array set V { {-mode} packageoutline } ;# Default values
+            foreach {a value} $args {
+                if {! [info exists V($a)]} {
+                    error "unknown option $a"
+                } elseif {$value == {}} {
+                    error "value of \"$a\" missing"
+                } else {
+                    set V($a) $value
+                }
+            }
+
+            ##  Make sure what we received makes sense
+
+            if { [lsearch [list packageoutline routeborder manufacturingoutline testfixtureoutline] $V(-mode)] == -1 } {
+                error "value of \"$a\" must be one of packageoutline, routeborder, manufacturingoutline, or testfixtureoutline"
+            }
+
+            ##  Which mode?  Design or Library?
+            if { $GUI::Dashboard::Mode == $xAIF::Settings(designMode) } {
+                ##  Invoke Expedition on the design so the Units can be set
+                ##  Catch any exceptions raised by opening the database
+                set errorCode [catch { MGC::OpenExpedition } errorMessage]
+                if {$errorCode != 0} {
+                    GUI::Transcript -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
+                    GUI::Transcript -severity error -msg "Unable to connect to Xpedition, is Xpedition running?"
+                    GUI::StatusBar::UpdateStatus -busy off
+                    return
+                }
+
+                set width [AIF::GetVar WIDTH BGA]
+                set height [AIF::GetVar HEIGHT BGA]
+
+                set x2 [expr $width / 2]
+                set x1 [expr -1 * $x2]
+                set y2 [expr $height / 2]
+                set y1 [expr -1 * $y2]
+
+                ##  PutBoardOutline expects a Points Array which isn't easily
+                ##  passed via Tcl.  Use the Utility object to create a Points Array
+                ##  Object Rectangle.  A rectangle will have 5 points in the points
+                ##  array - 5 is passed as the number of points to PutPlacemetOutline.
+
+                set ptsArrayNumPts 5
+                set ptsArray [[$xAIF::Settings(pcbApp) Utility] CreateRectXYR $x1 $y1 $x2 $y2]
+
+                ##  Need some sort of a thickness value - there isn't one in the AIF file
+                ##  We'll assume 1 micron for now, may offer user ability to define later.
+
+                set th [[$xAIF::Settings(pcbApp) Utility] ConvertUnit [expr 1.0] \
+                    [expr $::MGCPCB::EPcbUnit(epcbUnitUM)] \
+                    [expr [MapEnum::Units $::database(units) "pcb"]]]
+
+                switch -exact $V(-mode) {
+                    routeborder {
+                        ##  Add the Route Border
+                        $xAIF::Settings(pcbDoc) PutRouteBorder [expr $ptsArrayNumPts] \
+                            $ptsArray [expr $th] [expr [MapEnum::Units $::database(units) "pcb"]]
+                    }
+                    manufacturingoutline {
+                        ##  Add the Manufacturing Outline
+                        $xAIF::Settings(pcbDoc) PutManufacturingOutline [expr $ptsArrayNumPts] \
+                            $ptsArray [expr [MapEnum::Units $::database(units) "pcb"]]
+                    }
+                    testfixtureoutline {
+                        ##  Add the Testfixture Outline
+                        $xAIF::Settings(pcbDoc) PutTestFixtureOutline [expr $ptsArrayNumPts] \
+                            $ptsArray [expr [MapEnum::Units $::database(units) "pcb"]]
+                    }
+                    packageoutline -
+                    default {
+                        ##  Add the Board Outline
+                        $xAIF::Settings(pcbDoc) PutBoardOutline [expr $ptsArrayNumPts] \
+                            $ptsArray [expr $th] [expr [MapEnum::Units $::database(units) "pcb"]]
+                    }
+                }
+
+            } else {
+                GUI::Transcript -severity error -msg "Setting Package Outline is only available in design mode."
+            }
+
+            GUI::StatusBar::UpdateStatus -busy off
+        }
+
+        #
+        #  MGC::Design::SetPackageOutline
+        #
+        proc SetPackageOutline {} {
+            GUI::Transcript -severity note -msg "Setting Package Outline."
+            DrawOutline -mode packageoutline
+        }
+
+        #
+        #  MGC::Design::SetRouteBorder
+        #
+        proc SetRouteBorder {} {
+            GUI::Transcript -severity note -msg "Setting Route Border."
+            DrawOutline -mode routeborder
+        }
+        #
+        #  MGC::Design::SetManufacturingOutline
+        #
+        proc SetManufacturingOutline {} {
+            GUI::Transcript -severity note -msg "Setting Manufacturing Outline."
+            DrawOutline -mode manufacturingoutline
+        }
+        #
+        #  MGC::Design::SetTestFixtureOutline
+        #
+        proc SetTestFixtureOutline {} {
+            GUI::Transcript -severity note -msg "Setting Test Fixture Outline."
+            DrawOutline -mode testfixtureoutline
+        }
+
+        #
+        #  MGC::Design::CheckDatabaseUnits
+        #
+        proc CheckDatabaseUnits {} {
+            ##  Which mode?  Design or Library?
+            if { $GUI::Dashboard::Mode == $xAIF::Settings(designMode) } {
+                ##  Invoke Expedition on the design so the Units can be set
+                ##  Catch any exceptions raised by opening the database
+                set errorCode [catch { MGC::OpenExpedition } errorMessage]
+                if {$errorCode != 0} {
+                    GUI::Transcript -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
+                    GUI::Transcript -severity error -msg "Unable to connect to Xpedition, is Xpedition running?"
+                    GUI::StatusBar::UpdateStatus -busy off
+                    return
+                }
+
+                ##  Check design database units to see if they match AIF database units
+
+                set dbu [[$xAIF::Settings(pcbDoc) SetupParameter] Unit]
+                if { $dbu == [expr [MapEnum::Units $::database(units) "pcb"]] } {
+                    GUI::Transcript -severity note -msg [format "Design database units (%s) match AIF file units (%s)." [MapEnum::ToUnits $dbu ] $::database(units)]
+                } else {
+                    #GUI::Transcript -severity warning -msg [format "Design database units (%s) do not match AIF file units (%s)." [MapEnum::ToUnits $dbu ] $::database(units)]
+                    #GUI::Transcript -severity note -msg "Resolve this problem within XpeditionPCB using the  \"Setup > Setup Parameters...\" menu."
+                    GUI::Transcript -severity warning -msg [format "Design database units (%s) do not match AIF file units (%s).  Resolve in Xpedition using \"Setup Parameters...\" menu." [MapEnum::ToUnits $dbu ] $::database(units)]
+                }
+
+                ##  Assign the PCB database units to the units found in the AIF file
+##                set errorCode [catch { $xAIF::Settings(pcbDoc) CurrentUnit [expr [MapEnum::Units $::database(units) "pcb"]] } errorMessage]
+##                if {$errorCode != 0} {
+##                    GUI::Transcript -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
+##                } else {
+##                    GUI::Transcript -severity note -msg [format "Setting Database Units to %s." $::database(units)]
+##                }
+            } else {
+                GUI::Transcript -severity error -msg "Checking database units is only available in design mode."
+            }
+
+            GUI::StatusBar::UpdateStatus -busy off
+        }
+    }
+
 
     ##
     ##  Define the Bond Wire namespace and procedures supporting bond wire and pad operations
@@ -1830,7 +1995,7 @@ puts "-------------->"
             }
 
             set MGC::WireBond::WBParameters(Padstack) \
-                [AIFForms::SelectOneFromList "Select Bond Pad" $bondpads]
+                [AIFForms::ListBox::SelectOneFromList "Select Bond Pad" $bondpads]
             if { [string equal $MGC::WireBond::WBParameters(Padstack) ""] } {
                 GUI::Transcript -severity error -msg "No bond pad selected."
                 return
