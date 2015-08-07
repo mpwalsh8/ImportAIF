@@ -62,6 +62,8 @@ namespace eval AIFForms {
             variable lblist
             variable selectmode
 
+            puts ">>>>>>>>>>>>>>>>>>>>>"
+            puts $l
             set lblist $l
             set selectmode multiple
             set rv [list]
@@ -126,7 +128,7 @@ namespace eval AIFForms {
             #  Create a sub-frame to hold all the pieces
             ttk::labelframe $dlg.f.sf -text $p
             listbox $dlg.f.sf.list -relief raised -borderwidth 2 -selectmode $selectmode \
-                -yscrollcommand "$dlg.f.sf.scroll set" -listvariable AIFForms::lblist
+                -yscrollcommand "$dlg.f.sf.scroll set" -listvariable AIFForms::ListBox::lblist
             ttk::scrollbar $dlg.f.sf.scroll -command "$dlg.f.sf.list yview"
             pack $dlg.f.sf.list $dlg.f.sf.scroll \
                 -side left -fill both -expand 1 -in $dlg.f.sf
@@ -142,8 +144,8 @@ namespace eval AIFForms {
 
             ttk::frame $dlg.f.buttons -relief flat
 
-            ttk::button $dlg.f.buttons.ok -text "Ok" -command { AIFForms::SelectFromListBox }
-            ttk::button $dlg.f.buttons.cancel -text "Cancel" -command { destroy $AIFForms::widgets(lb) }
+            ttk::button $dlg.f.buttons.ok -text "Ok" -command { AIFForms::ListBox::SelectFromListBox }
+            ttk::button $dlg.f.buttons.cancel -text "Cancel" -command { destroy $AIFForms::ListBox::widgets(lb) }
 
             pack $dlg.f.buttons.ok -side left
             pack $dlg.f.buttons.cancel -side right
