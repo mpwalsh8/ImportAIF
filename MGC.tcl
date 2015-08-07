@@ -1327,10 +1327,10 @@ puts [expr $::MGCPCB::EPcbSide(epcbSideOpposite)]
 
             ##  If the device is the BGA, need to see if it has a polygon outline
 
-            if { $device == "BGA" } {
-                if {} {
-                }
-            }
+#            if { $device == "BGA" } {
+#                if {} {
+#                }
+#            }
 
             ##  Need some sort of a thickness value - there isn't one in the AIF file
             ##  We'll assume 1 micron for now, may offer user ability to define later.
