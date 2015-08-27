@@ -1184,7 +1184,41 @@ puts "K1"
             unset padstack
 
             set pins [$cellEditor Pins]
-puts [format "-->  Array Size of pins:  %s" [$pins Count]]
+#puts [format "-->  Array Size of pins:  %s" [$pins Count]]
+
+            ##  Need to adjust X and Y locations based placement of Die on BGA
+            set ctr "0,0"
+
+            if { $xAIF::Settings(MCMAIF) == 1 } {
+#puts "Q1"
+                ##  Device might be the BGA ... need to account
+                ##  for that possibility before trying to extract the
+                ##  Center X and Center Y from a non-existant section
+
+                foreach d [dict keys $::mcmdie] {
+                    if { [string equal [dict get $::mcmdie $d] $device] } {
+#puts "Q2"
+                        set section [format "MCM_%s_%s" [dict get $::mcmdie $d] $d]
+                        puts "-->  Section:  $section"
+                    }
+                }
+
+                if { [lsearch [AIF::Sections] $section] != -1 } {
+#puts "Q3"
+                    set ctr [AIF::GetVar CENTER $section]
+                }
+            } 
+
+            ##  Split the CENTER keyword into an X and Y, handle space or comma
+            if { [string first , $ctr] != -1 } {
+#puts "Q4"
+                set diePadFields(centerx) [string trim [lindex [split $ctr ,] 0]]
+                set diePadFields(centery) [string trim [lindex [split $ctr ,] 1]]
+            } else {
+#puts "Q5"
+                set diePadFields(centerx) [string trim [lindex [split $ctr] 0]]
+                set diePadFields(centery) [string trim [lindex [split $ctr] 1]]
+            }
 
             ##  Start Transations for performance reasons
             $cellEditor TransactionStart [expr $::MGCPCB::EPcbDRCMode(epcbDRCModeDRC)]
@@ -1217,6 +1251,8 @@ puts [format "-->  Array Size of pins:  %s" [$pins Count]]
                         set diePadFields(pady) [lindex $padDefinition 3]
                     }
                 }
+
+
                 #set diePadFields(net) [Netlist::GetNetName $i]
 
                 #printArray diePadFields
@@ -1255,9 +1291,11 @@ puts [expr $::MGCPCB::EPcbSide(epcbSideOpposite)]
                         $pin Side [expr $::MGCPCB::EPcbSide(epcbSideOpposite)]
 puts [$pin Side]
                     }
+#puts [format "X: %s, O: %s  / Y: %s, O: %s" $diePadFields(padx), $diePadFields(centerx) $diePadFields(pady), $diePadFields(centery)]
 
                     set errorCode [catch { $pin Place \
-                        [expr $diePadFields(padx)] [expr $diePadFields(pady)] [expr 0] } errorMessage]
+                        [expr $diePadFields(padx) - $diePadFields(centerx)] \
+                        [expr $diePadFields(pady) - $diePadFields(centery)] [expr 0] } errorMessage]
                     if {$errorCode != 0} {
                         GUI::Transcript -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
                         puts [format "Error:  %s  Pin:  %d  Handle:  %s" $errorMessage $i $pin]
@@ -1342,9 +1380,9 @@ puts [expr $::MGCPCB::EPcbSide(epcbSideOpposite)]
             ##  Add the Placment Outline
             $cellEditor PutPlacementOutline [expr $::MGCPCB::EPcbSide(epcbSideMount)] [expr $ptsArrayNumPts] \
                 $ptsArray [expr $th] [expr 0] $component [expr [MapEnum::Units $::database(units) "cell"]]
-puts "-------------->"
-puts $ptsArray
-puts "-------------->"
+#puts "-------------->"
+#puts $ptsArray
+#puts "-------------->"
 
             ##  Terminate transactions
             $cellEditor TransactionEnd True
