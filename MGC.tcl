@@ -1088,7 +1088,7 @@ puts "Y7"
 
             #  Need to support Mount Side Opposite for APD compatibility
             #  For Mount Side Opposite use ecelldbMountTypeMixed?
-            if { 1 } {
+            if { 0 } {
                 $newCell -set MountType [expr $::CellEditorAddinLib::ECellDBMountType(ecelldbMountTypeMixed)]
             } else {
                 $newCell -set MountType [expr $::CellEditorAddinLib::ECellDBMountType(ecelldbMountTypeSurface)]
