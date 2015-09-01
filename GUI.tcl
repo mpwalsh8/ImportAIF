@@ -1620,7 +1620,8 @@ puts "GUI::Dashboard::SelectCentralLibrary"
             set ::mcmdie [dict create]
 
             ##  Store pads in a Tcl dictionary
-            set ::pads [dict create]
+            ###set ::pads [dict create]
+            array set ::pads {}
             set ::padtypes [dict create]
 
             ##  Store net names in a Tcl list

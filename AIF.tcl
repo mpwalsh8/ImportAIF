@@ -304,12 +304,14 @@ namespace eval AIF {
 
         #  Get all Pad names
         proc GetAllPads {} {
-            return [dict keys $::pads]
+            ###return [dict keys $::pads]
+            return [array names ::pads]
         }
 
         #  Return all of the parameters for a pad
         proc GetParams { pad } {
-            return [regexp -inline -all -- {\S+} [lindex [dict get $::pads $pad] 0]]
+            ###return [regexp -inline -all -- {\S+} [lindex [dict get $::pads $pad] 0]]
+            return [regexp -inline -all -- {\S+} $::pads($pad)]
         }
 
         #  Return a specific parameter for a pad (default to first parameter)
@@ -433,13 +435,15 @@ namespace eval AIF {
 
                 ##  Flush the pads dictionary
 
-                set ::pads [dict create]
+                ###set ::pads [dict create]
+                array set ::pads {}
                 set ::padtypes [dict create]
 
                 ##  Populate the pads dictionary
 
                 foreach v $vars {
-                    dict lappend ::pads $v [AIF::GetVar $v PADS]
+                    ###dict lappend ::pads $v [AIF::GetVar $v PADS]
+                    set ::pads($v) [AIF::GetVar $v PADS]
 
                     #  Add pad to the View Devices menu and make it visible
                     set GUI::pads($v) on
@@ -450,9 +454,11 @@ namespace eval AIF {
                         -command  "GUI::Visibility pad-$v -mode toggle"
                 }
 
-                foreach i [dict keys $::pads] {
+                ###foreach i [dict keys $::pads] 
+                foreach i [array names ::pads] {
 
-                    set padshape [lindex [regexp -inline -all -- {\S+} [lindex [dict get $::pads $i] 0]] 0]
+                    ###set padshape [lindex [regexp -inline -all -- {\S+} [lindex [dict get $::pads $i] 0]] 0]
+                    set padshape [lindex [regexp -inline -all -- {\S+} [lindex $::pads($i) 0]] 0]
 
                     ##  Check units for legal option - AIF supports UM, MM, CM, INCH, MIL
 
@@ -464,7 +470,8 @@ namespace eval AIF {
                     }
                 }
 
-                GUI::Transcript -severity note -msg [format "AIF source file contains %d %s." [llength [dict keys $::pads]] [xAIF::Utility::Plural [llength [dict keys $::pads]] "pad"]]
+                ###GUI::Transcript -severity note -msg [format "AIF source file contains %d %s." [llength [dict keys $::pads]] [xAIF::Utility::Plural [llength [dict keys $::pads]] "pad"]]
+                GUI::Transcript -severity note -msg [format "AIF source file contains %d %s." [array size ::pads] [xAIF::Utility::Plural [array size ::pads] "pad"]]
             } else {
                 GUI::Transcript -severity error -msg [format "AIF file \"%s\" does not contain a PADS section." $xAIF::Settings(filename)]
                 set rv -1

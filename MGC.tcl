@@ -655,7 +655,8 @@ puts "OpenPDBEdtr - 1"
             }
 
             ##  Define a pad name based on the shape, height and width
-            set padName [format "%s %sx%s" $::padGeom(shape) $::padGeom(height) $::padGeom(width)]
+            #set padName [format "%s %sx%s" $::padGeom(shape) $::padGeom(height) $::padGeom(width)]
+            set padName [format "%s %sx%s" $::padGeom(shape) $::padGeom(width) $::padGeom(height)]
 
             ##  Invoke the Padstack Editor and open the target
             ##  Catch any exceptions raised by opening the database
@@ -756,7 +757,8 @@ puts "OpenPDBEdtr - 1"
             }
 
             ##  Define a pad name based on the shape, height and width
-            set padName [format "%s %sx%s" $::padGeom(shape) $::padGeom(height) $::padGeom(width)]
+            #set padName [format "%s %sx%s" $::padGeom(shape) $::padGeom(height) $::padGeom(width)]
+            set padName [format "%s %sx%s" $::padGeom(shape) $::padGeom(width) $::padGeom(height)]
 
             ##  Invoke the Padstack Editor and open the target
             ##  Catch any exceptions raised by opening the database

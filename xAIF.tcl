@@ -303,5 +303,5 @@ GUI::Transcript -severity note -msg "$xAIF::Settings(xAIF) ready."
 #set GUI::Dashboard::Mode $xAIF::Settings(libraryMode)
 #GUI::Dashboard::SelectCentralLibrary "C:/Users/mike/Documents/Sandbox2/Sandbox2.lmc"
 #set xAIF::Settings(mode) $xAIF::Settings(designMode)
-#catch { GUI::Dashboard::SelectAIFFile "c:/users/mike/desktop/ImportAIF/data/Test1.aif" } retString
+catch { GUI::Dashboard::SelectAIFFile "c:/users/mike/desktop/xAIF/data/Test1.aif" } retString
 #GUI::Visibility text -all true -mode off
