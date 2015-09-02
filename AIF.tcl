@@ -437,7 +437,8 @@ namespace eval AIF {
 
                 ###set ::pads [dict create]
                 array set ::pads {}
-                set ::padtypes [dict create]
+                ###set ::padtypes [dict create]
+                array set ::padtypes {}
 
                 ##  Populate the pads dictionary
 

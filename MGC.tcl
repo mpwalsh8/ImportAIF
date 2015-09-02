@@ -812,8 +812,11 @@ puts "OpenPDBEdtr - 1"
             ##  Need to handle various pad types which are inferred while processing
             ##  the netlist.  If for some reason the pad doesn't appear in the netlist
 
-            if { ![dict exist $::padtypes $::padGeom(name)] } {
-                dict lappend ::padtypes $::padGeom(name) "smdpad"
+            ###if { ![dict exist $::padtypes $::padGeom(name)] } {
+            ###    dict lappend ::padtypes $::padGeom(name) "smdpad"
+            ###}
+            if { [lsearch [array names ::padtypes] $::padGeom(name)] == -1 } {
+                set ::padtypes($::padGeom(name)) "smdpad"
             }
 
             switch -exact [dict get $::padtypes $::padGeom(name)] {
@@ -2026,8 +2029,10 @@ puts [expr $::MGCPCB::EPcbSide(epcbSideOpposite)]
         proc SelectBondPad {} {
             set bondpads [list]
 
-            foreach i [dict keys $::padtypes] {
-                set type [dict get $::padtypes $i]
+            ###foreach i [dict keys $::padtypes] {}
+            foreach i [array names ::padtypes] {
+                ###set type [dict get $::padtypes $i]
+                set type $::padtypes($i)
 
                 if { [string equal bondpad $type] } {
                     lappend bondpads $i

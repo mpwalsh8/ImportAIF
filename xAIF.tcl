@@ -11,8 +11,8 @@
 #  This script should be run with "wish" or "tclsh" - it cannot be dragged
 #  onto LM.
 #
-#  This script requires Tcl 8.4.19.  Tcl 8.5.x and 8.6.x are not supported
-#  by the Mentor Graphics COM API interface.  You can download Tcl 8.4.19
+#  This script requires Tcl 8.4.20.  Tcl 8.5.x and 8.6.x are not supported
+#  by the Mentor Graphics COM API interface.  You can download Tcl 8.4.20
 #  from ActiveState.com:
 #
 #    http://www.activestate.com/activetcl/downloads
@@ -101,7 +101,7 @@ package require inifile
 package require tablelist
 package require Tk 8.4
 
-##  Load the Mentor DLLs for EE 794/795
+##  Load the Mentor DLLs for Xpedition
 ::tcom::import "$env(SDD_HOME)/wg/$env(SDD_PLATFORM)/bin/ExpeditionPCB.exe"
 ::tcom::import "$env(SDD_HOME)/wg/$env(SDD_PLATFORM)/lib/CellEditorAddin.dll"
 ::tcom::import "$env(SDD_HOME)/common/$env(SDD_PLATFORM)/lib/PDBEditor.dll"

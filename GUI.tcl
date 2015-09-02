@@ -1622,7 +1622,8 @@ puts "GUI::Dashboard::SelectCentralLibrary"
             ##  Store pads in a Tcl dictionary
             ###set ::pads [dict create]
             array set ::pads {}
-            set ::padtypes [dict create]
+            ###set ::padtypes [dict create]
+            array set ::padtypes {}
 
             ##  Store net names in a Tcl list
             set ::netnames [list]
@@ -2140,8 +2141,11 @@ puts "GUI::Dashboard::SelectCentralLibrary"
                     lappend ::devices($name) [list $nlr(PADNAME) $padnum $nlr(PAD_X) $nlr(PAD_Y)]
     
                     GUI::Draw::AddPin $nlr(PAD_X) $nlr(PAD_Y) $nlr(PADNUM) $nlr(NETNAME) $nlr(PADNAME) $line_no "diepad pad pad-$nlr(PADNAME) $ref"
-                    if { ![dict exists $::padtypes $nlr(PADNAME)] } {
-                        dict lappend ::padtypes $nlr(PADNAME) "smdpad"
+                    ###if { ![dict exists $::padtypes $nlr(PADNAME)] } {
+                    ###    dict lappend ::padtypes $nlr(PADNAME) "smdpad"
+                    ###}
+                    if { [lsearch [array names ::padtypes] $nlr(PADNAME)] == -1 } {
+                        set ::padtypes($nlr(PADNAME)) "smdpad"
                     }
                 } else {
                     GUI::Transcript -severity warning -msg [format "Skipping die pad for net \"%s\" on line %d, no pad assignment." $netname, $line_no]
@@ -2158,8 +2162,11 @@ puts "GUI::Dashboard::SelectCentralLibrary"
     
                     GUI::Draw::AddPin $nlr(BALL_X) $nlr(BALL_Y) $nlr(BALLNUM) $nlr(NETNAME) $nlr(BALLNAME) $line_no "ballpad pad pad-$nlr(BALLNAME)" "white" "red"
                     #puts "---------------------> Ball Middle"
-                    if { ![dict exists $::padtypes $nlr(BALLNAME)] } {
-                        dict lappend ::padtypes $nlr(BALLNAME) "ballpad"
+                    ###if { ![dict exists $::padtypes $nlr(BALLNAME)] } {
+                    ###    dict lappend ::padtypes $nlr(BALLNAME) "ballpad"
+                    ###}
+                    if { [lsearch [array names ::padtypes] $nlr(BALLNAME)] == -1 } {
+                        set ::padtypes($nlr(BALLNAME)) "ballpad"
                     }
                     #puts "---------------------> Ball End"
                 } else {
@@ -2172,8 +2179,11 @@ puts "GUI::Dashboard::SelectCentralLibrary"
                     #puts "---------------------> Finger"
                     GUI::Draw::AddPin $nlr(FIN_X) $nlr(FIN_Y) $nlr(FINNUM) $nlr(NETNAME) $nlr(FINNAME) $line_no "bondpad pad pad-$nlr(FINNAME)" "purple" "white" $nlr(ANGLE)
                     lappend ::bondpads [list $nlr(NETNAME) $nlr(FINNAME) $nlr(FIN_X) $nlr(FIN_Y) $nlr(ANGLE)]
-                    if { ![dict exists $::padtypes $nlr(FINNAME)] } {
-                        dict lappend ::padtypes $nlr(FINNAME) "bondpad"
+                    ###if { ![dict exists $::padtypes $nlr(FINNAME)] } {
+                    ###    dict lappend ::padtypes $nlr(FINNAME) "bondpad"
+                    ###}
+                    if { [lsearch [array names ::padtypes] $nlr(FINNAME)] == -1 } {
+                        set ::padtypes($nlr(FINNAME)) "bondpad"
                     }
                 } else {
                     GUI::Transcript -severity warning -msg [format "Skipping finger for net \"%s\" on line %d, no finger assignment." $netname, $line_no]
