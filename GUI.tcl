@@ -804,7 +804,7 @@ if { 0 } {
                 set nltable [tablelist::tablelist $nltf.tl -stretch all -background white \
                     -xscrollcommand [list $nltf.nltablescrollx set] \
                     -yscrollcommand [list $nltf.nltablescrolly set] \
-                    -fullseparators true -stripebackground "#ddd" -showseparators true -columns { \
+                    -stripebackground "#ddd" -showseparators true -columns { \
                     0 "NETNAME" 0 "PADNUM" 0 "PADNAME" 0 "PAD_X" 0 "PAD_Y" 0 "BALLNUM" 0 "BALLNAME" \
                     0 "BALL_X" 0 "BALL_Y" 0 "FINNUM" 0 "FINNAME" 0 "FIN_X" 0 "FIN_Y" 0 "ANGLE" }]
                 $nltable columnconfigure 0 -sortmode ascii
@@ -888,6 +888,13 @@ if { 0 } {
 	            -relief flat -value $i
                 pack $dbf.bgageneration.b$i  -side top -pady 2 -anchor w
             }
+            ##  Until VX.2, a bug in the API prevents generating MSO cells so disable the radio button.
+            $dbf.bgageneration.bmso configure -state disabled
+
+            ##  Default Cell Height
+            labelframe $dbf.defaultcellheight -pady 5 -text "Default Cell Height (um)" -padx 5
+            entry $dbf.defaultcellheight.e -width 15 -relief sunken -bd 2 -textvariable GUI::Dashboard::DefaultCellHeight
+            pack $dbf.defaultcellheight.e
 
             ##  Visibility
             labelframe $dbf.visibility -pady 2 -text "Application Visibility" -padx 2
@@ -963,20 +970,21 @@ if { 0 } {
             ttk::separator $dbf.sep3 -orient horizontal
 
             ##  Place all of the widgets
-            grid $dbf.aiffile        -row 0 -column 0 -sticky new -padx 10 -pady 8 -columnspan 2
-            grid $dbf.design         -row 1 -column 0 -sticky new -padx 10 -pady 8 -columnspan 2
-            grid $dbf.library        -row 2 -column 0 -sticky new -padx 10 -pady 8 -columnspan 2
-            grid $dbf.sep1           -row 0 -column 2 -sticky nsew -padx 3 -pady 3 -rowspan 3
-            grid $dbf.mode           -row 0 -column 3 -sticky new -padx 10 -pady 8
-            grid $dbf.connection     -row 1 -column 3 -sticky new -padx 10 -pady 8
-            grid $dbf.visibility     -row 2 -column 3 -sticky new -padx 10 -pady 8
-            grid $dbf.sep2           -row 3 -column 0 -sticky nsew -padx 3 -pady 3 -columnspan 4
-            grid $dbf.cellgeneration -row 4 -column 0 -sticky new -padx 10 -pady 8
-            grid $dbf.cellsuffix     -row 4 -column 1 -sticky new -padx 10 -pady 8 -columnspan 2
-            grid $dbf.bgageneration -row 4 -column 3 -sticky new -padx 10 -pady 8
-            grid $dbf.sep3           -row 5 -column 0 -sticky nsew -padx 3 -pady 3 -columnspan 5
-            grid $dbf.wbparameters   -row 6 -column 0 -sticky new -padx 10 -pady 8 -columnspan 5
-            grid $dbf.wbdrcproperty  -row 7 -column 0 -sticky new -padx 10 -pady 8 -columnspan 5
+            grid $dbf.aiffile           -row 0 -column 0 -sticky new -padx 10 -pady 8 -columnspan 2
+            grid $dbf.design            -row 1 -column 0 -sticky new -padx 10 -pady 8 -columnspan 2
+            grid $dbf.library           -row 2 -column 0 -sticky new -padx 10 -pady 8 -columnspan 2
+            grid $dbf.sep1              -row 0 -column 2 -sticky nsew -padx 3 -pady 3 -rowspan 3
+            grid $dbf.mode              -row 0 -column 3 -sticky new -padx 10 -pady 8
+            grid $dbf.connection        -row 1 -column 3 -sticky new -padx 10 -pady 8
+            grid $dbf.visibility        -row 2 -column 3 -sticky new -padx 10 -pady 8
+            grid $dbf.sep2              -row 3 -column 0 -sticky nsew -padx 3 -pady 3 -columnspan 4
+            grid $dbf.cellgeneration    -row 4 -column 0 -sticky new -padx 10 -pady 8 -rowspan 2
+            grid $dbf.cellsuffix        -row 4 -column 1 -sticky new -padx 10 -pady 8 -columnspan 2 -rowspan 2
+            grid $dbf.bgageneration     -row 4 -column 3 -sticky new -padx 10 -pady 8 -rowspan 2
+            grid $dbf.defaultcellheight -row 5 -column 3 -sticky sew -padx 10 -pady 8
+            grid $dbf.sep3              -row 6 -column 0 -sticky nsew -padx 3 -pady 3 -columnspan 5
+            grid $dbf.wbparameters      -row 7 -column 0 -sticky new -padx 10 -pady 8 -columnspan 5
+            grid $dbf.wbdrcproperty     -row 8 -column 0 -sticky new -padx 10 -pady 8 -columnspan 5
 
             grid $dbf -row 0 -column 0 -sticky nw -padx 10 -pady 10
         }
@@ -1222,6 +1230,7 @@ if { 0 } {
         variable CellGeneration
         variable CellSuffix none
         variable BGAGeneration "std"
+        variable DefaultCellHeight "50"
         variable WBParameters
         #variable WBParameters {[Model=[BallWedgeShared]][Padstack=[BF150x65]][XStart=[0um]][YStart=[0um]][XEnd=[0um]][YEnd=[0um]]}
         variable WBDRCProperty

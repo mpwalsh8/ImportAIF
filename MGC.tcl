@@ -812,14 +812,11 @@ puts "OpenPDBEdtr - 1"
             ##  Need to handle various pad types which are inferred while processing
             ##  the netlist.  If for some reason the pad doesn't appear in the netlist
 
-            ###if { ![dict exist $::padtypes $::padGeom(name)] } {
-            ###    dict lappend ::padtypes $::padGeom(name) "smdpad"
-            ###}
             if { [lsearch [array names ::padtypes] $::padGeom(name)] == -1 } {
                 set ::padtypes($::padGeom(name)) "smdpad"
             }
 
-            switch -exact [dict get $::padtypes $::padGeom(name)] {
+            switch -exact $::padtypes($::padGeom(name)) {
                 "bondpad" {
                     $newPadstack -set Type $::PadstackEditorLib::EPsDBPadstackType(epsdbPadstackTypeBondPin)
                 }
@@ -1090,6 +1087,8 @@ puts "Y7"
 
             $newCell -set Name $target
             $newCell -set Description $target
+            puts [expr $GUI::Dashboard::DefaultCellHeight]
+            $newCell -set Height [expr $::CellEditorAddinLib::ECellDBUnit(ecelldbUnitUM)] [expr $GUI::Dashboard::DefaultCellHeight]
 
             #  Need to support Mount Side Opposite for APD compatibility
             #  For Mount Side Opposite use ecelldbMountTypeMixed?
@@ -1200,12 +1199,9 @@ puts "K1"
                 ##  for that possibility before trying to extract the
                 ##  Center X and Center Y from a non-existant section
 
-                ###foreach d [dict keys $::mcmdie] {}
                 foreach d [array names ::mcmdie] {
-                    ###if { [string equal [dict get $::mcmdie $d] $device] } {}
                     if { [string equal $::mcmdie($d) $device] } {
 #puts "Q2"
-                        ###set section [format "MCM_%s_%s" [dict get $::mcmdie $d] $d]
                         set section [format "MCM_%s_%s" $::mcmdie($d) $d]
                         puts "-->  Section:  $section"
                     }
@@ -1336,11 +1332,8 @@ puts [expr $::MGCPCB::EPcbSide(epcbSideOpposite)]
                 ##  for that possibility before trying to extract
                 ##  the height and width from a non-existant section
 
-                ###foreach i [dict keys $::mcmdie] {}
                 foreach i [array names ::mcmdie] {
-                    ###if { [string equal [dict get $::mcmdie $i] $device] } {}
                     if { [string equal $::mcmdie($i) $device] } {
-                        ###set section [format "MCM_%s_%s" [dict get $::mcmdie $i] $i]
                         set section [format "MCM_%s_%s" $::mcmdie($i) $i]
                         puts "-->  Section:  $section"
                     }
@@ -2035,9 +2028,7 @@ puts [expr $::MGCPCB::EPcbSide(epcbSideOpposite)]
         proc SelectBondPad {} {
             set bondpads [list]
 
-            ###foreach i [dict keys $::padtypes] {}
             foreach i [array names ::padtypes] {
-                ###set type [dict get $::padtypes $i]
                 set type $::padtypes($i)
 
                 if { [string equal bondpad $type] } {
