@@ -1617,7 +1617,8 @@ puts "GUI::Dashboard::SelectCentralLibrary"
             array set ::devices {}
 
             ##  Store mcm die in a Tcl dictionary
-            set ::mcmdie [dict create]
+            ###set ::mcmdie [dict create]
+            array set ::mcmdie {}
 
             ##  Store pads in a Tcl dictionary
             ###set ::pads [dict create]
@@ -1681,6 +1682,7 @@ puts "GUI::Dashboard::SelectCentralLibrary"
             }
 
             ##  Process the user supplied file
+puts "QQQ9"
             if {$xAIF::Settings(filename) != $xAIF::Settings(Nothing) } {
                 GUI::Transcript -severity note -msg [format "Loading AIF file \"%s\"." $xAIF::Settings(filename)]
                 set txt $GUI::widgets(sourceview)
@@ -1711,7 +1713,6 @@ puts "GUI::Dashboard::SelectCentralLibrary"
                 }
 
                 ##  If the file a MCM-AIF file?
-
                 if { $xAIF::Settings(MCMAIF) == 1 } {
                     if { [ AIF::MCMDie::Section ] == -1 } {
                         GUI::StatusBar::UpdateStatus -busy off
@@ -1945,7 +1946,8 @@ puts "GUI::Dashboard::SelectCentralLibrary"
             if { $xAIF::Settings(MCMAIF) == 1 } {
                 foreach i [AIF::MCMDie::GetAllDie] {
                     #set section [format "MCM_%s_%s" [string toupper $i] [dict get $::mcmdie $i]]
-                    set section [format "MCM_%s_%s" [dict get $::mcmdie $i] $i]
+                    ###set section [format "MCM_%s_%s" [dict get $::mcmdie $i] $i]
+                    set section [format "MCM_%s_%s" $::mcmdie($i) $i]
                     if { [lsearch -exact [::AIF::Sections] $section] != -1 } {
                         array set part {
                             REF ""
@@ -2133,7 +2135,8 @@ puts "GUI::Dashboard::SelectCentralLibrary"
     
                     ##  Record the pad and location in the device list
                     if { $xAIF::Settings(MCMAIF) == 1 } {
-                        set name [dict get $::mcmdie $ref]
+                        ###set name [dict get $::mcmdie $ref]
+                        set name $::mcmdie($ref)
                     } else {
                         set name [AIF::GetVar NAME DIE]
                     }
@@ -2283,7 +2286,8 @@ puts "GUI::Dashboard::SelectCentralLibrary"
             ##  Output the part list
             $kyn insert end "\n%Part\n"
             foreach i [AIF::MCMDie::GetAllDie] {
-                $kyn insert end [format "\\%s\\   \\%s\\\n" [dict get $::mcmdie $i] $i]
+                ###$kyn insert end [format "\\%s\\   \\%s\\\n" [dict get $::mcmdie $i] $i]
+                $kyn insert end [format "\\%s\\   \\%s\\\n" $::mcmdie($i) $i]
             }
 
             ##  If this AIF file does not contain a MCM_DIE section then

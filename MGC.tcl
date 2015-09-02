@@ -1200,10 +1200,13 @@ puts "K1"
                 ##  for that possibility before trying to extract the
                 ##  Center X and Center Y from a non-existant section
 
-                foreach d [dict keys $::mcmdie] {
-                    if { [string equal [dict get $::mcmdie $d] $device] } {
+                ###foreach d [dict keys $::mcmdie] {}
+                foreach d [array names ::mcmdie] {
+                    ###if { [string equal [dict get $::mcmdie $d] $device] } {}
+                    if { [string equal $::mcmdie($d) $device] } {
 #puts "Q2"
-                        set section [format "MCM_%s_%s" [dict get $::mcmdie $d] $d]
+                        ###set section [format "MCM_%s_%s" [dict get $::mcmdie $d] $d]
+                        set section [format "MCM_%s_%s" $::mcmdie($d) $d]
                         puts "-->  Section:  $section"
                     }
                 }
@@ -1333,9 +1336,12 @@ puts [expr $::MGCPCB::EPcbSide(epcbSideOpposite)]
                 ##  for that possibility before trying to extract
                 ##  the height and width from a non-existant section
 
-                foreach i [dict keys $::mcmdie] {
-                    if { [string equal [dict get $::mcmdie $i] $device] } {
-                        set section [format "MCM_%s_%s" [dict get $::mcmdie $i] $i]
+                ###foreach i [dict keys $::mcmdie] {}
+                foreach i [array names ::mcmdie] {
+                    ###if { [string equal [dict get $::mcmdie $i] $device] } {}
+                    if { [string equal $::mcmdie($i) $device] } {
+                        ###set section [format "MCM_%s_%s" [dict get $::mcmdie $i] $i]
+                        set section [format "MCM_%s_%s" $::mcmdie($i) $i]
                         puts "-->  Section:  $section"
                     }
                 }

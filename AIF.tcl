@@ -202,7 +202,8 @@ namespace eval AIF {
                 }
 
                 ##  Add the BGA to the list of devices
-                dict lappend ::mcmdie $xAIF::Settings(BGAREF) $::bga(name)
+                ###dict lappend ::mcmdie $xAIF::Settings(BGAREF) $::bga(name)
+                set ::mcmdie($xAIF::Settings(BGAREF)) $::bga(name)
 
                 foreach i [array names ::bga] {
                     GUI::Transcript -severity note -msg [format "BGA \"%s\":  %s" [string toupper $i] $::bga($i)]
@@ -256,7 +257,8 @@ namespace eval AIF {
         #  Get All Die references
         #
         proc GetAllDie {} {
-            return [dict keys $::mcmdie]
+            ###return [dict keys $::mcmdie]
+            return [array names ::mcmdie]
         }
 
         #  AIF::MCMDie::Section
@@ -280,13 +282,16 @@ namespace eval AIF {
                     foreach ref $refs {
                         GUI::Transcript -severity note -msg [format "Device:  %s  Ref:  %s" $v [string  trim $ref]]
                         #dict lappend ::mcmdie [string trim $ref] [AIF::GetVar $v MCM_DIE]
-                        dict lappend ::mcmdie [string trim $ref] $v
+                        ###dict lappend ::mcmdie [string trim $ref] $v
+                        set ::mcmdie([string trim $ref]) $v
                     }
                 }
 
                 foreach i [GetAllDie] {
-                    GUI::Transcript -severity note -msg [format "Device \"%s\" with reference designator:  %s" \
-                        [lindex [dict get $::mcmdie $i] 0] $i]
+                    GUI::Transcript -severity note -msg \
+                        [format "Device \"%s\" with reference designator:  %s" \
+                        $::mcmdie($i) $i]
+                        ###[lindex [dict get $::mcmdie $i] 0] $i]
                 }
             } else {
                 GUI::Transcript -severity error -msg [format "AIF file \"%s\" does not contain a MCM_DIE section." $xAIF::Settings(filename)]
@@ -382,11 +387,11 @@ namespace eval AIF {
                 }
 
                 if { ([lsearch [AIF::Variables "DATABASE"] "MCM"] != -1) && ($::database(mcm) == "TRUE") } {
-                    GUI::Transcript -severity error -msg [format "File \"%s\" is an MCM-AIF file." $xAIF::Settings(filename)]
+                    GUI::Transcript -severity note -msg [format "File \"%s\" is a MCM-AIF file." $xAIF::Settings(filename)]
                     set xAIF::Settings(MCMAIF) 1
                     set GUI::widgets(AIFType) "File Type:  MCM-AIF"
                 } else {
-                    GUI::Transcript -severity error -msg [format "File \"%s\" is an AIF file." $xAIF::Settings(filename)]
+                    GUI::Transcript -severity note -msg [format "File \"%s\" is an AIF file." $xAIF::Settings(filename)]
                     set xAIF::Settings(MCMAIF) 0
                     set GUI::widgets(AIFType) "File Type:  AIF"
                 }

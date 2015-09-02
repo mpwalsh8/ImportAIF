@@ -294,7 +294,7 @@ foreach script { AIF.tcl Forms.tcl GUI.tcl MapEnum.tcl MGC.tcl Netlist.tcl } {
     source $xAIF/$script
 }
 
-console show
+#console show
 xAIF::Init
 GUI::Build
 GUI::Menus::DesignMode
@@ -303,5 +303,5 @@ GUI::Transcript -severity note -msg "$xAIF::Settings(xAIF) ready."
 #set GUI::Dashboard::Mode $xAIF::Settings(libraryMode)
 #GUI::Dashboard::SelectCentralLibrary "C:/Users/mike/Documents/Sandbox2/Sandbox2.lmc"
 #set xAIF::Settings(mode) $xAIF::Settings(designMode)
-catch { GUI::Dashboard::SelectAIFFile "c:/users/mike/desktop/xAIF/data/Test1.aif" } retString
+#catch { GUI::Dashboard::SelectAIFFile "c:/users/mike/desktop/xAIF/data/Test1.aif" } retString
 #GUI::Visibility text -all true -mode off
