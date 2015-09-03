@@ -1,0 +1,58 @@
+format  {TclDevKit Project File}
+fmtver  2.0
+fmttool {TclDevKit TclApp} 5.4
+
+##  Saved at : Mon Aug 31 21:24:02 EDT 2015
+##  By       : mike@win-qke80l4bhh3
+
+########
+#####
+###
+##
+#
+
+App/Code               {}
+App/Package            {}
+App/PostCode           {}
+Metadata               {}
+OSX/Info.plist         {}
+Path                   {File C:/Users/mike/Desktop/xAIF/xAIF.tcl}
+Path                   Startup
+Path                   {File C:/Users/mike/Desktop/xAIF/AIF.tcl}
+Path                   {File C:/Users/mike/Desktop/xAIF/Forms.tcl}
+Path                   {File C:/Users/mike/Desktop/xAIF/GUI.tcl}
+Path                   {File C:/Users/mike/Desktop/xAIF/MapEnum.tcl}
+Path                   {File C:/Users/mike/Desktop/xAIF/MGC.tcl}
+Path                   {File C:/Users/mike/Desktop/xAIF/Netlist.tcl}
+Path                   {Relativeto C:/Users/mike/Desktop/xAIF}
+Pkg/Architecture       win32-ix86
+Pkg/Reference          {Tk 8.4}
+Pkg/Reference          csv
+Pkg/Reference          ctext
+Pkg/Reference          {dict 1}
+Pkg/Reference          inifile
+Pkg/Reference          {tablelist::common 4.12.1}
+Pkg/Reference          tcom
+Pkg/Reference          tile
+StringInfo             {}
+System/Nocompress      0
+System/TempDir         {}
+System/Verbose         0
+Wrap/Compile/NoTbcload 0
+Wrap/Compile/Tcl       0
+Wrap/Compile/Version   {}
+Wrap/FSMode            {}
+Wrap/Icon              {}
+Wrap/InputPrefix       C:/Tcl/bin/base-tk-thread-win32-ix86.exe
+Wrap/Interpreter       {}
+Wrap/Merge             0
+Wrap/NoProvided        0
+Wrap/NoSpecials        0
+Wrap/Output            C:/Users/mike/Desktop/xAIF.exe
+Wrap/Output/OSXApp     0
+
+#
+##
+###
+#####
+########

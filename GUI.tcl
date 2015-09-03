@@ -1645,6 +1645,7 @@ puts "GUI::Dashboard::SelectCentralLibrary"
             ##  Store bondpad connections in a Tcl list
             set ::bondpads [list]
             set ::bondwires [list]
+            array set ::bondpadsubst {}
         }
 
         #
@@ -1691,7 +1692,7 @@ puts "GUI::Dashboard::SelectCentralLibrary"
             }
 
             ##  Process the user supplied file
-puts "QQQ9"
+
             if {$xAIF::Settings(filename) != $xAIF::Settings(Nothing) } {
                 GUI::Transcript -severity note -msg [format "Loading AIF file \"%s\"." $xAIF::Settings(filename)]
                 set txt $GUI::widgets(sourceview)
@@ -2159,6 +2160,7 @@ puts "QQQ9"
                     if { [lsearch [array names ::padtypes] $nlr(PADNAME)] == -1 } {
                         set ::padtypes($nlr(PADNAME)) "smdpad"
                     }
+                    set ::padtypes($nlr(PADNAME)) "smdpad"
                 } else {
                     GUI::Transcript -severity warning -msg [format "Skipping die pad for net \"%s\" on line %d, no pad assignment." $netname, $line_no]
                 }
@@ -2180,6 +2182,7 @@ puts "QQQ9"
                     if { [lsearch [array names ::padtypes] $nlr(BALLNAME)] == -1 } {
                         set ::padtypes($nlr(BALLNAME)) "ballpad"
                     }
+                    set ::padtypes($nlr(BALLNAME)) "ballpad"
                     #puts "---------------------> Ball End"
                 } else {
                     GUI::Transcript -severity warning -msg [format "Skipping ball pad for net \"%s\" on line %d, no ball assignment." $netname, $line_no]
@@ -2188,14 +2191,26 @@ puts "QQQ9"
                 ##  Can the Finger pad be placed?
     
                 if { $nlr(FINNAME) != "-" } {
-                    #puts "---------------------> Finger"
+                    puts "---------------------> Finger"
                     GUI::Draw::AddPin $nlr(FIN_X) $nlr(FIN_Y) $nlr(FINNUM) $nlr(NETNAME) $nlr(FINNAME) $line_no "bondpad pad pad-$nlr(FINNAME)" "purple" "white" $nlr(ANGLE)
                     lappend ::bondpads [list $nlr(NETNAME) $nlr(FINNAME) $nlr(FIN_X) $nlr(FIN_Y) $nlr(ANGLE)]
-                    ###if { ![dict exists $::padtypes $nlr(FINNAME)] } {
-                    ###    dict lappend ::padtypes $nlr(FINNAME) "bondpad"
-                    ###}
                     if { [lsearch [array names ::padtypes] $nlr(FINNAME)] == -1 } {
                         set ::padtypes($nlr(FINNAME)) "bondpad"
+                    }
+                    set ::padtypes($nlr(FINNAME)) "bondpad"
+
+                    ##  Does this bond pad need a swap to account for bond fingers constructed vertically?
+                    if { [lsearch [array names ::bondpadsubst] $nlr(FINNAME)] == -1 } {
+
+                        ##  Extract height and width from the PADS section
+                        set w [lindex [AIF::GetVar $nlr(FINNAME) PADS] 1]
+                        set h [lindex [AIF::GetVar $nlr(FINNAME) PADS] 2]
+
+                        ##  If height > width a bond pad substitution is required so Xpedition will operate correctly
+
+                        if { $h > $w } {
+                            set ::bondpadsubst($nlr(FINNAME)) [format "%s_h" $nlr(FINNAME)]
+                        }
                     }
                 } else {
                     GUI::Transcript -severity warning -msg [format "Skipping finger for net \"%s\" on line %d, no finger assignment." $netname, $line_no]

@@ -202,10 +202,8 @@ namespace eval Netlist {
 
             set txt [format ".%s\n" [AIF::GetVar UNITS DATABASE]]
 
-            ###foreach i [dict keys $::mcmdie] {}
             foreach i [array names ::mcmdie] {
                 set ctr "0,0"
-                ###set sect [format "MCM_%s_%s" [dict get $::mcmdie $i] $i]
                 set sect [format "MCM_%s_%s" $::mcmdie($i) $i]
 
                 ##  If the device has a section, extract the CENTER keyword

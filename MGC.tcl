@@ -656,7 +656,10 @@ puts "OpenPDBEdtr - 1"
 
             ##  Define a pad name based on the shape, height and width
             #set padName [format "%s %sx%s" $::padGeom(shape) $::padGeom(height) $::padGeom(width)]
-            set padName [format "%s %sx%s" $::padGeom(shape) $::padGeom(width) $::padGeom(height)]
+            #set padName [format "%s %sx%s" $::padGeom(shape) $::padGeom(width) $::padGeom(height)]
+
+            ##  Match the pad name to what appeared in AIF file
+            set padName $::padGeom(name)
 
             ##  Invoke the Padstack Editor and open the target
             ##  Catch any exceptions raised by opening the database
@@ -758,7 +761,10 @@ puts "OpenPDBEdtr - 1"
 
             ##  Define a pad name based on the shape, height and width
             #set padName [format "%s %sx%s" $::padGeom(shape) $::padGeom(height) $::padGeom(width)]
-            set padName [format "%s %sx%s" $::padGeom(shape) $::padGeom(width) $::padGeom(height)]
+            #set padName [format "%s %sx%s" $::padGeom(shape) $::padGeom(width) $::padGeom(height)]
+
+            ##  Match the pad name to what appeared in AIF file
+            set padName $::padGeom(name)
 
             ##  Invoke the Padstack Editor and open the target
             ##  Catch any exceptions raised by opening the database
@@ -1685,6 +1691,54 @@ puts [expr $::MGCPCB::EPcbSide(epcbSideOpposite)]
                 set ::padGeom(offsety) 0.0
 
                 MGC::Generate::Pad
+
+                ##  Xpedition's bond pad model defines the 0 rotation to be east
+                ##  where as APD defines it to be north.  This means that an AIF
+                ##  file may define pads which are vertically oriented as opposed
+                ##  to horizontally oriented.  The bond pads can be imported as-is
+                ##  but Xpedition will have an issue moving existing bond pads or
+                ##  placing new ones as the orientation will be off by 90 degrees.
+                ##
+                ##  To resolve this issue, alternate versions of each bond pad are
+                ##  created to allow a simple substituion to ensure Xpedition will
+                ##  place and move bond pads correctly.
+
+                if { $::padtypes($::padGeom(name)) == "bondpad" } {
+                    set n $::padGeom(name)
+
+                    ##  Generate a horizontal version of the bond pad
+
+                    set w $::padGeom(width)
+                    set h $::padGeom(height)
+                    set ::padGeom(name) [format "%s_h" $n]
+                    set ::padtypes($::padGeom(name)) "bondpad"
+
+                    ##  Need to swap height and width?
+                    if { $h > $w } {
+                        foreach w $h h $w break
+                    }
+                    set ::padGeom(width) $w
+                    set ::padGeom(height) $h
+
+                    GUI::Transcript -severity note -msg [format "Creating derivitive pad \"%s\" ." $::padGeom(name)]
+
+                    MGC::Generate::Pad
+
+                    ##  Generate a vertical version of the bond pad
+
+                    set ::padGeom(name) [format "%s_v" $n]
+                    set ::padtypes($::padGeom(name)) "bondpad"
+
+                    ##  Swap the height and width
+                    foreach w $h h $w break
+
+                    set ::padGeom(width) $w
+                    set ::padGeom(height) $h
+
+                    GUI::Transcript -severity note -msg [format "Creating derivitive pad \"%s\" ." $::padGeom(name)]
+
+                    MGC::Generate::Pad
+                }
             }
         }
 
@@ -1707,6 +1761,47 @@ puts [expr $::MGCPCB::EPcbSide(epcbSideOpposite)]
                 set ::padGeom(offsety) 0.0
 
                 MGC::Generate::Padstack
+
+                ##  Xpedition's bond pad model defines the 0 rotation to be east
+                ##  where as APD defines it to be north.  This means that an AIF
+                ##  file may define pads which are vertically oriented as opposed
+                ##  to horizontally oriented.  The bond pads can be imported as-is
+                ##  but Xpedition will have an issue moving existing bond pads or
+                ##  placing new ones as the orientation will be off by 90 degrees.
+                ##
+                ##  To resolve this issue, alternate versions of each bond pad are
+                ##  created to allow a simple substituion to ensure Xpedition will
+                ##  place and move bond pads correctly.
+
+                if { $::padtypes($::padGeom(name)) == "bondpad" } {
+                    set n $::padGeom(name)
+
+                    ##  Generate a horizontal version of the bond pad
+
+                    set w $::padGeom(width)
+                    set h $::padGeom(height)
+                    set ::padGeom(name) [format "%s_h" $n]
+                    set ::bondpadswaps($n) $::padGeom(name)
+
+                    ##  Need to swap?
+                    if { $h > $w } {
+                        foreach w $h h $w break
+                    }
+
+                    GUI::Transcript -severity note -msg [format "Creating derivitive padstack \"%s\" ." $::padGeom(name)]
+
+                    MGC::Generate::Padstack
+
+                    ##  Generate a vertical version of the bond pad
+
+                    set ::padGeom(name) [format "%s_v" $n]
+                    ##  Swap the height and width
+                    foreach w $h h $w break
+
+                    GUI::Transcript -severity note -msg [format "Creating derivitive padstack \"%s\" ." $::padGeom(name)]
+
+                    MGC::Generate::Padstack
+                }
             }
         }
 
@@ -2135,6 +2230,15 @@ puts [expr $::MGCPCB::EPcbSide(epcbSideOpposite)]
                 set bondpad(FIN_X) [lindex $i 2]
                 set bondpad(FIN_Y) [lindex $i 3]
                 set bondpad(ANGLE) [lindex $i 4]
+
+                ##  Check to see if this bond pad requires a substitution
+                ##  When performing the substituion, the angle needs to be
+                ##  adjusted by 90 degrees as well
+
+                if { [lsearch [array names ::bondpadsubst] $bondpad(FINNAME)] != -1 } {
+                    set bondpad(FINNAME) [format "%s_h" $bondpad(FINNAME)]
+                    set bondpad(ANGLE) [expr $bondpad(ANGLE) - 90.0]
+                }
 
                 ##  Need to find the padstack ...
                 ##  Make sure the Bond Pad exists and is defined as a Bond Pad

@@ -202,7 +202,6 @@ namespace eval AIF {
                 }
 
                 ##  Add the BGA to the list of devices
-                ###dict lappend ::mcmdie $xAIF::Settings(BGAREF) $::bga(name)
                 set ::mcmdie($xAIF::Settings(BGAREF)) $::bga(name)
 
                 foreach i [array names ::bga] {
@@ -257,7 +256,6 @@ namespace eval AIF {
         #  Get All Die references
         #
         proc GetAllDie {} {
-            ###return [dict keys $::mcmdie]
             return [array names ::mcmdie]
         }
 
@@ -274,15 +272,13 @@ namespace eval AIF {
                 ##  Load the DATABASE section
                 set vars [AIF::Variables MCM_DIE]
 
-                ##  Populate the mcmdie dictionary
+                ##  Populate the mcmdie array
 
                 foreach v $vars {
                     set refs [split [AIF::GetVar $v MCM_DIE] ","]
 
                     foreach ref $refs {
                         GUI::Transcript -severity note -msg [format "Device:  %s  Ref:  %s" $v [string  trim $ref]]
-                        #dict lappend ::mcmdie [string trim $ref] [AIF::GetVar $v MCM_DIE]
-                        ###dict lappend ::mcmdie [string trim $ref] $v
                         set ::mcmdie([string trim $ref]) $v
                     }
                 }
@@ -291,7 +287,6 @@ namespace eval AIF {
                     GUI::Transcript -severity note -msg \
                         [format "Device \"%s\" with reference designator:  %s" \
                         $::mcmdie($i) $i]
-                        ###[lindex [dict get $::mcmdie $i] 0] $i]
                 }
             } else {
                 GUI::Transcript -severity error -msg [format "AIF file \"%s\" does not contain a MCM_DIE section." $xAIF::Settings(filename)]
@@ -309,13 +304,11 @@ namespace eval AIF {
 
         #  Get all Pad names
         proc GetAllPads {} {
-            ###return [dict keys $::pads]
             return [array names ::pads]
         }
 
         #  Return all of the parameters for a pad
         proc GetParams { pad } {
-            ###return [regexp -inline -all -- {\S+} [lindex [dict get $::pads $pad] 0]]
             return [regexp -inline -all -- {\S+} $::pads($pad)]
         }
 
@@ -438,18 +431,17 @@ namespace eval AIF {
                 ##  Load the PADS section
                 set vars [AIF::Variables PADS]
 
-                ##  Flush the pads dictionary
+                ##  Flush the pads array
 
-                ###set ::pads [dict create]
                 array set ::pads {}
-                ###set ::padtypes [dict create]
                 array set ::padtypes {}
 
-                ##  Populate the pads dictionary
+                ##  Populate the pads array
 
                 foreach v $vars {
-                    ###dict lappend ::pads $v [AIF::GetVar $v PADS]
                     set ::pads($v) [AIF::GetVar $v PADS]
+                    ##  Default all padtypes to SMD, may be adjusted later when processing netlist
+                    set ::padtypes($v) "smdpad"
 
                     #  Add pad to the View Devices menu and make it visible
                     set GUI::pads($v) on
@@ -460,11 +452,10 @@ namespace eval AIF {
                         -command  "GUI::Visibility pad-$v -mode toggle"
                 }
 
-                ###foreach i [dict keys $::pads] 
                 foreach i [array names ::pads] {
 
-                    ###set padshape [lindex [regexp -inline -all -- {\S+} [lindex [dict get $::pads $i] 0]] 0]
                     set padshape [lindex [regexp -inline -all -- {\S+} [lindex $::pads($i) 0]] 0]
+                    puts [format ">>> Pad:  %s %s" $i $::pads($i)]
 
                     ##  Check units for legal option - AIF supports UM, MM, CM, INCH, MIL
 
@@ -476,7 +467,6 @@ namespace eval AIF {
                     }
                 }
 
-                ###GUI::Transcript -severity note -msg [format "AIF source file contains %d %s." [llength [dict keys $::pads]] [xAIF::Utility::Plural [llength [dict keys $::pads]] "pad"]]
                 GUI::Transcript -severity note -msg [format "AIF source file contains %d %s." [array size ::pads] [xAIF::Utility::Plural [array size ::pads] "pad"]]
             } else {
                 GUI::Transcript -severity error -msg [format "AIF file \"%s\" does not contain a PADS section." $xAIF::Settings(filename)]
