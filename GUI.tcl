@@ -1081,7 +1081,7 @@ if { 0 } {
             $wbpf.wbrule.text configure -state normal
             $wbpf.wbrule.text insert 1.0 $MGC::WireBond::WBRule(Value)
             $wbpf.wbrule.text configure -state disabled
-            puts $MGC::WireBond::WBRule(Value)
+            #puts $MGC::WireBond::WBRule(Value)
 
             ttk::separator $wbpf.sep1 -orient vertical
             ttk::separator $wbpf.sep2 -orient vertical
@@ -1232,9 +1232,7 @@ if { 0 } {
         variable BGAGeneration "std"
         variable DefaultCellHeight "50"
         variable WBParameters
-        #variable WBParameters {[Model=[BallWedgeShared]][Padstack=[BF150x65]][XStart=[0um]][YStart=[0um]][XEnd=[0um]][YEnd=[0um]]}
         variable WBDRCProperty
-        #variable WBDRCProperty {[WB2WB=[0um]][WB2Part=[4um]][WB2Metal=[0um]][WB2DieEdge=[4um]][WB2DieSurface=[0um]][WB2Cavity=[4um]][WBAngle=[360deg]][BondSiteMargin=[0um]][Rows=[[[WBMin=[100um]][WBMax=[3000um]]]]]}
         variable WBRule
 
         array set CellGeneration {
