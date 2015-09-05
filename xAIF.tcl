@@ -150,6 +150,7 @@ namespace eval xAIF {
             netlistview ""
             #sparsepinsview ""
             xAIF "Xpedition xAIF - AIF Import Utility"
+            xAIFVersion "1.0-beta-2"
             MsgNote 0
             MsgWarning 1
             MsgError 2
@@ -170,7 +171,7 @@ namespace eval xAIF {
             libApp ""
             libLib ""
             appVisible True
-            connectMode off
+            connectMode on
             sTime ""
             cTime ""
             consoleEcho "True"
@@ -291,15 +292,16 @@ cd $pwd
 
 ##  Load various pieces which comprise the application
 foreach script { AIF.tcl Forms.tcl GUI.tcl MapEnum.tcl MGC.tcl Netlist.tcl } {
-    source $xAIF/$script
+    puts [format "# Note:  Loading %s ..." $script]
+    source [file join $xAIF $script]
 }
 
-#console show
 xAIF::Init
 GUI::Build
 GUI::Menus::DesignMode
 GUI::StatusBar::UpdateStatus -busy off
 GUI::Transcript -severity note -msg "$xAIF::Settings(xAIF) ready."
+#console show
 #set GUI::Dashboard::Mode $xAIF::Settings(libraryMode)
 #GUI::Dashboard::SelectCentralLibrary "C:/Users/mike/Documents/Sandbox2/Sandbox2.lmc"
 #set xAIF::Settings(mode) $xAIF::Settings(designMode)

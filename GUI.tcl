@@ -2638,7 +2638,7 @@ puts "GUI::Dashboard::SelectCentralLibrary"
         #  GUI::Help::About
         #
         proc About {} {
-            tk_messageBox -type ok -message "$xAIF::Settings(xAIF)\nVersion 1.0" \
+            tk_messageBox -type ok -message "$xAIF::Settings(xAIF)\nVersion $xAIF::Settings(xAIFVersion)" \
                 -icon info -title "About"
         }
 
@@ -2646,7 +2646,7 @@ puts "GUI::Dashboard::SelectCentralLibrary"
         #  GUI::Help::Version
         #
         proc Version {} {
-            tk_messageBox -type ok -message "$xAIF::Settings(xAIF)\nVersion 1.0" \
+            tk_messageBox -type ok -message "$xAIF::Settings(xAIF)\nVersion $xAIF::Settings(xAIFVersion)" \
                 -icon info -title "Version"
         }
 

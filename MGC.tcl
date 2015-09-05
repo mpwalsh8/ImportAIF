@@ -574,7 +574,7 @@ puts "OpenPDBEdtr - 1"
             lappend xAIF::Settings(cellEdtrPrtnNames) [$partition Name]
             GUI::Transcript -severity note -msg [format "Found cell partition \"%s.\"" [$partition Name]]
         }
-    
+
         MGC::CloseCellEditor
 
         ##  Invoke the PDB Editor and open the database
@@ -2230,7 +2230,7 @@ puts [expr $::MGCPCB::EPcbSide(epcbSideOpposite)]
 
             ##  Start a transaction with DRC to get Bond Pads placed ...
             $xAIF::Settings(pcbDoc) TransactionStart [expr $::MGCPCB::EPcbDRCMode(epcbDRCModeNone)]
-            
+
             foreach i $::bondpads {
 
                 set bondpad(NETNAME) [lindex $i 0]
@@ -2428,12 +2428,12 @@ puts [expr $::MGCPCB::EPcbSide(epcbSideOpposite)]
                 set bpX [$BondPad PositionX]
                 set bpY [$BondPad PositionY]
 
- 
+
                 ##  Place the bond wire, trap any DRC violations and report them.
                 set errorCode [catch { set bw [$xAIF::Settings(pcbDoc) \
                     PutBondWire $DiePin $dpX $dpY $BondPad $bpX $bpY] } errorMessage]
                 if {$errorCode != 0} {
-                    GUI::Transcript -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
+                    GUI::Transcript -severity error -msg [format "API error \"%s\", placing bond wire." $errorMessage]
                     GUI::Transcript -severity warning -msg [format "Bond Wire was not placed for net \"%s\" from (%f,%f) to (%f,%f)." \
                         $bondwire(NETNAME) $bondwire(FROM_X) $bondwire(FROM_Y) $bondwire(TO_X) $bondwire(TO_Y)]
                     incr bwplc(fail)
@@ -2441,28 +2441,38 @@ puts [expr $::MGCPCB::EPcbSide(epcbSideOpposite)]
                     GUI::Transcript -severity note -msg [format "Bond Wire successfully placed for net \"%s\" from (%f,%f) to (%f,%f)." \
                         $bondwire(NETNAME) $bondwire(FROM_X) $bondwire(FROM_Y) $bondwire(TO_X) $bondwire(TO_Y)]
                     incr bwplc(pass)
-                }
 
-                ##  Assign the BondWire model to ensure proper behavior
-                
-                GUI::Transcript -severity note -msg [format "Bond Wire Model \"%s\" assigned to net \"%s\"." \
-                    $MGC::WireBond::WBParameters(Model) [[$bw Net] Name]]
-                $bw -set WireModelName $MGC::WireBond::WBParameters(Model)
+                    ##  Assign the BondWire model to ensure proper behavior
 
-                ##  Did the Die Pin connect to something other than the default bond
-                ##  pad?  If so, need to add a "WBParameters" property to the pin to
-                ##  ensure proper operation during interactive editing.
+                    GUI::Transcript -severity note -msg [format "Bond Wire Model \"%s\" assigned to net \"%s\"." \
+                        $MGC::WireBond::WBParameters(Model) [[$bw Net] Name]]
+                    $bw -set WireModelName $MGC::WireBond::WBParameters(Model)
 
-                set dpn [[$DiePin CurrentPadstack] Name]
-                set bpn [[$BondPad CurrentPadstack] Name]
+                    ##  Did the Die Pin connect to something other than the default bond
+                    ##  pad?  If so, need to add a "WBParameters" property to the pin to
+                    ##  ensure proper operation during interactive editing.
 
-                #puts [format "Die Pin Name:  %s" $dpn]
-                #puts [format "Bond Pad Name:  %s" $bpn]
-                #puts [format "Default Padstack:  %s" $MGC::WireBond::WBParameters(Padstack)]
+                    set dpn [[$DiePin CurrentPadstack] Name]
+                    set bpn [[$BondPad CurrentPadstack] Name]
 
-                if { $bpn != $MGC::WireBond::WBParameters(Padstack) } {
-                    $DiePin PutProperty "WBParameters" [format "\[Pads=\[\[\[Padstack=\[%s\]\]\[WP=\[\[\]\]\]\]\]\]" $bpn]
-                    GUI::Transcript -severity note -msg [format "Wire Bond property \"WBParameters\" applied to pin \"%s\"." $bpn]
+                    #puts [format "Die Pin Name:  %s" $dpn]
+                    #puts [format "Bond Pad Name:  %s" $bpn]
+                    #puts [format "Default Padstack:  %s" $MGC::WireBond::WBParameters(Padstack)]
+
+                    ##  If the bond pad doesn't match the default, need to add a property.
+                    ##  Also need to clean up any prior existing properties in the event they
+                    ##  already exist.
+
+                    if { $bpn != $MGC::WireBond::WBParameters(Padstack) } {
+                        $DiePin PutProperty "WBParameters" [format "\[Pads=\[\[\[Padstack=\[%s\]\]\[WP=\[\[\]\]\]\]\]\]" $bpn]
+                        GUI::Transcript -severity note -msg [format "Wire Bond property \"WBParameters\" applied to pin \"%s\"." $bpn]
+                    } else {
+                        set p [$DiePin FindProperty "WBParameters"]
+                        if { $p != $xAIF::Settings(Nothing) } {
+                            GUI::Transcript -severity note -msg [format "Removing Wire Bond property \"WBParameters\" applied to pin \"%s\"." $bpn]
+                            $p Delete
+                        }
+                    }
                 }
 
                 #if { [incr c] > 5 } { break }
@@ -2490,7 +2500,7 @@ puts [expr $::MGCPCB::EPcbSide(epcbSideOpposite)]
                 GUI::Transcript -severity warning -msg "No Placement file specified, Export aborted."
                 return
             }
-        
+
             #  Write the wire model to the file
 
             set f [open $wb "w+"]
