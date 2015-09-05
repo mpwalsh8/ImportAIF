@@ -44,6 +44,8 @@
 #    07/21/2014 - Initial version.  Moved interaction with Mentor tools
 #                 to separate file and namespace to ease code maintenance.
 #
+#    09/05/2015 - Significant improvements to wire bond placement.
+#
 
 ##
 ##  Define the MGC namespace and procedure supporting operations
@@ -1681,7 +1683,7 @@ puts [expr $::MGCPCB::EPcbSide(epcbSideOpposite)]
         #
 
         proc Pads { } {
-            foreach i [AIFForms::ListBox::SelectFromList "Select Pad(s)" [AIF::Pad::GetAllPads]] {
+            foreach i [AIFForms::ListBox::SelectFromList "Select Pad(s)" [lsort -dictionary [AIF::Pad::GetAllPads]]] {
                 set p [lindex $i 1]
                 set ::padGeom(name) $p
                 set ::padGeom(shape) [AIF::Pad::GetShape $p]
@@ -1751,7 +1753,7 @@ puts [expr $::MGCPCB::EPcbSide(epcbSideOpposite)]
         #
 
         proc Padstacks { } {
-            foreach i [AIFForms::ListBox::SelectFromList "Select Pad(s)" [AIF::Pad::GetAllPads]] {
+            foreach i [AIFForms::ListBox::SelectFromList "Select Pad(s)" [lsort -dictionary [AIF::Pad::GetAllPads]]] {
                 set p [lindex $i 1]
                 set ::padGeom(name) $p
                 set ::padGeom(shape) [AIF::Pad::GetShape $p]
@@ -1814,7 +1816,7 @@ puts [expr $::MGCPCB::EPcbSide(epcbSideOpposite)]
         #
 
         proc Cells { } {
-            foreach i [AIFForms::ListBox::SelectFromList "Select Cell(s)" [array names ::devices]] {
+            foreach i [AIFForms::ListBox::SelectFromList "Select Cell(s)" [lsort -dictionary [array names ::devices]]] {
                 foreach j [array names GUI::Dashboard::CellGeneration] {
                     if { [string is true $GUI::Dashboard::CellGeneration($j)] } {
                         MGC::Generate::Cell [lindex $i 1] -mirror [string tolower [string trimleft $j Mirror]]
@@ -1832,7 +1834,7 @@ puts [expr $::MGCPCB::EPcbSide(epcbSideOpposite)]
         #
 
         proc PDBs { } {
-            foreach i [AIFForms::ListBox::SelectFromList "Select PDB(s)" [array names ::devices]] {
+            foreach i [AIFForms::ListBox::SelectFromList "Select PDB(s)" [lsort -dictionary [array names ::devices]]] {
                 MGC::Generate::PDB [lindex $i 1]
             }
         }
@@ -2077,13 +2079,13 @@ puts [expr $::MGCPCB::EPcbSide(epcbSideOpposite)]
             WBAngle 360
             BondSiteMargin 0
             WBMin 100
-            WBMax 3000
+            WBMax 10000
         }
 
         array set WBRule {
             Name DefaultWireModel
             BWW 25
-            Template {[Name=[DefaultWireModel]][IsMod=[No]][Cs=[[[X=[0]][Y=[0]][Z=[(BWH)]][R=[0]][CT=[Ball]]][[X=[0]][Y=[0]][Z=[(BWH)*1.5]][R=[100um]][CT=[Round]]][[X=[(BWD)/3*2]][Y=[0]][Z=[(BWH)*1.5]][R=[200um]][CT=[Round]]][[X=[(BWD)]][Y=[0]][Z=[(IH)]][R=[0]][CT=[Wedge]]]]][Vs=[[BD=[BWW+15um]][BH=[15um]][BWD=[3000um]][BWH=[300um]][BWW=[%s%s]][IH=[30um]][WL=[30um]]]]}
+            Template {[Name=[DefaultWireModel]][IsMod=[No]][Cs=[[[X=[0]][Y=[0]][Z=[(BWH)]][R=[0]][CT=[Ball]]][[X=[0]][Y=[0]][Z=[(BWH)+100um]][R=[50um]][CT=[Round]]][[X=[(BWD)/3*2]][Y=[0]][Z=[(BWH)+100um]][R=[200um]][CT=[Round]]][[X=[(BWD)]][Y=[0]][Z=[(IH)]][R=[0]][CT=[Wedge]]]]][Vs=[[BD=[BWW+15um]][BH=[15um]][BWD=[10000um]][BWH=[300um]][BWW=[25um]][IH=[30um]][WL=[30um]]]]}
             Value ""
         }
 
@@ -2131,13 +2133,19 @@ puts [expr $::MGCPCB::EPcbSide(epcbSideOpposite)]
                 }
             }
 
-            set MGC::WireBond::WBParameters(Padstack) \
-                [AIFForms::ListBox::SelectOneFromList "Select Bond Pad" $bondpads]
-            if { [string equal $MGC::WireBond::WBParameters(Padstack) ""] } {
+            set ps [AIFForms::ListBox::SelectOneFromList "Select Bond Pad" [lsort -dictionary $bondpads]]
+
+            puts $ps
+            if { [string equal $ps ""] } {
                 GUI::Transcript -severity error -msg "No bond pad selected."
                 return
             } else {
-                set MGC::WireBond::WBParameters(Padstack) [lindex $MGC::WireBond::WBParameters(Padstack) 1]
+                ##  Need to account for bond pad substitution if necessary
+                if { [lsearch [array names ::bondpadsubst] [lindex $ps 1]] != -1 } {
+                    set MGC::WireBond::WBParameters(Padstack) [format "%s_h" [lindex $ps 1]]
+                } else {
+                    set MGC::WireBond::WBParameters(Padstack) [lindex $ps 1]
+                }
             }
         }
 
@@ -2237,7 +2245,7 @@ puts [expr $::MGCPCB::EPcbSide(epcbSideOpposite)]
 
                 if { [lsearch [array names ::bondpadsubst] $bondpad(FINNAME)] != -1 } {
                     set bondpad(FINNAME) [format "%s_h" $bondpad(FINNAME)]
-                    set bondpad(ANGLE) [expr $bondpad(ANGLE) - 90.0]
+                    set bondpad(ANGLE) [expr $bondpad(ANGLE) + 90.0]
                 }
 
                 ##  Need to find the padstack ...
@@ -2281,7 +2289,9 @@ puts [expr $::MGCPCB::EPcbSide(epcbSideOpposite)]
                 puts [format "---------->  %s" [$bpo Name]]
                 puts [format "Orientation:  %s" [$bpo -get Orientation]]
             }
+
             $xAIF::Settings(pcbDoc) TransactionEnd True
+            GUI::StatusBar::UpdateStatus -busy off
         }
 
         ##
@@ -2309,9 +2319,12 @@ puts [expr $::MGCPCB::EPcbSide(epcbSideOpposite)]
             GUI::StatusBar::UpdateStatus -busy on
 
             ##  Start a transaction with DRC to get Bond Pads placed ...
-            $xAIF::Settings(pcbDoc) TransactionStart [expr $::MGCPCB::EPcbDRCMode(epcbDRCModeNone)]
+##>            $xAIF::Settings(pcbDoc) TransactionStart [expr $::MGCPCB::EPcbDRCMode(epcbDRCModeNone)]
+
+            array set bwplc [list pass 0 fail 0]
 
             ##  Place each bond wire based on From XY and To XY
+            #set c 0
             foreach i $::bondwires {
                 set bondwire(NETNAME) [lindex $i 0]
                 set bondwire(FROM_X) [lindex $i 1]
@@ -2351,8 +2364,8 @@ puts [expr $::MGCPCB::EPcbSide(epcbSideOpposite)]
                         [format "Unable to pick die pad at bond wire origin (X: %f  Y: %f), bond wire skipped (Net: %s  From (%f, %f) To (%f, %f)." \
                         $bondwire(FROM_X) $bondwire(FROM_Y) $bondwire(NETNAME) \
                         $bondwire(FROM_X) $bondwire(FROM_Y) $bondwire(TO_X) $bondwire(TO_Y)]
-$xAIF::Settings(pcbDoc) TransactionEnd True
-break
+#$xAIF::Settings(pcbDoc) TransactionEnd True
+#break
                         continue
                 } else {
                     GUI::Transcript -severity note -msg \
@@ -2403,7 +2416,7 @@ break
                 } else {
                     GUI::Transcript -severity note -msg \
                         [format "Found Bond Pad at bond wire termination (X: %f  Y: %f) for net \"%s\"." \
-                            $bondwire(FROM_X) $bondwire(FROM_Y) $bondwire(NETNAME)]
+                            $bondwire(TO_X) $bondwire(TO_Y) $bondwire(NETNAME)]
                 }
 
                 ##  Validated it is correct type, now need just the object selected
@@ -2415,18 +2428,49 @@ break
                 set bpX [$BondPad PositionX]
                 set bpY [$BondPad PositionY]
 
-                set bw [$xAIF::Settings(pcbDoc) PutBondWire $DiePin $dpX $dpY $BondPad $bpX $bpY]
-                GUI::Transcript -severity note -msg [format "Bond Wire successfully placed for net \"%s\" from (%f,%f) to (%f,%f)." \
-                    $bondwire(NETNAME) $bondwire(FROM_X) $bondwire(FROM_Y) $bondwire(TO_X) $bondwire(TO_Y)]
+ 
+                ##  Place the bond wire, trap any DRC violations and report them.
+                set errorCode [catch { set bw [$xAIF::Settings(pcbDoc) \
+                    PutBondWire $DiePin $dpX $dpY $BondPad $bpX $bpY] } errorMessage]
+                if {$errorCode != 0} {
+                    GUI::Transcript -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
+                    GUI::Transcript -severity warning -msg [format "Bond Wire was not placed for net \"%s\" from (%f,%f) to (%f,%f)." \
+                        $bondwire(NETNAME) $bondwire(FROM_X) $bondwire(FROM_Y) $bondwire(TO_X) $bondwire(TO_Y)]
+                    incr bwplc(fail)
+                } else {
+                    GUI::Transcript -severity note -msg [format "Bond Wire successfully placed for net \"%s\" from (%f,%f) to (%f,%f)." \
+                        $bondwire(NETNAME) $bondwire(FROM_X) $bondwire(FROM_Y) $bondwire(TO_X) $bondwire(TO_Y)]
+                    incr bwplc(pass)
+                }
 
-                ##  Assign the BondWire model to ensure propert behavior
+                ##  Assign the BondWire model to ensure proper behavior
                 
                 GUI::Transcript -severity note -msg [format "Bond Wire Model \"%s\" assigned to net \"%s\"." \
                     $MGC::WireBond::WBParameters(Model) [[$bw Net] Name]]
                 $bw -set WireModelName $MGC::WireBond::WBParameters(Model)
+
+                ##  Did the Die Pin connect to something other than the default bond
+                ##  pad?  If so, need to add a "WBParameters" property to the pin to
+                ##  ensure proper operation during interactive editing.
+
+                set dpn [[$DiePin CurrentPadstack] Name]
+                set bpn [[$BondPad CurrentPadstack] Name]
+
+                #puts [format "Die Pin Name:  %s" $dpn]
+                #puts [format "Bond Pad Name:  %s" $bpn]
+                #puts [format "Default Padstack:  %s" $MGC::WireBond::WBParameters(Padstack)]
+
+                if { $bpn != $MGC::WireBond::WBParameters(Padstack) } {
+                    $DiePin PutProperty "WBParameters" [format "\[Pads=\[\[\[Padstack=\[%s\]\]\[WP=\[\[\]\]\]\]\]\]" $bpn]
+                    GUI::Transcript -severity note -msg [format "Wire Bond property \"WBParameters\" applied to pin \"%s\"." $bpn]
+                }
+
+                #if { [incr c] > 5 } { break }
             }
 
-            $xAIF::Settings(pcbDoc) TransactionEnd True
+            GUI::Transcript -severity note -msg [format "Bond Wire Placement Results - Placed:  %s  Failed:  %s" $bwplc(pass) $bwplc(fail)]
+
+##>            $xAIF::Settings(pcbDoc) TransactionEnd True
             GUI::StatusBar::UpdateStatus -busy off
         }
 
