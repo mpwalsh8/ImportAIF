@@ -2103,12 +2103,16 @@ puts "GUI::Dashboard::SelectCentralLibrary"
                     set nlr(BALLNUM) [lindex $net 5]
                 }
     
-                #  A complex netlist with ball and rings assignments has 14 fields
+                #  A netlist with ball assignments  and locations has 9 fields
                 if { [llength [split $net]] > 6 } {
                     set nlr(BALLNAME) [lindex $net 6]
                     set nlr(BALL_X) [lindex $net 7]
                     set nlr(BALL_Y) [lindex $net 8]
-                    set nlr(FINNUM [lindex $net 9]
+                }
+    
+                #  A complex netlist with ball and rings assignments has 14 fields
+                if { [llength [split $net]] > 9 } {
+                    set nlr(FINNUM) [lindex $net 9]
                     set nlr(FINNAME) [lindex $net 10]
                     set nlr(FIN_X) [lindex $net 11]
                     set nlr(FIN_Y) [lindex $net 12]
@@ -2592,7 +2596,7 @@ puts "GUI::Dashboard::SelectCentralLibrary"
                 #puts $poly
                 if { [lindex $poly 1] == 1 } {
                     set points [lreplace $poly  0 3 ]
-                    #puts $points 
+                    puts $points 
                 } else {
                     GUI::Transcript -severity warning -msg "Only one polygon supported for BGA outline, reverting to derived outline."
                     set x1 [expr -($::bga(width) / 2)]
@@ -2605,7 +2609,8 @@ puts "GUI::Dashboard::SelectCentralLibrary"
     
     
             } else {
-                set points { $x1 $y1 $x2 $y2 }
+                #set points { $x1 $y1 $x2 $y2 }
+                set points [list $x1 $y1 $x2 $y2]
             }
     
             $cnvs create polygon $points -outline $color -tags "$::bga(name) bga bgaoutline"
