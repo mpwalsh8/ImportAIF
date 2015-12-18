@@ -322,6 +322,30 @@ namespace eval AIF {
             return [GetParam $pad]
         }
 
+        #  Return the xy points of the pad
+        proc GetPoints { pad } {
+            set pts {}
+            foreach p [GetParams $pad] {
+                if { [string equal POLY $p] } continue
+
+                #  The AIF specification and sample file have the X and Y separated by
+                #  both a space and comma character so we'll plan to handle either situation.
+                if { [llength [split $p ,]] == 2 } {
+                    set X [lindex [split $p ,] 0]
+                    set Y [lindex [split $p ,] 1]
+                } else {
+                    set X [lindex [split $p] 0]
+                    set Y [lindex [split $p] 1]
+                }
+
+                lappend pts $X $Y
+
+                #puts $p
+            }
+            #puts $pts
+            return $pts
+        }
+
         #  Return the width of the pad
         proc GetWidth { pad } {
             return [GetParam $pad 1]

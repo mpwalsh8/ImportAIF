@@ -493,10 +493,10 @@ if { 0 } {
             menu $vm.pads -tearoff 0
             $vm.pads add cascade -label "All On" -underline 5 \
                 -command { GUI::Visibility "pad" -all true -mode on ; \
-                foreach p $::pads { set GUI::pads([lindex $p 0]) on }  }
+                foreach p [array names ::pads] { set GUI::pads([lindex $p 0]) on }  }
             $vm.pads add cascade -label "All Off" -underline 5 \
                 -command { GUI::Visibility "pad" -all true -mode off ; \
-                foreach p $::pads { set GUI::pads([lindex $p 0]) off }  }
+                foreach p [array names ::pads] { set GUI::pads([lindex $p 0]) off }  }
             $vm.pads add separator
 
 
@@ -2285,6 +2285,7 @@ puts "GUI::Dashboard::SelectCentralLibrary"
             ##  Netlist content
             set p ""
             foreach n $::netlist {
+puts $n
                 set c ""
                 foreach i $n {
                     if { [lsearch $n $i] == 0 } {
@@ -2407,6 +2408,75 @@ puts "GUI::Dashboard::SelectCentralLibrary"
         }
     
         #
+        #  GUI::Draw::GenKYN
+        #
+        proc GenKYN {} {
+            set kyn $GUI::widgets(kynnetlistview)
+            #  Generate KYN Netlist
+            $kyn configure -state normal
+            $kyn delete 1.0 end
+    
+            ##  Netlist file header 
+            $kyn insert end ";; V4.1.0\n"
+            $kyn insert end "%net\n"
+            $kyn insert end "%Prior=1\n\n"
+            $kyn insert end "%page=0\n"
+    
+            puts $::netlist
+            ##  Netlist content
+            set p ""
+            foreach n $::netlist {
+                set c ""
+                foreach i $n {
+                    if { [lsearch $n $i] == 0 } {
+#puts "${i}::${n}"
+                        set c $i
+                        if { $c == $p } {
+                            $kyn insert end "*  "
+                        } else {
+                            $kyn insert end "\\$i\\  "
+                        }
+                    } else {
+                        set p [split $i "."]
+puts "${i}::${n}::${p}"
+                        if { [llength $p] > 1 } {
+                            $kyn insert end [format " \\%s\\-\\%s\\" [lindex $p 0] [lindex $p 1]]
+                        } else {
+                            $kyn insert end [format " \\%s\\-\\%s\\" $xAIF::Settings(DIEREF) [lindex $p 0]]
+                        }
+                    }
+                }
+    
+                set p $c
+                $kyn insert end "\n"
+                #puts "$n"
+            }
+    
+            ##  Output the part list
+            $kyn insert end "\n%Part\n"
+            foreach i [AIF::MCMDie::GetAllDie] {
+                ###$kyn insert end [format "\\%s\\   \\%s\\\n" [dict get $::mcmdie $i] $i]
+                $kyn insert end [format "\\%s\\   \\%s\\\n" $::mcmdie($i) $i]
+            }
+
+            ##  If this AIF file does not contain a MCM_DIE section then
+            ##  the DIE will not appear in the part list and needs to be
+            ##  added separately.
+
+            if { [lsearch -exact $::AIF::sections MCM_DIE] == -1 } {
+                $kyn insert end [format "\\%s\\   \\%s\\\n" $::die(name) $::die(refdes)]
+            }
+
+    
+            ##  If there is a BGA, make sure to put it in the part list
+            #if { $xAIF::Settings(BGA) == 1 } {
+            #    $kyn insert end [format "\\%s\\   \\%s\\\n" $::bga(name) $::bga(refdes)]
+            #}
+    
+            $kyn configure -state disabled
+        }
+
+        #
         #  GUI::Draw::AddPin
         #
         proc AddPin { x y pin net pad line_no { tags "diepad" } { color "yellow" } { outline "red" } { angle 0 } } {
@@ -2526,6 +2596,54 @@ puts "GUI::Dashboard::SelectCentralLibrary"
                     $cnvs create text $x $y -text $padtxt -fill $outline \
                         -anchor center -font [list arial] -justify center \
                         -tags "text padnumber padnumber-$pin $tags"
+                }
+                "POLY" {
+                    set polypts {}
+                    set padxy [AIF::Pad::GetPoints $pad]
+                    puts $padxy
+                    foreach {px py} $padxy {
+                        #puts $px
+                        #puts $py
+                        lappend polypts [expr $px + $x]
+                        lappend polypts [expr $py + $y]
+                    }
+    
+                    #set id [$cnvs create poly $padxy -outline $outline -fill $color -tags "$tags"]
+                    set id [$cnvs create poly $polypts -outline $outline -fill $color -tags "$tags"]
+    
+                    #  Add text: Use pin number if it was supplied, otherwise pad name
+                    $cnvs create text $x $y -text $padtxt -fill $outline \
+                        -anchor center -font [list arial] -justify center \
+                        -tags "text padnumber padnumber-$pin $tags"
+    
+                    #  Handle any angle ajustment
+    
+                    if { $angle != 0 } {
+                        set Ox $x
+                        set Oy $y
+    
+                        set radians [expr {$angle * atan(1) * 4 / 180.0}] ;# Radians
+                        set xy {}
+                        foreach {x y} [$cnvs coords $id] {
+                            # rotates vector (Ox,Oy)->(x,y) by angle clockwise
+    
+                            # Shift the object to the origin
+                            set x [expr {$x - $Ox}]
+                            set y [expr {$y - $Oy}]
+    
+                            #  Rotate the object
+                            set xx [expr {$x * cos($radians) - $y * sin($radians)}]
+                            set yy [expr {$x * sin($radians) + $y * cos($radians)}]
+    
+                            # Shift the object back to the original XY location
+                            set xx [expr {$xx + $Ox}]
+                            set yy [expr {$yy + $Oy}]
+    
+                            lappend xy $xx $yy
+                        }
+                        $cnvs coords $id $xy
+                    }
+    
                 }
                 default {
                     #error "Error parsing $filename (line: $line_no): $line"
