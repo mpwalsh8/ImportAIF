@@ -532,7 +532,7 @@ if { 0 } {
                 -underline 0 -command MGC::Generate::Padstacks
             $gm add command -label "Cells ..." \
                 -underline 0 -command MGC::Generate::Cells
-                    $gm add command -label "PDBs ..." \
+            $gm add command -label "PDBs ..." \
                 -underline 1 -command MGC::Generate::PDBs
             }
 
@@ -554,6 +554,9 @@ if { 0 } {
             $dm add separator
             $dm add command -label "Check Database Units" \
                 -underline 6 -command MGC::Design::CheckDatabaseUnits
+            $dm add separator
+            $dm add command -label "Set Package Cell" \
+                -underline 0 -command MGC::Design::SetPackageCell
             }
 
         ##

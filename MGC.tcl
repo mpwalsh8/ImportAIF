@@ -1887,6 +1887,25 @@ puts [expr $::MGCPCB::EPcbSide(epcbSideOpposite)]
     ##
     namespace eval Design {
         #
+        #  MGC::Design::SetPackageCell
+        #
+        proc SetPackageCell {} {
+            puts "1"
+            #set xAIF::Settings(PackageCell) ""
+            puts "2"
+            set pkgcell [AIFForms::ListBox::SelectOneFromList "Select Package Cell" [lsort -dictionary [array names ::devices]]]
+            puts "-->$pkgcell<--"
+            if { [string equal $pkgcell ""] } {
+            puts "3"
+                GUI::Transcript -severity warning -msg "Package Cell not set."
+            } else {
+            puts "4"
+                set xAIF::Settings(PackageCell) [lindex $pkgcell 1]
+                GUI::Transcript -severity note -msg [format "Package Cell set to:  %s" $xAIF::Settings(PackageCell)]
+            }
+        }
+
+        #
         #  MGC::Design::SetPackageOutline
         #
         proc DrawOutline { args } {
@@ -1908,6 +1927,12 @@ puts [expr $::MGCPCB::EPcbSide(epcbSideOpposite)]
                 error "value of \"$a\" must be one of packageoutline, routeborder, manufacturingoutline, or testfixtureoutline"
             }
 
+            ##  Need to have a Package Cell set - default to BGA if it exists?
+            if { [string equal $xAIF::Settings(PackageCell) ""] } {
+                GUI::Transcript -severity error -msg "Package Cell not set."
+                return
+            }
+
             ##  Which mode?  Design or Library?
             if { $GUI::Dashboard::Mode == $xAIF::Settings(designMode) } {
                 ##  Invoke Expedition on the design so the Units can be set
@@ -1920,8 +1945,11 @@ puts [expr $::MGCPCB::EPcbSide(epcbSideOpposite)]
                     return
                 }
 
-                set width [AIF::GetVar WIDTH BGA]
-                set height [AIF::GetVar HEIGHT BGA]
+                #set width [AIF::GetVar WIDTH BGA]
+                #set height [AIF::GetVar HEIGHT BGA]
+
+                set width [AIF::GetVar WIDTH [format "MCM_%s_U13" $xAIF::Settings(PackageCell)]]
+                set height [AIF::GetVar HEIGHT [format "MCM_%s_U13" $xAIF::Settings(PackageCell)]]
 
                 set x2 [expr $width / 2]
                 set x1 [expr -1 * $x2]

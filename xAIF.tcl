@@ -185,6 +185,7 @@ namespace eval xAIF {
             MCMAIF 0
             DIEREF "U1"
             BGAREF "A1"
+            PackageCell ""
         }
 
         ##  Keywords to scan for in AIF file
