@@ -2761,7 +2761,7 @@ puts "${i}::${n}::${p}"
         set x2 [expr +($::bga(width) / 2)]
         set y1 [expr -($::bga(height) / 2)]
         set y2 [expr +($::bga(height) / 2)]
-        #puts [format "BGA Outline extents:  X1:  %s  Y1:  %s  X2:  %s  Y2:  %s" $x1 $y1 $x2 $y2]
+        puts [format "BGA Outline extents:  X1:  %s  Y1:  %s  X2:  %s  Y2:  %s" $x1 $y1 $x2 $y2]
 
         ##  Does BGA section contain POLYGON outline?  If not, use the height and width
         if { [lsearch -exact [AIF::Variables BGA] OUTLINE] != -1 } {
@@ -2778,14 +2778,19 @@ puts "${i}::${n}::${p}"
                 set y1 [expr -($::bga(height) / 2)]
                 set y2 [expr +($::bga(height) / 2)]
 
-                set points { $x1 $y1 $x2 $y2 }
+                #set points { $x1 $y1 $x2 $y2 }
+                set points [list $x1 $y1 $x2 $y1 $x2 $y2 $x1 $y2]
             }
+            puts "A"
 
 
         } else {
+            puts "B"
             #set points { $x1 $y1 $x2 $y2 }
-            set points [list $x1 $y1 $x2 $y2]
+            #set points [list $x1 $y1 $x2 $y2]
+            set points [list $x1 $y1 $x2 $y1 $x2 $y2 $x1 $y2]
         }
+        puts $points
 
         $cnvs create polygon $points -outline $color -tags "$::bga(name) bga bgaoutline"
         $cnvs create text $x2 $y2 -text $::bga(name) -fill $color \
