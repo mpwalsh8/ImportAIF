@@ -473,7 +473,7 @@ namespace eval AIF {
                     #    -variable xAIF::GUI::pads($v) -onvalue on -offvalue off -command GUI::VisiblePad
                     $m add checkbutton -label "$v" \
                         -variable xAIF::GUI::pads($v) -onvalue on -offvalue off \
-                        -command  "xAIF::GUI::Visibility pad-$v -mode toggle"
+                        -command  "xAIF::GUI::Draw::Visibility pad-$v -mode toggle"
                 }
 
                 foreach i [array names ::pads] {
