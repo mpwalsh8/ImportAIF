@@ -2080,7 +2080,7 @@ puts [expr $::MGCPCB::EPcbSide(epcbSideOpposite)]
     ##
     ##  These parameters, provided by Frank Bader, are fairly generic and general purpose.
     ##
-    namespace eval WireBond {
+    namespace eval Wirebond {
 
         variable WBParameters
         variable WBDRCProperty
@@ -2120,7 +2120,7 @@ puts [expr $::MGCPCB::EPcbSide(epcbSideOpposite)]
         set WBRule(Value) [format $WBRule(Template) $WBRule(BWW) $Units]
 
         ##
-        ##  MGC::WireBond::UpdateParameters
+        ##  MGC::Wirebond::UpdateParameters
         ##
         proc UpdateParameters {} {
             variable Units
@@ -2133,7 +2133,7 @@ puts [expr $::MGCPCB::EPcbSide(epcbSideOpposite)]
         }
 
         ##
-        ##  MGC::WireBond::UpdateDRCProperty
+        ##  MGC::Wirebond::UpdateDRCProperty
         ##
         proc UpdateDRCProperty {} {
             variable Angle
@@ -2148,7 +2148,7 @@ puts [expr $::MGCPCB::EPcbSide(epcbSideOpposite)]
         }
 
         ##
-        ##  MGC::WireBond::SelectBondPad
+        ##  MGC::Wirebond::SelectBondPad
         ##
         proc SelectBondPad {} {
             set bondpads [list]
@@ -2170,28 +2170,28 @@ puts [expr $::MGCPCB::EPcbSide(epcbSideOpposite)]
             } else {
                 ##  Need to account for bond pad substitution if necessary
                 if { [lsearch [array names ::bondpadsubst] [lindex $ps 1]] != -1 } {
-                    set MGC::WireBond::WBParameters(Padstack) [format "%s_h" [lindex $ps 1]]
+                    set MGC::Wirebond::WBParameters(Padstack) [format "%s_h" [lindex $ps 1]]
                 } else {
-                    set MGC::WireBond::WBParameters(Padstack) [lindex $ps 1]
+                    set MGC::Wirebond::WBParameters(Padstack) [lindex $ps 1]
                 }
             }
         }
 
         ##
-        ##  MGC::WireBond::Setup
+        ##  MGC::Wirebond::Setup
         ##
         proc Setup {} {
             variable WBParameters
             xAIF::Utility::PrintArray WBParameters
-            puts "MGC::WireBond::Setup"
+            puts "MGC::Wirebond::Setup"
             $GUI::widgets(notebook) select $GUI::widgets(wirebondparams)
         }
 
         ##
-        ##  MGC::WireBond::ApplyProperies
+        ##  MGC::Wirebond::ApplyProperies
         ##
         proc ApplyProperies {} {
-            puts "MGC::WireBond::ApplyProperies"
+            puts "MGC::Wirebond::ApplyProperies"
             ##  Which mode?  Design or Library?
             if { $GUI::Dashboard::Mode == $xAIF::Settings(designMode) } {
                 ##  Invoke Expedition on the design so the Cell Editor can be started
@@ -2235,10 +2235,10 @@ puts [expr $::MGCPCB::EPcbSide(epcbSideOpposite)]
         }
 
         ##
-        ##  MGC::WireBond::PlaceBondPads
+        ##  MGC::Wirebond::PlaceBondPads
         ##
         proc PlaceBondPads {} {
-            puts "MGC::WireBond::PlaceBondPads"
+            puts "MGC::Wirebond::PlaceBondPads"
 
             ##  Which mode?  Design or Library?
             if { $GUI::Dashboard::Mode == $xAIF::Settings(designMode) } {
@@ -2326,7 +2326,7 @@ puts [expr $::MGCPCB::EPcbSide(epcbSideOpposite)]
         ##  MGC::BondWire::PlaceBondWires
         ##
         proc PlaceBondWires {} {
-            puts "MGC::WireBond::PlaceBondWires"
+            puts "MGC::Wirebond::PlaceBondWires"
 
             ##  Which mode?  Design or Library?
             if { $GUI::Dashboard::Mode == $xAIF::Settings(designMode) } {
@@ -2473,8 +2473,8 @@ puts [expr $::MGCPCB::EPcbSide(epcbSideOpposite)]
                     ##  Assign the BondWire model to ensure proper behavior
 
                     GUI::Transcript -severity note -msg [format "Bond Wire Model \"%s\" assigned to net \"%s\"." \
-                        $MGC::WireBond::WBParameters(Model) [[$bw Net] Name]]
-                    $bw -set WireModelName $MGC::WireBond::WBParameters(Model)
+                        $MGC::Wirebond::WBParameters(Model) [[$bw Net] Name]]
+                    $bw -set WireModelName $MGC::Wirebond::WBParameters(Model)
 
                     ##  Did the Die Pin connect to something other than the default bond
                     ##  pad?  If so, need to add a "WBParameters" property to the pin to
@@ -2485,13 +2485,13 @@ puts [expr $::MGCPCB::EPcbSide(epcbSideOpposite)]
 
                     #puts [format "Die Pin Name:  %s" $dpn]
                     #puts [format "Bond Pad Name:  %s" $bpn]
-                    #puts [format "Default Padstack:  %s" $MGC::WireBond::WBParameters(Padstack)]
+                    #puts [format "Default Padstack:  %s" $MGC::Wirebond::WBParameters(Padstack)]
 
                     ##  If the bond pad doesn't match the default, need to add a property.
                     ##  Also need to clean up any prior existing properties in the event they
                     ##  already exist.
 
-                    if { $bpn != $MGC::WireBond::WBParameters(Padstack) } {
+                    if { $bpn != $MGC::Wirebond::WBParameters(Padstack) } {
                         $DiePin PutProperty "WBParameters" [format "\[Pads=\[\[\[Padstack=\[%s\]\]\[WP=\[\[\]\]\]\]\]\]" $bpn]
                         GUI::Transcript -severity note -msg [format "Wire Bond property \"WBParameters\" applied to pin \"%s\"." $bpn]
                     } else {
@@ -2513,7 +2513,7 @@ puts [expr $::MGCPCB::EPcbSide(epcbSideOpposite)]
         }
 
         ##
-        ##  MGC::WireBond::ExportWireModel
+        ##  MGC::Wirebond::ExportWireModel
         ##
         proc ExportWireModel { { wb "" } } {
             variable Units
@@ -2540,4 +2540,588 @@ puts [expr $::MGCPCB::EPcbSide(epcbSideOpposite)]
             return
         }
     }
+}
+
+namespace eval xPCB {
+    variable View
+
+    set View(XYAxes) on
+    set View(Dimensions) on
+    set View(PadNumbers) on
+    set View(RefDesignators) on
+
+    variable Settings
+
+    set Settings(workdir) [pwd]
+
+    set Settings(pcbApp) {}
+    set Settings(pcbAppId) {}
+
+    set Settings(pcbDoc) {}
+    #set Settings(pcbToken) {}
+    set Settings(pcbGui) {}
+    set Settings(pcbUtil) {}
+
+    set Settings(pcbOpenDocuments) {}
+    set Settings(pcbOpenDocumentIds) {}
+
+    set Settings(MirrorNone) on
+    set Settings(MirrorX) off
+    set Settings(MirrorY) off
+    set Settings(MirrorXY) off
+
+    set Settings(DefaultCellHeight) 50
+    set Settings(CellNameSuffix) $xAIF::Const::CELL_GEN_SUFFIX_NONE_KEY
+    set Settings(BGACellGeneration) $xAIF::Const::CELL_GEN_BGA_NORMAL_KEY
+
+    set Settings(LayerNames) {}
+    set Settings(LayerNumbers) {}
+
+    set Settings(operatingmode) $xAIF::Const::XAIF_MODE_DESIGN
+
+    set Settings(consoleEcho) off
+    set Settings(debugmsgs) on
+    set Settings(verbosemsgs) on
+
+    ##  Tool command lines
+
+    set Settings(xpeditionpcb) ""
+    set Settings(xpeditionpcbopts) ""
+
+    set Settings(librarymanager) ""
+    set Settings(librarymanageropts) ""
+
+    ##
+    ##  xPCB::ToolSetup
+    ##
+    proc ToolSetup {} {
+        if { [lsearch [array names ::env] SDD_HOME] != -1 } {
+#puts "here ..."
+            set xPCB::Settings(xpcbinstalled) true
+        } else {
+#puts "there ..."
+            set xPCB::Settings(xpcbinstalled) false
+            xAIF::GUI::Message -severity warning -msg \
+                "SDD_HOME environment variable is not defined, Xpedition integration disabled."
+
+            ##  Need to disable Calibre related menus ...
+            ## Setup menu
+            #$xAIF::GUI::Widgets(setupmenu) entryconfigure 0 -state disabled
+            #$xAIF::GUI::Widgets(setupmenu) entryconfigure 3 -state disabled
+            #$xAIF::GUI::Widgets(setupmenu) entryconfigure 4 -state disabled
+            #$xAIF::GUI::Widgets(setupmenu) entryconfigure 5 -state disabled
+
+            ## Tools menu
+            #$xAIF::GUI::Widgets(toolsmenu) entryconfigure 1 -state disabled
+            #$xAIF::GUI::Widgets(toolsmenu) entryconfigure 2 -state disabled
+            #$xAIF::GUI::Widgets(toolsmenu) entryconfigure 3 -state disabled
+            #$xAIF::GUI::Widgets(toolsmenu) entryconfigure 4 -state disabled
+            #$xAIF::GUI::Widgets(toolsmenu) entryconfigure 6 -state disabled
+
+            ## InFO menu
+            #$xAIF::GUI::Widgets(infomenu) entryconfigure 0 -state disabled
+            #$xAIF::GUI::Widgets(infomenu) entryconfigure 1 -state disabled
+            #$xAIF::GUI::Widgets(infomenu) entryconfigure 2 -state disabled
+        }
+    }
+
+
+    ##
+    ##  xPCB::getLicensedDoc
+    ##
+    ##  Function that returns a licensed doc object
+    ##
+    proc getLicensedDoc {appObj} {
+        # collect the active document
+        set docObj [$appObj ActiveDocument]
+
+        # Ask Expeditions document for the key
+        set key [$docObj Validate "0" ]
+
+        # Get token from license server
+        set licenseServer [::tcom::ref createobject {MGCPCBAutomationLicensing.Application}]
+
+        set licenseToken [ $licenseServer GetToken $key ]
+
+        # Ask the document to validate the license token
+        $docObj Validate $licenseToken
+
+        # everything is OK, return document
+        return $docObj
+    }
+
+    ##
+    ##  xPCB::getOpenDocumentPaths
+    ##
+    proc getOpenDocumentPaths {pcbApp} {
+        variable Settings
+
+        set cnt 0
+        set docPaths {}
+        set tmpApp $pcbApp
+
+        set tmpApp [[$tmpApp Utility] FindApplication $cnt]
+
+        while { [string length $tmpApp] > 0 } {
+            if { [string length [$tmpApp ActiveDocument]] > 0 } {
+                lappend Settings(pcbOpenDocumentIds) $cnt
+                lappend Settings(pcbOpenDocumentPaths) [[$tmpApp ActiveDocument] FullName]
+            }
+            incr cnt
+            set tmpApp [[$tmpApp Utility] FindApplication $cnt]
+        }
+    }
+
+    ##
+    ##  xPCB::setActiveDocument
+    ##
+    proc setActiveDocument {} {
+        variable Settings
+
+        ##  Find the application instance associated with the pcbAppId
+        set tmpApp [[$Settings(pcbApp) Utility] FindApplication $Settings(pcbAppId)]
+
+        ##  Make sure it is still open, issue an error otherwise
+        if { [string length $tmpApp] > 0 } {
+            if { [string length [$tmpApp ActiveDocument]] > 0 } {
+                set Settings(pcbApp) $tmpApp
+                set Settings(pcbDoc) [$Settings(pcbApp) ActiveDocument]
+                set Settings(pcbDoc) [getLicensedDoc $Settings(pcbApp)]
+
+                xAIF::GUI::Message -severity note -msg \
+                    [format "Successfully connected to design:  %s" \
+                    [lindex $Settings(pcbOpenDocumentPaths) $Settings(pcbAppId)]]
+
+                ##  Default the work directory from the design
+                Setup::WorkDirectoryFromDesign
+            }
+        } else {
+            xAIF::GUI::Message -severity error -msg \
+                [format "Unable to connect design \"%s\", is Xpedition running?" \
+                [lindex $Settings(pcbOpenDocumentPaths) $Settings(pcbAppId)]]
+        }
+    }
+
+    ##
+    ##  xPCB::setOpenDocuments
+    ##
+    proc setOpenDocuments {} {
+        variable Settings
+ 
+        ##  Flush the saved open document data (if any exists)
+        set Settings(pcbOpenDocumentIds) {}
+        set Settings(pcbOpenDocumentPaths) {}
+
+        ##  Make sure a valid Xpedtition handle exists
+        xPCB::Connect
+        ##  Figure out if any designs are open
+        xPCB::getOpenDocumentPaths $xPCB::Settings(pcbApp)
+
+        ##  Remove any existing layer cascade menus and generate new ones
+        set designmenu [$xAIF::GUI::Widgets(mainframe) getmenu activedesignsmenu]
+        $designmenu delete 0 end
+
+        ##  Add active designs to Design pulldown menu
+        foreach dpath $xPCB::Settings(pcbOpenDocumentPaths) id $xPCB::Settings(pcbOpenDocumentIds) {
+            $designmenu add radiobutton -label [file tail $dpath] \
+                -variable xPCB::Settings(pcbAppId) -value $id \
+                -command { xPCB::setActiveDocument ; xPCB::setConductorLayers }
+        }
+
+        ##  Initialize the active design to the first one in the list
+        if { [llength $xPCB::Settings(pcbOpenDocumentIds)] > 0 } {
+            set xPCB::Settings(pcbAppId) [lindex $xPCB::Settings(pcbOpenDocumentIds) 0]
+            xPCB::setActiveDocument
+            xPCB::setConductorLayers
+            xPCB::LoadDesignConfig
+        }
+    }
+
+    ##
+    ##  xPCB::setConductorLayers
+    ##
+    proc setConductorLayers {} {
+        variable Settings
+        set xAIF::Settings(status) "Busy ..."
+
+        ##  Need to clean up previously existing layer names
+        foreach l $Settings(LayerNames) {
+            #puts [format "%s = %s" $l $Settings(layer$l)]
+            array unset Settings layer$l
+        }
+
+        ##  Flush the saved layer data (if any exists)
+        set Settings(LayerNames) {}
+        set Settings(LayerNumbers) {}
+
+        set ConductorLayers [$Settings(pcbDoc) LayerStack False]
+
+        xAIF::GUI::Message -severity note -msg \
+            [format "Design contains %s Conductor Layers." [$ConductorLayers Count]]
+        ::tcom::foreach layer $ConductorLayers {
+            #lappend Settings(LayerNumbers) [$layer Item]
+            lappend Settings(LayerNames) [[$layer LayerProperties] StackupLayerName]
+            xAIF::GUI::Message -severity note -msg \
+                [format "Conductor Layer:  %s" [[$layer LayerProperties] StackupLayerName]]
+            #puts [[$layer LayerProperties] Description]
+            #puts [[$layer LayerProperties] LayerUsage]
+        }
+
+        ##  Remove any existing layer and hatch cascade menus and generate new ones
+        set layermenu [$xAIF::GUI::Widgets(mainframe) getmenu activelayernamesmenu]
+        set hatchmenu [$xAIF::GUI::Widgets(mainframe) getmenu activelayerhatchwidthsmenu]
+        $layermenu delete 0 end
+        $hatchmenu delete 0 end
+
+        foreach layer $Settings(LayerNames) {
+            set l [string tolower $layer]
+            set L [string toupper $layer]
+            $layermenu add checkbutton -label $layer \
+                -variable xPCB::Settings(layer${l}) -onvalue on -offvalue off
+
+            ##  Default active layers based on technology
+            ##  start with all off, then enable accordingly
+            set Settings(layer${l}) off
+            if { [string equal $Settings(operatingmode) info_pop] } {
+                if { [lsearch { rdl1 rdl2 rdl3 } $l] != -1 } {
+                    set Settings(layer${l}) on
+                }
+            } else {
+                if { [lsearch { rdl3 } $l] != -1 } {
+                    set Settings(layer${l}) on
+                }
+            }
+
+            $hatchmenu add cascade -label $L -menu $hatchmenu.${l}hw
+            HatchWidthCascade $hatchmenu $l $L
+        }
+
+        $hatchmenu add separator
+        $hatchmenu add cascade -label "Default" -menu $hatchmenu.defaulthw
+        HatchWidthCascade $hatchmenu "default" "Default"
+        set xAIF::Settings(status) "Ready"
+    }
+
+    ##  
+    ##  xPCB::HatchWidthCascade
+    ##
+    proc HatchWidthCascade { parent l L } {
+        ##  If the menu already exists, remove all of the menu entries
+        ##  otherwise add tearoff menu Hatch Width settings for the supplied layer.
+        if { [winfo exists $parent.${l}hw] } {
+            set m $parent.${l}hw
+            $m delete 0 end
+        } else {
+            set m [menu $parent.${l}hw -tearoff 0]
+        }
+
+        ##  Add hatch widths from 5 to 15
+        for { set hw 5 } {$hw <= 15 } {incr hw} {
+            $m add radiobutton -label $hw -underline 0 -variable xPCB::Settings(${l}hw) -value $hw -command \
+                [list xAIF::GUI::Message -severity note -msg [format "%s hatch width set to %sum." $L $hw]]
+        }
+    }
+
+    ##
+    ##  xPCB::setOperatingMode
+    ##
+    proc setOperatingMode {} {
+        variable Settings
+
+        xAIF::GUI::Message -severity note -msg \
+            [format "Operating Mode set to \"%s\"." [string totitle $Settings(operatingmode)]]
+        $xAIF::GUI::Widgets(operatingmode) configure \
+            -text [format " Mode:  %s " [string totitle $Settings(operatingmode)]]
+
+        ##  Need to change the state of the menus ...
+        if { [string equal $xPCB::Settings(operatingmode) $xAIF::Const::XAIF_MODE_DESIGN] } {
+            set m $xAIF::GUI::Widgets(mainframe)
+            $m setmenustate designmenu normal
+            $m setmenustate librarymenu disabled
+        } else {
+            set m $xAIF::GUI::Widgets(mainframe)
+            $m setmenustate designmenu disabled
+            $m setmenustate librarymenu normal
+        }
+    }
+
+    ##
+    ##  xPCB::Connect
+    ##
+    proc Connect {} {
+        variable Settings
+        if { [catch { set Settings(pcbApp) [::tcom::ref getactiveobject {MGCPCB.ExpeditionPCBApplication}] } cmsg] == 0 } {
+            set Settings(pcbGui) [$Settings(pcbApp) Gui]
+            set Settings(pcbUtil) [$Settings(pcbApp) Utility]
+        } else {
+            puts "//  Error:  Unable to connect to Xpedition, is Xpedition running?"
+            exit 1
+        }
+    }
+
+    proc Globals {} {
+        variable Settings
+        puts "\n Current Scripting.Globals"
+        puts "-----------------"
+
+        ##  Iterate over the keys and output the values
+        ::tcom::foreach key [[$Settings(pcbUtil) Globals] Keys] {
+            puts [format "%-30s = %-30s" $key [[$Settings(pcbUtil) Globals] Data $key]]
+        }
+
+        puts "-----------------"
+
+        puts "\n Creating Example Settings in Scripting.Globals"
+        puts "-------------------------------------------------"
+
+        for {set i 0} {$i < 10} {incr i} {
+            set sg [format "Sample_SG_%s" $i]
+            puts [format "Creating Scripting.Global %s ..." $sg]
+            [$Settings(pcbUtil) Globals] Data $sg [format "%s_Value" $sg]
+        }
+
+        puts "\n Current Scripting.Globals"
+        puts "-----------------"
+
+        ##  Iterate over the keys and output the values
+        ::tcom::foreach key [[$Settings(pcbUtil) Globals] Keys] {
+            puts [format "%-30s = %-30s" $key [[$Settings(pcbUtil) Globals] Data $key]]
+        }
+
+        puts "-----------------"
+        puts "Done.\n"
+    }
+
+    ##
+    ## xPCB::OpenXpeditionPCB
+    ##
+    proc OpenXpeditionPCB { } {
+
+        set cmd [string trim [format "|%s %s %s" $xPCB::Settings(xpeditionpcb) \
+            $xPCB::Settings(xpeditionpcbopts) [expr [string equal $::tcl_platform(platform) windows] ?"" :"2>@stdout"]]]
+
+        cd $xPCB::Settings(workdir)
+        if { [catch { set xPCB::Settings(xpeditionpcbchan) [open "$cmd" r+] } cmsg] == 0 } {
+            fconfigure $xPCB::Settings(xpeditionpcbchan) -buffering line -blocking 0
+            fileevent $xPCB::Settings(xpeditionpcbchan) readable \
+                [list xPCB::ToolConnector $xPCB::Settings(xpeditionpcbchan)]
+
+            xAIF::GUI::Message -severity note -msg \
+                [format "Opened XpeditionPCB:  %s" $xPCB::Settings(xpeditionpcb)]
+        } else {
+            xAIF::GUI::Message -severity error -msg \
+                [format "Failed to open XpeditionPCB:  %s" $xPCB::Settings(xpeditionpcb)]
+        }
+        cd $xPCB::Settings(workdir)
+    }
+
+    ##
+    ## xPCB::OpenLibraryManager
+    ##
+    proc OpenLibraryManager {} {
+
+        set cmd [string trim [format "|%s %s %s" $xPCB::Settings(librarymanager) \
+            $xPCB::Settings(librarymanageropts) [expr [string equal $::tcl_platform(platform) windows] ?"" :"2>@stdout"]]]
+
+        cd $xPCB::Settings(workdir)
+        if { [catch { set xPCB::Settings(librarymanagerchan) [open "$cmd" r+] } cmsg] == 0 } {
+            fconfigure $xPCB::Settings(librarymanagerchan) -buffering line -blocking 0
+            fileevent $xPCB::Settings(librarymanagerchan) readable \
+                [list xPCB::ToolConnector $xPCB::Settings(librarymanagerchan)]
+
+            xAIF::GUI::Message -severity note -msg \
+                [format "Opened Library Manager:  %s" $xPCB::Settings(librarymanager)]
+        } else {
+            xAIF::GUI::Message -severity error -msg \
+                [format "Failed to open Library Manager:  %s" $xPCB::Settings(librarymanager)]
+        }
+        cd $xPCB::Settings(workdir)
+    }
+
+    ##
+    ## xPCB::ToolConnector
+    ##
+    proc ToolConnector { toolchannel } {
+        if { [eof $toolchannel] } {
+            fileevent $toolchannel readable {}
+        } else {
+            set toolmsg [string trim [read $toolchannel]]
+            if { [string length $toolmsg] > 0 } {
+                xAIF::GUI::Message -severity none -msg [string trim $toolmsg]
+            }
+        }
+    }
+
+    ##
+    ##  xPCB::SaveDesignConfig
+    ##
+    proc SaveDesignConfig { {f "" } } {
+        variable Settings
+
+        if { $f == "" } {
+            set f [file join [$Settings(pcbDoc) Path] Config $XCU::DEFAULT_CFG_FILE]
+        }
+
+        ##  Build up the configuration state to save ...
+        set cfgText ""
+
+        foreach L $Settings(LayerNames) {
+            set l [string tolower $L]
+            set cfgText [format "%s\n%s=%s" $cfgText ${l}hw $Settings(${l}hw)]
+            set cfgText [format "%s\n%s=%s" $cfgText layer${l} $Settings(layer${l})]
+        }
+
+        foreach s { defaulthw operatingmode overunderopt overundersize type1pathopt verbosemsgs \
+            debugmsgs csvmappingfile annotategdslvstext writeverilognetlist writecce usetimestamps} {
+            if { [lsearch [array names Settings] ${s}] == -1 } {
+                set Settings(${s}) off
+            }
+            set cfgText [format "%s\n%s=%s" $cfgText ${s} $Settings(${s})]
+        }
+
+        set x [catch { set fid [open $f w+] }]
+        set y [catch { puts $fid [string trim $cfgText] }]
+        set z [catch { close $fid }]
+        if { $x || $y || $z || ![file exists $f] || ![file isfile $f] || ![file readable $f] } {
+            tk_messageBox -parent . -icon error \
+                -message "An error occurred while saving Design Configuration to \"$f\"."
+            xAIF::GUI::Message -severity error -msg "An error occurred saving Design Configuration to \"$f\"."
+        } else {
+            tk_messageBox -parent . -icon info -message "Design Configuration saved to \"$f\"."
+            xAIF::GUI::Message -severity note -msg "Design Configuration saved to \"$f\"."
+        }
+    }
+
+    ##
+    ##  xPCB::SaveDesignConfig
+    ##
+    proc SaveDesignConfigAs { } {
+        variable Settings
+
+        set f [tk_getSaveFile -title "Save Design Configuration" -parent . \
+            -filetypes {{{Config Files} .cfg} {{Text Files} .txt} {{All Files} *}} \
+            -initialdir [file join [$Settings(pcbDoc) Path] Config] -initialfile $XCU::DEFAULT_CFG_FILE]
+        if { $f == "" } {
+            return; # they clicked cancel
+        }
+
+        SaveDesignConfig $f
+    }
+
+    ##
+    ##  xPCB::LoadDesignConfig
+    ##
+    proc LoadDesignConfig { {f "" } } {
+        variable Settings
+
+        if { $f == "" } {
+            set f [file join [$Settings(pcbDoc) Path] Config $XCU::DEFAULT_CFG_FILE]
+        }
+
+        set x [catch { set fid [open $f r] }]
+        set y [catch { set cfgData [read $fid] }]
+        set z [catch { close $fid }]
+
+        if { $x || $y || $z || ![file exists $f] || ![file isfile $f] || ![file readable $f] } {
+            if { ![file exists $f] } { 
+                xAIF::GUI::Message -severity warning -msg "Unable to load Design Configuration from \"$f\", configuration file does not exist."
+                return
+            } else {
+                tk_messageBox -parent . -icon error \
+                    -message "An error occurred while loading Design Configuration from \"$f\"."
+                xAIF::GUI::Message -severity error -msg "An error occurred loading Design Configuration from \"$f\"."
+                return
+            }
+        } else {
+            #tk_messageBox -parent . -icon info -message "Design Configuration loaded from \"$f\"."
+            xAIF::GUI::Message -severity note -msg "Design Configuration loaded from \"$f\"."
+        }
+
+        set cfgVars {}
+
+        foreach L $Settings(LayerNames) {
+            set l [string tolower $L]
+            lappend cfgVars ${l}hw layer${l}
+        }
+
+        foreach l { defaulthw operatingmode overunderopt overundersize type1pathopt verbosemsgs \
+            debugmsgs csvmappingfile annotategdslvstext writeverilognetlist writecce usetimestamps} {
+            lappend cfgVars $l
+        }
+
+        foreach line [split $cfgData "\n"] {
+            set key [lindex [split $line =] 0]
+            set value [lindex [split $line =] 1]
+            if { [lsearch $cfgVars [lindex $key 0]] != -1 } {
+                set xPCB::Settings($key) $value
+            }
+        }
+    }
+
+    ##
+    ##  xPCB::LoadDesignConfigFrom
+    ##
+    proc LoadDesignConfigFrom { } {
+        variable Settings
+
+        set f [tk_getOpenFile -title "Load Design Configuration" -parent . \
+            -filetypes {{{Config Files} .cfg} {{Text Files} .txt} {{All Files} *}} \
+            -initialdir [file join [$Settings(pcbDoc) Path] Config] -initialfile $XCU::DEFAULT_CFG_FILE]
+        if { $f == "" } {
+            return; # they clicked cancel
+        }
+
+        LoadDesignConfig $f
+    }
+
+    ##
+    ##  xPCB::Setup
+    ##
+    namespace eval Setup {
+
+        ##  
+        ##  xPCB::Setup::WorkDirectory
+        ##
+        proc WorkDirectory { {workdir ""} } {
+            if { [string length $workdir] > 0 } {
+                set xPCB::Settings(workdir) $workdir 
+            } else {
+                set xPCB::Settings(workdir) [tk_chooseDirectory]
+            }
+            xAIF::GUI::Message -severity note -msg \
+                [format "Work Directory set to:  %s" $xPCB::Settings(workdir)]
+        }
+
+        ##
+        ##  xPCB::Setup::WorkDirectoryFromDesign
+        ##
+        proc WorkDirectoryFromDesign { } {
+            WorkDirectory [file dirname [$xPCB::Settings(pcbDoc) FullName]]
+        }
+    }
+
+    ##
+    ##  xAIF::SaveMessageTextToFile
+    ##
+    proc SaveMessageTextToFile { } {
+        variable Widgets
+        #set msgText [$Widgets(message) get 1.0 {end -1c}]
+
+        set file [tk_getSaveFile -title "Save Message Text" -parent .]
+        if { $file == "" } {
+            return; # they clicked cancel
+        }
+        set x [catch { set fid [open $file w+] }]
+        set y [catch { puts $fid [string trim [$Widgets(message) get 1.0 end-1c]] }]
+        set z [catch { close $fid }]
+        if { $x || $y || $z || ![file exists $file] || ![file isfile $file] || ![file readable $file] } {
+            tk_messageBox -parent . -icon error \
+                -message "An error occurred while saving to \"$file\"."
+            Message -severity error -msg "An error occurred saving Message Text to \"$file\"."
+        } else {
+            tk_messageBox -parent . -icon info -message "Message Text saved to \"$file\"."
+            Message -severity note -msg "Message Text saved to \"$file\"."
+        }
+    }
+
 }

@@ -86,31 +86,79 @@
 #    08/05/2014 - Major re-write of primary Tcl file to include namespace
 #                 and elimination of plethora of global variables.
 #
+#    10/05/2016 - Major re-write to eliminate dependency on ActiveTcl which
+#                 only supports 32 bit Xpedition running on Windows.  The Tcl
+#                 build supplied with Xpedition will be used which supports
+#                 both 32 and 64 bit versions of Xpedition running on Windows
+#                 and Linux.  The Mentor supplied version of Tcl includes COM
+#                 bindings which work with MainWin on Linux however it does
+#                 not include many of the optional Tcl packages that are in
+#                 ActiveTcl and were utilized.
+#
+#                 Only ackages from TclLib, TkLib, and BWidget will be used to
+#                 build the new GUI as they are all implemented in Tcl and will
+#                 work across platforms.
+#                 
+#    10/22/2016 - Basic BWidget MainFrame GUI implemented with new menu structure.
+#                 Dashboard removed and replaced with Setup menus.
+#
 #
 #    Useful links:
-#      Drawing rounded polygons:  http://wiki.tcl.tk/8590
+#      Drawing rounded polygons:    http://wiki.tcl.tk/8590
+#      Drawing regular polygons:    http://wiki.tcl.tk/8398
 #      Drawing rounded rectangles:  http://wiki.tcl.tk/1416
-#      Drawing regular polygons:  http://wiki.tcl.tk/8398
 #
 
-package require tile
+##  The Mentor SDD supplied Tcl Shell (tclsh8.4) has limited built in
+##  package support.  Need to load Tcllib, Tklib, and BWidget in order
+##  to have access to the various packages required in this utility.
+
+set xAIFLibPath [file dirname [file normalize [info script]]]
+
+set auto_path [linsert $auto_path 0 [file join $xAIFLibPath lib bwidget-1.9.10 ]]
+set auto_path [linsert $auto_path 0 [file join $xAIFLibPath lib tklib-0.6 modules]]
+set auto_path [linsert $auto_path 0 [file join $xAIFLibPath lib tcllib-1.18 modules]]
+
 package require tcom
+#package require csv
 package require ctext
-package require csv
-package require inifile
+#package require cmdline
+#package require struct::matrix
 package require tablelist
-package require Tk 8.4
+package require BWidget
 
-##  Load the Mentor DLLs for Xpedition
-::tcom::import "$env(SDD_HOME)/wg/$env(SDD_PLATFORM)/bin/ExpeditionPCB.exe"
-::tcom::import "$env(SDD_HOME)/wg/$env(SDD_PLATFORM)/lib/CellEditorAddin.dll"
-::tcom::import "$env(SDD_HOME)/common/$env(SDD_PLATFORM)/lib/PDBEditor.dll"
-::tcom::import "$env(SDD_HOME)/common/$env(SDD_PLATFORM)/lib/PadstackEditor.dll"
-
-#
-#  Initialize the xAIF namespace
-#
+##
+##  Top level xAIF namespace
+##
 namespace eval xAIF {
+
+    ##  Tcl doesn't technical support constants so this is the next best thing ...
+
+    namespace eval Const {
+        set XAIF_MODE_DESIGN                  design
+        set XAIF_MODE_LIBRARY                 library
+        set CELL_GEN_SUFFIX_NONE_KEY          none
+        set CELL_GEN_SUFFIX_NONE_VALUE        "None"
+        set CELL_GEN_SUFFIX_NUMERIC_KEY       numeric
+        set CELL_GEN_SUFFIX_NUMERIC_VALUE     "Numeric (-1, -2, -3, etc.)"
+        set CELL_GEN_SUFFIX_ALPHA_KEY         alpha
+        set CELL_GEN_SUFFIX_ALPHA_VALUE       "Alpha (-A, -B, -C, etc.)"
+        set CELL_GEN_SUFFIX_DATESTAMP_KEY     datestamp
+        set CELL_GEN_SUFFIX_DATESTAMP_VALUE   "Date Stamp (YYYY-MM-DD)"
+        set CELL_GEN_SUFFIX_TIMESTAMP_KEY     timestamp
+        set CELL_GEN_SUFFIX_TIMESTAMP_VALUE   "Time Stamp (YYYY-MM-DD-HH:MM:SS)"
+        set CELL_GEN_BGA_NORMAL_KEY           normal
+        set CELL_GEN_BGA_NORMAL_VALUE         "Normal"
+        set CELL_GEN_BGA_MSO_KEY              mso
+        set CELL_GEN_BGA_MSO_VALUE            "Mount Side Opposite"
+
+        set PKG_TYPE_GBL                  OperatingMode
+        set USE_TIME_STAMP                UseTimeStamp
+        set PKG_TYPE_INFO_S               info_s
+        set PKG_TYPE_INFO_POP             info_pop
+        set XAIF_DEFAULT_CFG_FILE         xAIF.cfg
+    }
+
     variable Settings
     variable sections
     variable ignored
@@ -118,6 +166,16 @@ namespace eval xAIF {
     variable units
     variable padshapes
 
+    ##  Define Settings and default values
+    set Settings(name) "Xpedition AIF Utility (xAIF)"
+    set Settings(version) "2.0-beta-1"
+    set Settings(date) "Thu Oct 05 14:23:05 EDT 2016"
+    set Settings(workdir) [pwd]
+    set Settings(status) "Ready"
+    set Settings(connection) off
+
+    set Widgets(mainframe) {}
+ 
     ##
     ##  xAIF::Init
     ##
@@ -185,7 +243,12 @@ namespace eval xAIF {
             MCMAIF 0
             DIEREF "U1"
             BGAREF "A1"
-            PackageCell ""
+            name "Xpedition AIF Utility (xAIF)"
+            version "2.0-beta-1"
+            date "Thu Oct 05 14:23:05 EDT 2016"
+            workdir [pwd]
+            status "Ready"
+            connection off
         }
 
         ##  Keywords to scan for in AIF file
@@ -280,31 +343,52 @@ namespace eval xAIF {
     }
 }
 
-
-##
-##  Main application
-##
-
-##  Figure out where the script lives
-set pwd [pwd]
-cd [file dirname [info script]]
-variable xAIF [pwd]
-cd $pwd
-
+##  Load additional xAIF modules
 ##  Load various pieces which comprise the application
 foreach script { AIF.tcl Forms.tcl GUI.tcl MapEnum.tcl MGC.tcl Netlist.tcl } {
     puts [format "# Note:  Loading %s ..." $script]
-    source [file join $xAIF $script]
+    source [file join $xAIFLibPath $script]
 }
 
+##  Platform?
+
+if { [string equal $::tcl_platform(platform) windows] } {
+    ##  Load the Mentor DLL for Xpedition
+    set DLL [file join $::env(SDD_HOME) wg $::env(SDD_PLATFORM) bin ExpeditionPCB.exe]
+    if { [file exists $DLL] } {
+        ::tcom::import $DLL
+    } else {
+        puts stderr [format "//  Error:  Unable to load Xpedition API from \"%s\"." $DLL]
+        exit 1
+   }
+
+   ##  Setup Executables
+   set xPCB::Settings(xpeditionpcb) [file join $::env(SDD_HOME) common $::env(SDD_PLATFORM) bin ExpeditionPCB.exe]
+   set xPCB::Settings(librarymanager) [file join $::env(SDD_HOME) common $::env(SDD_PLATFORM) bin LibraryManager.exe]
+} elseif { [string equal $::tcl_platform(platform) unix] } {
+    ##  Load the Mentor TLB for Xpedition
+    set TLB [file join $::env(SDD_HOME) wg $::env(SDD_PLATFORM) bin ExpeditionPCB.tlb]
+    if { [file exists $TLB] } {
+        ::tcom::import $TLB
+        puts stderr [format "//  Note:  Importing Xpedition API: %s" $TLB]
+    } else {
+        puts stderr [format "//  Error:  Unable to load Xpedition API from \"%s\"." $TLB]
+        exit 1
+   }
+
+   ##  Setup Executables
+   set xPCB::Settings(xpeditionpcb) [file join $::env(SDD_HOME) common $::env(SDD_PLATFORM) bin ExpeditionPCB]
+   set xPCB::Settings(librarymanager) [file join $::env(SDD_HOME) common $::env(SDD_PLATFORM) bin LibraryManager]
+} else {
+    ##  Unsupported platform
+    puts [format "//  Error:  Platform \"%s\" is unsupported." $tcl_platform(platform)]
+    exit 1
+}
+
+parray tcl_platform
+
+#xPCB::Connect
+#xPCB::getOpenDocumentPaths $xPCB::Settings(pcbApp)
 xAIF::Init
-GUI::Build
-GUI::Menus::DesignMode
-GUI::StatusBar::UpdateStatus -busy off
-GUI::Transcript -severity note -msg "$xAIF::Settings(xAIF) ready."
-#console show
-#set GUI::Dashboard::Mode $xAIF::Settings(libraryMode)
-#GUI::Dashboard::SelectCentralLibrary "C:/Users/mike/Documents/Sandbox2/Sandbox2.lmc"
-#set xAIF::Settings(mode) $xAIF::Settings(designMode)
-#catch { GUI::Dashboard::SelectAIFFile "c:/users/mike/desktop/xAIF/data/Test1.aif" } retString
-#GUI::Visibility text -all true -mode off
+xAIF::GUI::Build
+console show

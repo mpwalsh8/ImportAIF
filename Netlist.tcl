@@ -63,7 +63,7 @@ namespace eval Netlist {
         variable pads
         variable connections
     
-        set txt $GUI::widgets(netlistview)
+        set txt $xAIF::GUI::Widgets(netlistview)
         
         ##  Clean up list, the text widget may
         ##  return empty stuff we don't want
@@ -80,19 +80,19 @@ namespace eval Netlist {
             ##  netnames.  The netlist text widget contains the netlist.
     
             if { [ regexp {^[[:alpha:][:alnum:]_]*\w} $netname ] == 0 } {
-                GUI::Transcript -severity error -msg [format "Net name \"%s\" is not supported AIF syntax." $netname]
+                xAIF::GUI::Message -severity error -msg [format "Net name \"%s\" is not supported AIF syntax." $netname]
                 set rv -1
             } else {
                 incr connections
     
                 if { [lsearch -exact $nl $netname ] == -1 } {
                     lappend nl $netname
-                    GUI::Transcript -severity note -msg [format "Found net name \"%s\"." $netname]
+                    xAIF::GUI::Message -severity note -msg [format "Found net name \"%s\"." $netname]
                 }
     
                 if { [lsearch -exact $pads $padname ] == -1 && $padname != "-" } {
                     lappend pads $padname
-                    GUI::Transcript -severity note -msg [format "Found reference to pad \"%s\"." $padname]
+                    xAIF::GUI::Message -severity note -msg [format "Found reference to pad \"%s\"." $padname]
                 }
             }
         }
@@ -100,7 +100,7 @@ namespace eval Netlist {
     
     #  Return all of the parameters for a net
     proc GetParams { index } {
-        set txt $GUI::widgets(netlistview)
+        set txt $xAIF::GUI::Widgets(netlistview)
         return [regexp -inline -all -- {\S+} [$txt get [expr $index +1].0 [expr $index +1].end]]
     }
     
@@ -161,7 +161,7 @@ namespace eval Netlist {
         ##  Netlist::Export::KYN
         ##
         proc KYN { { kyn "" } } {
-            set txt $GUI::widgets(kynnetlistview)
+            set txt $xAIF::GUI::Widgets(kynnetlistview)
 
             if { $kyn == "" } {
                 set kyn [tk_getSaveFile -filetypes {{KYN .kyn} {Txt .txt} {All *}} \
@@ -169,7 +169,7 @@ namespace eval Netlist {
             }
 
             if { $kyn == "" } {
-                GUI::Transcript -severity warning -msg "No KYN file specified, Export aborted."
+                xAIF::GUI::Message -severity warning -msg "No KYN file specified, Export aborted."
                 return
             }
         
@@ -178,7 +178,7 @@ namespace eval Netlist {
             puts $f [$txt get 1.0 end]
             close $f
 
-            GUI::Transcript -severity note -msg [format "KYN netlist successfully exported to file \"%s\"." $kyn]
+            xAIF::GUI::Message -severity note -msg [format "KYN netlist successfully exported to file \"%s\"." $kyn]
 
             return
         }
@@ -194,7 +194,7 @@ namespace eval Netlist {
             }
 
             if { $plcmnt == "" } {
-                GUI::Transcript -severity warning -msg "No Placement file specified, Export aborted."
+                xAIF::GUI::Message -severity warning -msg "No Placement file specified, Export aborted."
                 return
             }
         
@@ -245,14 +245,14 @@ namespace eval Netlist {
                 }
 
                 append txt [format ".REF %s %s,%s 0 top\n" $::die(refdes) $X $Y]
-                GUI::Transcript -severity note -msg [format "Standard AIF file, adding die (\"%s\") to the placement file." $::die(refdes)]
+                xAIF::GUI::Message -severity note -msg [format "Standard AIF file, adding die (\"%s\") to the placement file." $::die(refdes)]
             }
 
             set f [open $plcmnt "w+"]
             puts $f $txt
             close $f
 
-            GUI::Transcript -severity note -msg [format "Placement successfully exported to file \"%s\"." $plcmnt]
+            xAIF::GUI::Message -severity note -msg [format "Placement successfully exported to file \"%s\"." $plcmnt]
 
             return
         }

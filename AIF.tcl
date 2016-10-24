@@ -4,7 +4,7 @@
 #  tells Vim to set the indent to 4 spaces and the tab key to indent
 #  4 spaces.
 # 
-#  Pad.tcl
+#  AIF.tcl
 #
 #  Tcl based Mentor Graphics Automation solution to Import an AIF file and
 #  generate Pad, Padstack, Cell, and PDB to be used in a IC Package design.
@@ -120,7 +120,7 @@ namespace eval AIF {
         Init
 
         #  Reset Netlist tab
-        set txt $GUI::widgets(netlistview)
+        set txt $xAIF::GUI::Widgets(netlistview)
         $txt configure -state normal
         $txt delete 1.0 end
 
@@ -161,7 +161,7 @@ namespace eval AIF {
                 } 
                 default {
                     #error "Error parsing $filename (line: $line_no): $line"
-                    GUI::Transcript -severity warning -msg [format "Skipping line %d in AIF file \"%s\"." $line_no $xAIF::Settings(filename)]
+                    xAIF::GUI::Message -severity warning -msg [format "Skipping line %d in AIF file \"%s\"." $line_no $xAIF::Settings(filename)]
                     puts $line
                 }
             }
@@ -205,10 +205,10 @@ namespace eval AIF {
                 set ::mcmdie($xAIF::Settings(BGAREF)) $::bga(name)
 
                 foreach i [array names ::bga] {
-                    GUI::Transcript -severity note -msg [format "BGA \"%s\":  %s" [string toupper $i] $::bga($i)]
+                    xAIF::GUI::Message -severity note -msg [format "BGA \"%s\":  %s" [string toupper $i] $::bga($i)]
                 }
             } else {
-                GUI::Transcript -severity error -msg [format "AIF file \"%s\" does not contain a BGA section." $xAIF::Settings(filename)]
+                xAIF::GUI::Message -severity error -msg [format "AIF file \"%s\" does not contain a BGA section." $xAIF::Settings(filename)]
                 return -1
             }
         }
@@ -234,14 +234,14 @@ namespace eval AIF {
                 }
 
                 foreach i [array names ::die] {
-                    GUI::Transcript -severity note -msg [format "Die \"%s\":  %s" [string toupper $i] $::die($i)]
+                    xAIF::GUI::Message -severity note -msg [format "Die \"%s\":  %s" [string toupper $i] $::die($i)]
                 }
 
                 ##  Need a partition for Cell and PDB generaton when  in CL mode
                 #set ::die(partition) [format "%s_die" $::die(name)]
 
             } else {
-                GUI::Transcript -severity error -msg [format "AIF file \"%s\" does not contain a DIE section." $xAIF::Settings(filename)]
+                xAIF::GUI::Message -severity error -msg [format "AIF file \"%s\" does not contain a DIE section." $xAIF::Settings(filename)]
                 return -1
             }
         }
@@ -278,18 +278,18 @@ namespace eval AIF {
                     set refs [split [AIF::GetVar $v MCM_DIE] ","]
 
                     foreach ref $refs {
-                        GUI::Transcript -severity note -msg [format "Device:  %s  Ref:  %s" $v [string  trim $ref]]
+                        xAIF::GUI::Message -severity note -msg [format "Device:  %s  Ref:  %s" $v [string  trim $ref]]
                         set ::mcmdie([string trim $ref]) $v
                     }
                 }
 
                 foreach i [GetAllDie] {
-                    GUI::Transcript -severity note -msg \
+                    xAIF::GUI::Message -severity note -msg \
                         [format "Device \"%s\" with reference designator:  %s" \
                         $::mcmdie($i) $i]
                 }
             } else {
-                GUI::Transcript -severity error -msg [format "AIF file \"%s\" does not contain a MCM_DIE section." $xAIF::Settings(filename)]
+                xAIF::GUI::Message -severity error -msg [format "AIF file \"%s\" does not contain a MCM_DIE section." $xAIF::Settings(filename)]
                 set rv -1
             }
 
@@ -399,18 +399,18 @@ namespace eval AIF {
                 ##  Make sure file format is AIF!
 
                 if { $::database(type) != "AIF" } {
-                    GUI::Transcript -severity error -msg [format "File \"%s\" is not an AIF file." $xAIF::Settings(filename)]
+                    xAIF::GUI::Message -severity error -msg [format "File \"%s\" is not an AIF file." $xAIF::Settings(filename)]
                     set rv -1
                 }
 
                 if { ([lsearch [AIF::Variables "DATABASE"] "MCM"] != -1) && ($::database(mcm) == "TRUE") } {
-                    GUI::Transcript -severity note -msg [format "File \"%s\" is a MCM-AIF file." $xAIF::Settings(filename)]
+                    xAIF::GUI::Message -severity note -msg [format "File \"%s\" is a MCM-AIF file." $xAIF::Settings(filename)]
                     set xAIF::Settings(MCMAIF) 1
-                    set GUI::widgets(AIFType) "File Type:  MCM-AIF"
+                    set xAIF::GUI::Widgets(AIFType) "File Type:  MCM-AIF"
                 } else {
-                    GUI::Transcript -severity note -msg [format "File \"%s\" is an AIF file." $xAIF::Settings(filename)]
+                    xAIF::GUI::Message -severity note -msg [format "File \"%s\" is an AIF file." $xAIF::Settings(filename)]
                     set xAIF::Settings(MCMAIF) 0
-                    set GUI::widgets(AIFType) "File Type:  AIF"
+                    set xAIF::GUI::Widgets(AIFType) "File Type:  AIF"
                 }
 
                 ##  Does the AIF file contain a BGA section?
@@ -419,15 +419,15 @@ namespace eval AIF {
                 ##  Check units for legal option - AIF supports UM, MM, CM, INCH, MIL
 
                 if { [lsearch -exact $xAIF::units [string tolower $::database(units)]] == -1 } {
-                    GUI::Transcript -severity error -msg [format "Units \"%s\" are not supported AIF syntax." $::database(units)]
+                    xAIF::GUI::Message -severity error -msg [format "Units \"%s\" are not supported AIF syntax." $::database(units)]
                     set rv -1
                 }
 
                 foreach i [array names ::database] {
-                    GUI::Transcript -severity note -msg [format "Database \"%s\":  %s" [string toupper $i] $::database($i)]
+                    xAIF::GUI::Message -severity note -msg [format "Database \"%s\":  %s" [string toupper $i] $::database($i)]
                 }
             } else {
-                GUI::Transcript -severity error -msg [format "AIF file \"%s\" does not contain a DATABASE section." $xAIF::Settings(filename)]
+                xAIF::GUI::Message -severity error -msg [format "AIF file \"%s\" does not contain a DATABASE section." $xAIF::Settings(filename)]
                 set rv -1
             }
 
@@ -447,8 +447,8 @@ namespace eval AIF {
         proc Section {} {
 
             set rv 0
-            set vm $GUI::widgets(viewmenu)
-            $vm.pads add separator
+            set m [$xAIF::GUI::Widgets(mainframe) getmenu padsmenu]
+            $m add separator
 
             ##  Make sure we have a PADS section!
             if { [lsearch -exact $::AIF::sections PADS] != -1 } {
@@ -468,12 +468,12 @@ namespace eval AIF {
                     set ::padtypes($v) "smdpad"
 
                     #  Add pad to the View Devices menu and make it visible
-                    set GUI::pads($v) on
+                    set xAIF::GUI::pads($v) on
                     #$vm.pads add checkbutton -label "$v" -underline 0 \
-                    #    -variable GUI::pads($v) -onvalue on -offvalue off -command GUI::VisiblePad
-                    $vm.pads add checkbutton -label "$v" \
-                        -variable GUI::pads($v) -onvalue on -offvalue off \
-                        -command  "GUI::Visibility pad-$v -mode toggle"
+                    #    -variable xAIF::GUI::pads($v) -onvalue on -offvalue off -command GUI::VisiblePad
+                    $m add checkbutton -label "$v" \
+                        -variable xAIF::GUI::pads($v) -onvalue on -offvalue off \
+                        -command  "xAIF::GUI::Visibility pad-$v -mode toggle"
                 }
 
                 foreach i [array names ::pads] {
@@ -484,16 +484,16 @@ namespace eval AIF {
                     ##  Check units for legal option - AIF supports UM, MM, CM, INCH, MIL
 
                     if { [lsearch -exact $xAIF::padshapes [string tolower $padshape]] == -1 } {
-                        GUI::Transcript -severity error -msg [format "Pad shape \"%s\" is not supported AIF syntax." $padshape]
+                        xAIF::GUI::Message -severity error -msg [format "Pad shape \"%s\" is not supported AIF syntax." $padshape]
                         set rv -1
                     } else {
-                        GUI::Transcript -severity note -msg [format "Found pad \"%s\" with shape \"%s\"." [string toupper $i] $padshape]
+                        xAIF::GUI::Message -severity note -msg [format "Found pad \"%s\" with shape \"%s\"." [string toupper $i] $padshape]
                     }
                 }
 
-                GUI::Transcript -severity note -msg [format "AIF source file contains %d %s." [array size ::pads] [xAIF::Utility::Plural [array size ::pads] "pad"]]
+                xAIF::GUI::Message -severity note -msg [format "AIF source file contains %d %s." [array size ::pads] [xAIF::Utility::Plural [array size ::pads] "pad"]]
             } else {
-                GUI::Transcript -severity error -msg [format "AIF file \"%s\" does not contain a PADS section." $xAIF::Settings(filename)]
+                xAIF::GUI::Message -severity error -msg [format "AIF file \"%s\" does not contain a PADS section." $xAIF::Settings(filename)]
                 set rv -1
             }
 
@@ -513,7 +513,7 @@ namespace eval AIF {
         #
         proc Section {} {
             set rv 0
-            set txt $GUI::widgets(netlistview)
+            set txt $xAIF::GUI::Widgets(netlistview)
 
             ##  Make sure we have a NETLIST section!
             if { [lsearch -exact $::AIF::sections NETLIST] != -1 } {
@@ -522,11 +522,11 @@ namespace eval AIF {
 
                 Netlist::Load
 
-                GUI::Transcript -severity note -msg [format "AIF source file contains %d net %s." [ Netlist::GetConnectionCount ] [xAIF::Utility::Plural [Netlist::GetConnectionCount] "connection"]]
-                GUI::Transcript -severity note -msg [format "AIF source file contains %d unique %s." [Netlist::GetNetCount] [xAIF::Utility::Plural [Netlist::GetNetCount] "net"]]
+                xAIF::GUI::Message -severity note -msg [format "AIF source file contains %d net %s." [ Netlist::GetConnectionCount ] [xAIF::Utility::Plural [Netlist::GetConnectionCount] "connection"]]
+                xAIF::GUI::Message -severity note -msg [format "AIF source file contains %d unique %s." [Netlist::GetNetCount] [xAIF::Utility::Plural [Netlist::GetNetCount] "net"]]
 
             } else {
-                GUI::Transcript -severity error -msg [format "AIF file \"%s\" does not contain a NETLIST section." $xAIF::Settings(filename)]
+                xAIF::GUI::Message -severity error -msg [format "AIF file \"%s\" does not contain a NETLIST section." $xAIF::Settings(filename)]
                 set rv -1
             }
 
