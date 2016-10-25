@@ -58,11 +58,11 @@ namespace eval MGC {
         #  Crank up Expedition
 
         if { [string is true $xAIF::Settings(connectMode)] } {
-            GUI::Transcript -severity note -msg "Connecting to existing Expedition session."
+            xAIF::GUI::Message -severity note -msg "Connecting to existing Expedition session."
             #  Need to make sure Xpedition is actually running ...
             set errorCode [catch { set xAIF::Settings(pcbApp) [::tcom::ref getactiveobject "MGCPCB.ExpeditionPCBApplication"] } errorMessage]
             if {$errorCode != 0} {
-                GUI::Transcript -severity error -msg "Unable to connect to Xpedition, is Xpedition running?"
+                xAIF::GUI::Message -severity error -msg "Unable to connect to Xpedition, is Xpedition running?"
                 set xAIF::Settings(connectMode) off
                 return -code return 1
             }
@@ -70,30 +70,30 @@ namespace eval MGC {
             #  Use the active PCB document object
             set errorCode [catch {set xAIF::Settings(pcbDoc) [$xAIF::Settings(pcbApp) ActiveDocument] } errorMessage]
             if {$errorCode != 0} {
-                GUI::Transcript -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
+                xAIF::GUI::Message -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
                 return -code return 1
             }
 
             #  Make sure API returned an active database - no error code which is odd ...
             if { [string equal $xAIF::Settings(pcbDoc) ""] } {
-                GUI::Transcript -severity error -msg "Unable to connect to Xpedition design, is Xpedition database open?"
+                xAIF::GUI::Message -severity error -msg "Unable to connect to Xpedition design, is Xpedition database open?"
                 set xAIF::Settings(connectMode) off
                 return -code return 1
             }
         } else {
-            set xAIF::Settings(targetPath) $GUI::Dashboard::DesignPath
-            GUI::Transcript -severity note -msg "Opening Expedition."
+            set xAIF::Settings(targetPath) $xAIF::Settings(DesignPath)
+            xAIF::GUI::Message -severity note -msg "Opening Expedition."
             set xAIF::Settings(pcbApp) [::tcom::ref createobject "MGCPCB.ExpeditionPCBApplication"]
             $xAIF::Settings(pcbApp) Visible $xAIF::Settings(appVisible)
 
             # Open the database
-            GUI::Transcript -severity note -msg "Opening database for Expedition."
+            xAIF::GUI::Message -severity note -msg "Opening database for Expedition."
 
             #  Create a PCB document object
             set errorCode [catch {set xAIF::Settings(pcbDoc) [$xAIF::Settings(pcbApp) \
                 OpenDocument $xAIF::Settings(targetPath)] } errorMessage]
             if {$errorCode != 0} {
-                GUI::Transcript -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
+                xAIF::GUI::Message -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
                 return -code return 1
             }
         }
@@ -119,9 +119,9 @@ namespace eval MGC {
         #[$xAIF::Settings(pcbDoc) Gui] SuppressTrivialDialogs True
 
         set xAIF::Settings(targetPath) [$xAIF::Settings(pcbDoc) Path][$xAIF::Settings(pcbDoc) Name]
-        set GUI::Dashboard::DesignPath [$xAIF::Settings(pcbDoc) Path][$xAIF::Settings(pcbDoc) Name]
+        set xAIF::Settings(DesignPath) [$xAIF::Settings(pcbDoc) Path][$xAIF::Settings(pcbDoc) Name]
         #puts [$xAIF::Settings(pcbDoc) Path][$xAIF::Settings(pcbDoc) Name]
-        GUI::Transcript -severity note -msg [format "Connected to design database:  %s%s" \
+        xAIF::GUI::Message -severity note -msg [format "Connected to design database:  %s%s" \
             [$xAIF::Settings(pcbDoc) Path] [$xAIF::Settings(pcbDoc) Name]]
     }
 
@@ -133,11 +133,11 @@ puts "X0"
         #  Crank up Library Manager
 
         if { [string is true $xAIF::Settings(connectMode)] } {
-            GUI::Transcript -severity note -msg "Connecting to existing Library Manager session."
+            xAIF::GUI::Message -severity note -msg "Connecting to existing Library Manager session."
             #  Need to make sure Xpedition is actually running ...
             set errorCode [catch { set xAIF::Settings(libApp) [::tcom::ref getactiveobject "LibraryManager.Application"] } errorMessage]
             if {$errorCode != 0} {
-                GUI::Transcript -severity error -msg "Unable to connect to Library Manager, is Library Manager running?"
+                xAIF::GUI::Message -severity error -msg "Unable to connect to Library Manager, is Library Manager running?"
                 set xAIF::Settings(connectMode) off
                 return -code return 1
             }
@@ -148,29 +148,29 @@ puts "X1"
 puts $xAIF::Settings(libLib)
             if {$errorCode != 0} {
 puts "X2"
-                GUI::Transcript -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
+                xAIF::GUI::Message -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
                 return -code return 1
             }
 
             #  Make sure API returned an active database - no error code which is odd ...
             if { [string equal $xAIF::Settings(libLib) ""] } {
-                GUI::Transcript -severity error -msg "Unable to connect to Library Manager library, is Library Manager library open?"
+                xAIF::GUI::Message -severity error -msg "Unable to connect to Library Manager library, is Library Manager library open?"
                 return -code return 1
             }
 puts "X3"
         } else {
-            GUI::Transcript -severity note -msg "Opening Library Manager."
+            xAIF::GUI::Message -severity note -msg "Opening Library Manager."
             set xAIF::Settings(libApp) [::tcom::ref createobject "LibraryManager.Application"]
             $xAIF::Settings(libApp) Visible $xAIF::Settings(appVisible)
 
             # Open the database
-            GUI::Transcript -severity note -msg "Opening library database for Library Manager."
+            xAIF::GUI::Message -severity note -msg "Opening library database for Library Manager."
 
             #  Create a LMC library object
             set errorCode [catch {set xAIF::Settings(linLib) [$xAIF::Settings(libApp) \
                 OpenLibrary $xAIF::Settings(targetPath)] } errorMessage]
             if {$errorCode != 0} {
-                GUI::Transcript -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
+                xAIF::GUI::Message -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
                 return -code return 1
             }
         }
@@ -182,13 +182,13 @@ puts "X4"
         #  Set application visibility
         #$xAIF::Settings(libApp) Visible $xAIF::Settings(appVisible)
 
-        set GUI::Dashboard::LibraryPath [$xAIF::Settings(libLib) FullName]
-        set xAIF::Settings(targetPath) $GUI::Dashboard::LibraryPath
+        set xAIF::Settings(LibraryPath) [$xAIF::Settings(libLib) FullName]
+        set xAIF::Settings(targetPath) $xAIF::Settings(LibraryPath)
 
         #  Close the library so the other editors can operate on it.
         $xAIF::Settings(libLib) Close
-        GUI::Transcript -severity note -msg [format "Connected to Central Library database:  %s" \
-            $GUI::Dashboard::LibraryPath]
+        xAIF::GUI::Message -severity note -msg [format "Connected to Central Library database:  %s" \
+            $xAIF::Settings(LibraryPath)]
     }
 
     #
@@ -197,10 +197,10 @@ puts "X4"
     proc OpenPadstackEditor { { mode "-opendatabase" } } {
         #  Crank up the Padstack Editor once per sessions
 
-        GUI::Transcript -severity note -msg [format "Opening Padstack Editor in %s mode." $GUI::Dashboard::Mode]
+        xAIF::GUI::Message -severity note -msg [format "Opening Padstack Editor in %s mode." $xAIF::Settings(mode)]
 
         ##  Which mode?  Design or Library?
-        if { $GUI::Dashboard::Mode == $xAIF::Settings(designMode) } {
+        if { $xAIF::Settings(mode) == $xAIF::Const::XAIF_MODE_DESIGN } {
             ##  Invoke Expedition on the design so the Padstack Editor can be started
             ##  Catch any exceptions raised by opening the database
 
@@ -211,34 +211,34 @@ puts "X4"
             if { $mode == "-opendatabase" } {
                 set errorCode [catch { MGC::OpenExpedition } errorMessage]
                 if {$errorCode != 0} {
-                    GUI::Transcript -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
-                    GUI::Transcript -severity error -msg "Unable to connect to Xpedition, is Xpedition running?"
-                    GUI::StatusBar::UpdateStatus -busy off
+                    xAIF::GUI::Message -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
+                    xAIF::GUI::Message -severity error -msg "Unable to connect to Xpedition, is Xpedition running?"
+                    xAIF::GUI::StatusBar::UpdateStatus -busy off
                     return -code return 1
                 }
             } else {
-                GUI::Transcript -severity note -msg "Reusing previously opened instance of Expedition."
+                xAIF::GUI::Message -severity note -msg "Reusing previously opened instance of Expedition."
             }
             set xAIF::Settings(pdstkEdtr) [$xAIF::Settings(pcbDoc) PadstackEditor]
             set xAIF::Settings(pdstkEdtrDb) [$xAIF::Settings(pdstkEdtr) ActiveDatabase]
-        } elseif { $GUI::Dashboard::Mode == $xAIF::Settings(libraryMode) } {
+        } elseif { $xAIF::Settings(mode) == $xAIF::Const::XAIF_MODE_LIBRARY } {
             set xAIF::Settings(pdstkEdtr) [::tcom::ref createobject "MGCPCBLibraries.PadstackEditorDlg"]
             # Open the database
             set errorCode [catch {set xAIF::Settings(pdstkEdtrDb) [$xAIF::Settings(pdstkEdtr) \
                 OpenDatabaseEx $xAIF::Settings(targetPath) false] } errorMessage]
             if {$errorCode != 0} {
-                GUI::Transcript -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
+                xAIF::GUI::Message -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
                 return -code return 1
             }
         } else {
-            GUI::Transcript -severity error -msg "Mode not set, build aborted."
+            xAIF::GUI::Message -severity error -msg "Mode not set, build aborted."
             return -code return 1
         }
 
         # Lock the server
         set errorCode [catch { $xAIF::Settings(pdstkEdtr) LockServer } errorMessage]
         if {$errorCode != 0} {
-            GUI::Transcript -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
+            xAIF::GUI::Message -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
             return -code return 1
         }
 
@@ -253,14 +253,14 @@ puts "X4"
     proc ClosePadstackEditor { { mode "-closedatabase" } } {
         ##  Which mode?  Design or Library?
 
-        if { $GUI::Dashboard::Mode == $xAIF::Settings(designMode) } {
-            GUI::Transcript -severity note -msg "Closing database for Padstack Editor."
+        if { $xAIF::Settings(mode) == $xAIF::Const::XAIF_MODE_DESIGN } {
+            xAIF::GUI::Message -severity note -msg "Closing database for Padstack Editor."
             set errorCode [catch { $xAIF::Settings(pdstkEdtr) UnlockServer } errorMessage]
             if {$errorCode != 0} {
-                GUI::Transcript -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
+                xAIF::GUI::Message -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
                 return -code return 1
             }
-            GUI::Transcript -severity note -msg "Closing Padstack Editor."
+            xAIF::GUI::Message -severity note -msg "Closing Padstack Editor."
             ##  Close Padstack Editor
             $xAIF::Settings(pdstkEdtr) SaveActiveDatabase
             $xAIF::Settings(pdstkEdtr) Quit
@@ -279,18 +279,18 @@ puts "X4"
                 ##  Close Expedition
                 $xAIF::Settings(pcbApp) Quit
             }
-        } elseif { $GUI::Dashboard::Mode == $xAIF::Settings(libraryMode) } {
-            GUI::Transcript -severity note -msg "Closing database for Padstack Editor."
+        } elseif { $xAIF::Settings(mode) == $xAIF::Const::XAIF_MODE_LIBRARY } {
+            xAIF::GUI::Message -severity note -msg "Closing database for Padstack Editor."
             set errorCode [catch { $xAIF::Settings(pdstkEdtr) UnlockServer } errorMessage]
             if {$errorCode != 0} {
-                GUI::Transcript -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
+                xAIF::GUI::Message -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
                 return -code return 1
             }
             $xAIF::Settings(pdstkEdtr) CloseActiveDatabase True
-            GUI::Transcript -severity note -msg "Closing Padstack Editor."
+            xAIF::GUI::Message -severity note -msg "Closing Padstack Editor."
             $xAIF::Settings(pdstkEdtr) Quit
         } else {
-            GUI::Transcript -severity error -msg "Mode not set, build aborted."
+            xAIF::GUI::Message -severity error -msg "Mode not set, build aborted."
             return -code return 1
         }
     }
@@ -300,22 +300,22 @@ puts "X4"
     #
     proc OpenCellEditor { } {
         ##  Which mode?  Design or Library?
-        if { $GUI::Dashboard::Mode == $xAIF::Settings(designMode) } {
-            set xAIF::Settings(targetPath) $GUI::Dashboard::DesignPath
+        if { $xAIF::Settings(mode) == $xAIF::Const::XAIF_MODE_DESIGN } {
+            set xAIF::Settings(targetPath) $xAIF::Settings(DesignPath)
             ##  Invoke Expedition on the design so the Cell Editor can be started
             ##  Catch any exceptions raised by opening the database
             set errorCode [catch { MGC::OpenExpedition } errorMessage]
             if {$errorCode != 0} {
-                GUI::Transcript -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
-                GUI::Transcript -severity error -msg "Unable to connect to Xpedition, is Xpedition running?"
-                GUI::StatusBar::UpdateStatus -busy off
+                xAIF::GUI::Message -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
+                xAIF::GUI::Message -severity error -msg "Unable to connect to Xpedition, is Xpedition running?"
+                xAIF::GUI::StatusBar::UpdateStatus -busy off
                 return
             }
             set xAIF::Settings(cellEdtr) [$xAIF::Settings(pcbDoc) CellEditor]
-            GUI::Transcript -severity note -msg "Using design database for Cell Editor."
+            xAIF::GUI::Message -severity note -msg "Using design database for Cell Editor."
             set xAIF::Settings(cellEdtrDb) [$xAIF::Settings(cellEdtr) ActiveDatabase]
-        } elseif { $GUI::Dashboard::Mode == $xAIF::Settings(libraryMode) } {
-            set xAIF::Settings(targetPath) $GUI::Dashboard::LibraryPath
+        } elseif { $xAIF::Settings(mode) == $xAIF::Const::XAIF_MODE_LIBRARY } {
+            set xAIF::Settings(targetPath) $xAIF::Settings(LibraryPath)
 puts "Z1"
             set xAIF::Settings(cellEdtr) [::tcom::ref createobject "CellEditorAddin.CellEditorDlg"]
 puts "Z2"
@@ -323,7 +323,7 @@ puts "Z2"
 puts "Z3"
 flush stdout
             # Open the database
-            GUI::Transcript -severity note -msg "Opening library database for Cell Editor."
+            xAIF::GUI::Message -severity note -msg "Opening library database for Cell Editor."
 puts "Z4"
 flush stdout
 
@@ -331,17 +331,17 @@ set sTime [clock format [clock seconds] -format "%m/%d/%Y %T"]
             set errorCode [catch {set xAIF::Settings(cellEdtrDb) [$xAIF::Settings(cellEdtr) \
                 OpenDatabase $xAIF::Settings(targetPath) false] } errorMessage]
 set cTime [clock format [clock seconds] -format "%m/%d/%Y %T"]
-GUI::Transcript -severity note -msg [format "Start Time:  %s" $sTime]
-GUI::Transcript -severity note -msg [format "Completion Time:  %s" $cTime]
+xAIF::GUI::Message -severity note -msg [format "Start Time:  %s" $sTime]
+xAIF::GUI::Message -severity note -msg [format "Completion Time:  %s" $cTime]
 
 puts "Z5"
 flush stdout
             if {$errorCode != 0} {
-                GUI::Transcript -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
+                xAIF::GUI::Message -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
                 return -code return 1
             }
         } else {
-            GUI::Transcript -severity error -msg "Mode not set, build aborted."
+            xAIF::GUI::Message -severity error -msg "Mode not set, build aborted."
             return -code return 1
         }
 puts "Z6"
@@ -349,7 +349,7 @@ puts "Z6"
         #set xAIF::Settings(cellEdtrDb) [$xAIF::Settings(cellEdtr) OpenDatabase $xAIF::Settings(targetPath) false]
         set errorCode [catch { $xAIF::Settings(cellEdtr) LockServer } errorMessage]
         if {$errorCode != 0} {
-            GUI::Transcript -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
+            xAIF::GUI::Message -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
             return -code return 1
         }
 
@@ -364,18 +364,18 @@ puts "Z6"
     proc CloseCellEditor {} {
         ##  Which mode?  Design or Library?
 
-        if { $GUI::Dashboard::Mode == $xAIF::Settings(designMode) } {
-            GUI::Transcript -severity note -msg "Closing database for Cell Editor."
+        if { $xAIF::Settings(mode) == $xAIF::Const::XAIF_MODE_DESIGN } {
+            xAIF::GUI::Message -severity note -msg "Closing database for Cell Editor."
             set errorCode [catch { $xAIF::Settings(cellEdtr) UnlockServer } errorMessage]
             if {$errorCode != 0} {
-                GUI::Transcript -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
+                xAIF::GUI::Message -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
                 return -code return 1
             }
-            GUI::Transcript -severity note -msg "Closing Cell Editor."
+            xAIF::GUI::Message -severity note -msg "Closing Cell Editor."
             ##  Close Padstack Editor
             set errorCode [catch { $xAIF::Settings(cellEdtr) SaveActiveDatabase } errorMessage]
             if {$errorCode != 0} {
-                GUI::Transcript -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
+                xAIF::GUI::Message -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
                 return -code return 1
             }
             #$xAIF::Settings(cellEdtr) SaveActiveDatabase
@@ -390,18 +390,18 @@ puts "Z6"
                 ##  Close Expedition
                 $xAIF::Settings(pcbApp) Quit
             }
-        } elseif { $GUI::Dashboard::Mode == $xAIF::Settings(libraryMode) } {
-            GUI::Transcript -severity note -msg "Closing database for Cell Editor."
+        } elseif { $xAIF::Settings(mode) == $xAIF::Const::XAIF_MODE_LIBRARY } {
+            xAIF::GUI::Message -severity note -msg "Closing database for Cell Editor."
             set errorCode [catch { $xAIF::Settings(cellEdtr) UnlockServer } errorMessage]
             if {$errorCode != 0} {
-                GUI::Transcript -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
+                xAIF::GUI::Message -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
                 return -code return 1
             }
             $xAIF::Settings(cellEdtr) CloseActiveDatabase True
-            GUI::Transcript -severity note -msg "Closing Cell Editor."
+            xAIF::GUI::Message -severity note -msg "Closing Cell Editor."
             $xAIF::Settings(cellEdtr) Quit
         } else {
-            GUI::Transcript -severity error -msg "Mode not set, build aborted."
+            xAIF::GUI::Message -severity error -msg "Mode not set, build aborted."
             return -code return 1
         }
     }
@@ -412,41 +412,41 @@ puts "Z6"
     proc OpenPDBEditor {} {
 puts "P1"
         ##  Which mode?  Design or Library?
-        if { $GUI::Dashboard::Mode == $xAIF::Settings(designMode) } {
-            set xAIF::Settings(targetPath) $GUI::Dashboard::DesignPath
+        if { $xAIF::Settings(mode) == $xAIF::Const::XAIF_MODE_DESIGN } {
+            set xAIF::Settings(targetPath) $xAIF::Settings(DesignPath)
             ##  Invoke Expedition on the design so the PDB Editor can be started
             ##  Catch any exceptions raised by opening the database
             set errorCode [catch { MGC::OpenExpedition } errorMessage]
             if {$errorCode != 0} {
 puts "P2"
-                GUI::Transcript -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
-                GUI::Transcript -severity error -msg "Unable to connect to Xpedition, is Xpedition running?"
-                GUI::StatusBar::UpdateStatus -busy off
+                xAIF::GUI::Message -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
+                xAIF::GUI::Message -severity error -msg "Unable to connect to Xpedition, is Xpedition running?"
+                xAIF::GUI::StatusBar::UpdateStatus -busy off
                 return -code return 1
             }
 puts "P3"
             set xAIF::Settings(partEdtr) [$xAIF::Settings(pcbDoc) PartEditor]
-            GUI::Transcript -severity note -msg "Using design database for PDB Editor."
+            xAIF::GUI::Message -severity note -msg "Using design database for PDB Editor."
             set xAIF::Settings(partEdtrDb) [$xAIF::Settings(partEdtr) ActiveDatabase]
-        } elseif { $GUI::Dashboard::Mode == $xAIF::Settings(libraryMode) } {
-            set xAIF::Settings(targetPath) $GUI::Dashboard::LibraryPath
+        } elseif { $xAIF::Settings(mode) == $xAIF::Const::XAIF_MODE_LIBRARY } {
+            set xAIF::Settings(targetPath) $xAIF::Settings(LibraryPath)
 puts "P4"
             set xAIF::Settings(partEdtr) [::tcom::ref createobject "MGCPCBLibraries.PartsEditorDlg"]
             # Open the database
-            GUI::Transcript -severity note -msg "Opening library database for PDB Editor."
+            xAIF::GUI::Message -severity note -msg "Opening library database for PDB Editor."
 puts $xAIF::Settings(partEdtr)
 puts $xAIF::Settings(targetPath)
             set errorCode [catch {set xAIF::Settings(partEdtrDb) [$xAIF::Settings(partEdtr) \
                 OpenDatabaseEx $xAIF::Settings(targetPath) false] } errorMessage]
             if {$errorCode != 0} {
 puts "P5"
-                GUI::Transcript -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
+                xAIF::GUI::Message -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
                 return -code return 1
             }
             puts "22->  $errorCode"
             puts "33->  $errorMessage"
         } else {
-            GUI::Transcript -severity error -msg "Mode not set, build aborted."
+            xAIF::GUI::Message -severity error -msg "Mode not set, build aborted."
             return -code return 1
         }
 puts "P6"
@@ -455,7 +455,7 @@ puts "OpenPDBEdtr - 1"
         #set xAIF::Settings(partEdtrDb) [$xAIF::Settings(partEdtr) OpenDatabase $xAIF::Settings(targetPath) false]
         set errorCode [catch { $xAIF::Settings(partEdtr) LockServer } errorMessage]
         if {$errorCode != 0} {
-            GUI::Transcript -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
+            xAIF::GUI::Message -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
             return -code return 1
         }
             puts "44->  $errorCode"
@@ -474,14 +474,14 @@ puts "OpenPDBEdtr - 1"
     proc ClosePDBEditor { } {
         ##  Which mode?  Design or Library?
 
-        if { $GUI::Dashboard::Mode == $xAIF::Settings(designMode) } {
-            GUI::Transcript -severity note -msg "Closing database for PDB Editor."
+        if { $xAIF::Settings(mode) == $xAIF::Const::XAIF_MODE_DESIGN } {
+            xAIF::GUI::Message -severity note -msg "Closing database for PDB Editor."
             set errorCode [catch { $xAIF::Settings(partEdtr) UnlockServer } errorMessage]
             if {$errorCode != 0} {
-                GUI::Transcript -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
+                xAIF::GUI::Message -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
                 return -code return 1
             }
-            GUI::Transcript -severity note -msg "Closing PDB Editor."
+            xAIF::GUI::Message -severity note -msg "Closing PDB Editor."
             ##  Close Padstack Editor
             $xAIF::Settings(partEdtr) SaveActiveDatabase
             $xAIF::Settings(partEdtr) Quit
@@ -501,18 +501,18 @@ puts "OpenPDBEdtr - 1"
                 ##  Close Expedition
                 $xAIF::Settings(pcbApp) Quit
             }
-        } elseif { $GUI::Dashboard::Mode == $xAIF::Settings(libraryMode) } {
-            GUI::Transcript -severity note -msg "Closing database for PDB Editor."
+        } elseif { $xAIF::Settings(mode) == $xAIF::Const::XAIF_MODE_LIBRARY } {
+            xAIF::GUI::Message -severity note -msg "Closing database for PDB Editor."
             set errorCode [catch { $xAIF::Settings(partEdtr) UnlockServer } errorMessage]
             if {$errorCode != 0} {
-                GUI::Transcript -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
+                xAIF::GUI::Message -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
                 return -code return 1
             }
             $xAIF::Settings(partEdtr) CloseActiveDatabase True
-            GUI::Transcript -severity note -msg "Closing PDB Editor."
+            xAIF::GUI::Message -severity note -msg "Closing PDB Editor."
             $xAIF::Settings(partEdtr) Quit
         } else {
-            GUI::Transcript -severity error -msg "Mode not set, build aborted."
+            xAIF::GUI::Message -severity error -msg "Mode not set, build aborted."
             return -code return 1
         }
     }
@@ -521,27 +521,27 @@ puts "OpenPDBEdtr - 1"
     ##  MGC::SetupLMC
     ##
     proc SetupLMC { { f "" } } {
-        GUI::StatusBar::UpdateStatus -busy on
+        xAIF::GUI::StatusBar::UpdateStatus -busy on
 
         ##  Prompt the user for a Central Library database if not supplied
 
         if { [string equal $f ""] } {
-            set $GUI::Dashboard::LibraryPath [tk_getOpenFile -filetypes {{LMC .lmc}}]
+            set $xAIF::Settings(LibraryPath) [tk_getOpenFile -filetypes {{LMC .lmc}}]
         } else {
-            set $GUI::Dashboard::LibraryPath $f
+            set $xAIF::Settings(LibraryPath) $f
         }
 
         ##  Set the Library Path to the target
         set xAIF::Settings(targetPath) $f
 
         if {$xAIF::Settings(targetPath) == "" } {
-            GUI::Transcript -severity warning -msg "No Central Library selected."
+            xAIF::GUI::Message -severity warning -msg "No Central Library selected."
             return
         } else {
-            GUI::Transcript -severity note -msg [format "Central Library \"%s\" set as library target." $xAIF::Settings(targetPath)]
+            xAIF::GUI::Message -severity note -msg [format "Central Library \"%s\" set as library target." $xAIF::Settings(targetPath)]
         }
 
-        set xAIF::Settings(targetPath) $GUI::Dashboard::LibraryPath
+        set xAIF::Settings(targetPath) $xAIF::Settings(LibraryPath)
 
         ##  Invoke the Cell Editor and open the LMC
         ##  Catch any exceptions raised by opening the database
@@ -549,7 +549,7 @@ puts "OpenPDBEdtr - 1"
         set errorCode [catch { MGC::OpenCellEditor } errorMessage]
         if {$errorCode != 0} {
             #set xAIF::Settings(targetPath) ""
-            GUI::StatusBar::UpdateStatus -busy off
+            xAIF::GUI::StatusBar::UpdateStatus -busy off
             return -code return 1
         }
 
@@ -565,14 +565,14 @@ puts "OpenPDBEdtr - 1"
         set partitions [$xAIF::Settings(cellEdtrDb) Partitions]
         $xAIF::Settings(cellEdtr) Visible $visbility
 
-        GUI::Transcript -severity note -msg [format "Found %s cell %s." [$partitions Count] \
+        xAIF::GUI::Message -severity note -msg [format "Found %s cell %s." [$partitions Count] \
             [xAIF::Utility::Plural [$partitions Count] "partition"]]
 
         set xAIF::Settings(cellEdtrPrtnNames) {}
         for {set i 1} {$i <= [$partitions Count]} {incr i} {
             set partition [$partitions Item $i]
             lappend xAIF::Settings(cellEdtrPrtnNames) [$partition Name]
-            GUI::Transcript -severity note -msg [format "Found cell partition \"%s.\"" [$partition Name]]
+            xAIF::GUI::Message -severity note -msg [format "Found cell partition \"%s.\"" [$partition Name]]
         }
 
         MGC::CloseCellEditor
@@ -583,7 +583,7 @@ puts "OpenPDBEdtr - 1"
         set errorCode [catch { MGC::OpenPDBEditor } errorMessage]
         if {$errorCode != 0} {
             #set xAIF::Settings(targetPath) ""
-            GUI::StatusBar::UpdateStatus -busy off
+            xAIF::GUI::StatusBar::UpdateStatus -busy off
             return -code return 1
         }
 
@@ -591,19 +591,19 @@ puts "OpenPDBEdtr - 1"
 
         set partitions [$xAIF::Settings(partEdtrDb) Partitions]
 
-        GUI::Transcript -severity note -msg [format "Found %s part %s." [$partitions Count] \
+        xAIF::GUI::Message -severity note -msg [format "Found %s part %s." [$partitions Count] \
             [xAIF::Utility::Plural [$partitions Count] "partition"]]
 
         set xAIF::Settings(partEdtrPrtnNames) {}
         for {set i 1} {$i <= [$partitions Count]} {incr i} {
             set partition [$partitions Item $i]
             lappend xAIF::Settings(partEdtrPrtnNames) [$partition Name]
-            GUI::Transcript -severity note -msg [format "Found part partition \"%s.\"" [$partition Name]]
+            xAIF::GUI::Message -severity note -msg [format "Found part partition \"%s.\"" [$partition Name]]
         }
 
         MGC::ClosePDBEditor
 
-        GUI::StatusBar::UpdateStatus -busy off
+        xAIF::GUI::StatusBar::UpdateStatus -busy off
     }
 
 
@@ -619,21 +619,21 @@ puts "OpenPDBEdtr - 1"
         #  referenced by a padstack so that scenario must be handled.
         #
         proc Pad { { mode "-replace" } } {
-            GUI::StatusBar::UpdateStatus -busy on
+            xAIF::GUI::StatusBar::UpdateStatus -busy on
             set xAIF::Settings(sTime) [clock format [clock seconds] -format "%m/%d/%Y %T"]
 
             ##  Make sure a Target library or design has been defined
 
             if { [string equal $xAIF::Settings(targetPath) ""] && [ string is true $xAIF::Settings(connectMode)] } {
-                if {$GUI::Dashboard::Mode == $xAIF::Settings(designMode)} {
-                    GUI::Transcript -severity error -msg "No Design (PCB) specified, build aborted."
-                } elseif {$GUI::Dashboard::Mode == $xAIF::Settings(libraryMode)} {
-                    GUI::Transcript -severity error -msg "No Central Library (LMC) specified, build aborted."
+                if {$xAIF::Settings(mode) == $xAIF::Const::XAIF_MODE_DESIGN} {
+                    xAIF::GUI::Message -severity error -msg "No Design (PCB) specified, build aborted."
+                } elseif {$xAIF::Settings(mode) == $xAIF::Const::XAIF_MODE_LIBRARY} {
+                    xAIF::GUI::Message -severity error -msg "No Central Library (LMC) specified, build aborted."
                 } else {
-                    GUI::Transcript -severity error -msg "Mode not set, build aborted."
+                    xAIF::GUI::Message -severity error -msg "Mode not set, build aborted."
                 }
 
-                GUI::StatusBar::UpdateStatus -busy off
+                xAIF::GUI::StatusBar::UpdateStatus -busy off
                 return
             }
 
@@ -641,8 +641,8 @@ puts "OpenPDBEdtr - 1"
 
             if { $::padGeom(name) == "" || $::padGeom(shape) == "" || \
                 $::padGeom(height) == "" || $::padGeom(width) == "" } {
-                GUI::Transcript -severity error -msg "Incomplete pad definition, build aborted."
-                GUI::StatusBar::UpdateStatus -busy off
+                xAIF::GUI::Message -severity error -msg "Incomplete pad definition, build aborted."
+                xAIF::GUI::StatusBar::UpdateStatus -busy off
                 return
             }
 
@@ -651,8 +651,8 @@ puts "OpenPDBEdtr - 1"
             set shape [MapEnum::Shape $::padGeom(shape)]
 
             if { $shape == $xAIF::Settings(Nothing) } {
-                GUI::Transcript -severity error -msg "Unsupported pad shape, build aborted."
-                GUI::StatusBar::UpdateStatus -busy off
+                xAIF::GUI::Message -severity error -msg "Unsupported pad shape, build aborted."
+                xAIF::GUI::StatusBar::UpdateStatus -busy off
                 return
             }
 
@@ -667,8 +667,8 @@ puts "OpenPDBEdtr - 1"
             ##  Catch any exceptions raised by opening the database
             set errorCode [catch { MGC::OpenPadstackEditor } errorMessage]
             if {$errorCode != 0} {
-                GUI::Transcript -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
-                GUI::StatusBar::UpdateStatus -busy off
+                xAIF::GUI::Message -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
+                xAIF::GUI::StatusBar::UpdateStatus -busy off
                 return
             }
 
@@ -680,23 +680,23 @@ puts "OpenPDBEdtr - 1"
             #  Echo some information about what will happen.
 
             if {$oldPadName == $xAIF::Settings(Nothing)} {
-                GUI::Transcript -severity note -msg [format "Pad \"%s\" does not exist." $padName]
+                xAIF::GUI::Message -severity note -msg [format "Pad \"%s\" does not exist." $padName]
             } elseif {$mode == "-replace" } {
-                GUI::Transcript -severity warning -msg [format "Pad \"%s\" already exists and will be replaced." $padName]
+                xAIF::GUI::Message -severity warning -msg [format "Pad \"%s\" already exists and will be replaced." $padName]
 
                 ##  Can't delete a pad that is referenced by a padstack so
                 ##  need to catch the error if it is raised by the API.
                 set errorCode [catch { $oldPadName Delete } errorMessage]
                 if {$errorCode != 0} {
-                    GUI::Transcript -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
+                    xAIF::GUI::Message -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
                     MGC::ClosePadstackEditor
-                    GUI::StatusBar::UpdateStatus -busy off
+                    xAIF::GUI::StatusBar::UpdateStatus -busy off
                     return
                 }
             } else {
-                GUI::Transcript -severity warning -msg [format "Pad \"%s\" already exists and will not be replaced." $padName]
+                xAIF::GUI::Message -severity warning -msg [format "Pad \"%s\" already exists and will not be replaced." $padName]
                 MGC::ClosePadstackEditor
-                GUI::StatusBar::UpdateStatus -busy off
+                xAIF::GUI::StatusBar::UpdateStatus -busy off
                 return
             }
 
@@ -715,24 +715,24 @@ puts "OpenPDBEdtr - 1"
             $newPad -set OriginOffsetY \
                 [expr [MapEnum::Units $::database(units) "pad"]] [expr $::padGeom(offsety)]
 
-            GUI::Transcript -severity note -msg [format "Committing pad:  %s" $padName]
+            xAIF::GUI::Message -severity note -msg [format "Committing pad:  %s" $padName]
             $newPad Commit
 
             MGC::ClosePadstackEditor
 
             ##  Report some time statistics
             set xAIF::Settings(cTime) [clock format [clock seconds] -format "%m/%d/%Y %T"]
-            GUI::Transcript -severity note -msg [format "Start Time:  %s" $xAIF::Settings(sTime)]
-            GUI::Transcript -severity note -msg [format "Completion Time:  %s" $xAIF::Settings(cTime)]
+            xAIF::GUI::Message -severity note -msg [format "Start Time:  %s" $xAIF::Settings(sTime)]
+            xAIF::GUI::Message -severity note -msg [format "Completion Time:  %s" $xAIF::Settings(cTime)]
 
-            GUI::StatusBar::UpdateStatus -busy off
+            xAIF::GUI::StatusBar::UpdateStatus -busy off
         }
 
         #
         #  MGC::Generate::Padstack
         #
         proc Padstack { { mode "-replace" } } {
-            GUI::StatusBar::UpdateStatus -busy on
+            xAIF::GUI::StatusBar::UpdateStatus -busy on
             set xAIF::Settings(sTime) [clock format [clock seconds] -format "%m/%d/%Y %T"]
 
             ##  Extract pad details from AIF file
@@ -740,15 +740,15 @@ puts "OpenPDBEdtr - 1"
             ##  Make sure a Target library or design has been defined
 
             if {$xAIF::Settings(targetPath) == $xAIF::Settings(Nothing) && [string is false $xAIF::Settings(connectMode)] } {
-                if {$GUI::Dashboard::Mode == $xAIF::Settings(designMode)} {
-                    GUI::Transcript -severity error -msg "No Design (PCB) specified, build aborted."
-                } elseif {$GUI::Dashboard::Mode == $xAIF::Settings(libraryMode)} {
-                    GUI::Transcript -severity error -msg "No Central Library (LMC) specified, build aborted."
+                if {$xAIF::Settings(mode) == $xAIF::Const::XAIF_MODE_DESIGN} {
+                    xAIF::GUI::Message -severity error -msg "No Design (PCB) specified, build aborted."
+                } elseif {$xAIF::Settings(mode) == $xAIF::Const::XAIF_MODE_LIBRARY} {
+                    xAIF::GUI::Message -severity error -msg "No Central Library (LMC) specified, build aborted."
                 } else {
-                    GUI::Transcript -severity error -msg "Mode not set, build aborted."
+                    xAIF::GUI::Message -severity error -msg "Mode not set, build aborted."
                 }
 
-                GUI::StatusBar::UpdateStatus -busy off
+                xAIF::GUI::StatusBar::UpdateStatus -busy off
                 return
             }
 
@@ -756,8 +756,8 @@ puts "OpenPDBEdtr - 1"
 
             if { $::padGeom(name) == "" || $::padGeom(shape) == "" || \
                 $::padGeom(height) == "" || $::padGeom(width) == "" } {
-                GUI::Transcript -severity error -msg "Incomplete pad definition, build aborted."
-                GUI::StatusBar::UpdateStatus -busy off
+                xAIF::GUI::Message -severity error -msg "Incomplete pad definition, build aborted."
+                xAIF::GUI::StatusBar::UpdateStatus -busy off
                 return
             }
 
@@ -772,8 +772,8 @@ puts "OpenPDBEdtr - 1"
             ##  Catch any exceptions raised by opening the database
             set errorCode [catch { MGC::OpenPadstackEditor } errorMessage]
             if {$errorCode != 0} {
-                GUI::Transcript -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
-                GUI::StatusBar::UpdateStatus -busy off
+                xAIF::GUI::Message -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
+                xAIF::GUI::StatusBar::UpdateStatus -busy off
                 return
             }
 
@@ -781,8 +781,8 @@ puts "OpenPDBEdtr - 1"
             set pad [$xAIF::Settings(pdstkEdtrDb) FindPad $padName]
 
             if {$pad == $xAIF::Settings(Nothing)} {
-                GUI::Transcript -severity error -msg [format "Pad \"%s\" is not defined, padstack \"%s\" build aborted." $padName $::padGeom(name)]
-                GUI::StatusBar::UpdateStatus -busy off
+                xAIF::GUI::Message -severity error -msg [format "Pad \"%s\" is not defined, padstack \"%s\" build aborted." $padName $::padGeom(name)]
+                xAIF::GUI::StatusBar::UpdateStatus -busy off
                 return
             }
 
@@ -793,22 +793,22 @@ puts "OpenPDBEdtr - 1"
             #  Echo some information about what will happen.
 
             if {$oldPadstackName == $xAIF::Settings(Nothing)} {
-                GUI::Transcript -severity note -msg [format "Padstack \"%s\" does not exist." $padName]
+                xAIF::GUI::Message -severity note -msg [format "Padstack \"%s\" does not exist." $padName]
             } elseif {$mode == "-replace" } {
-                GUI::Transcript -severity warning -msg [format "Padstack \"%s\" already exists and will be replaced." $::padGeom(name)]
+                xAIF::GUI::Message -severity warning -msg [format "Padstack \"%s\" already exists and will be replaced." $::padGeom(name)]
                 ##  Can't delete a padstack that is referenced by a padstack
                 ##  so need to catch the error if it is raised by the API.
                 set errorCode [catch { $oldPadstackName Delete } errorMessage]
                 if {$errorCode != 0} {
-                    GUI::Transcript -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
+                    xAIF::GUI::Message -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
                     MGC::ClosePadstackEditor
-                    GUI::StatusBar::UpdateStatus -busy off
+                    xAIF::GUI::StatusBar::UpdateStatus -busy off
                     return
                 }
             } else {
-                GUI::Transcript -severity warning -msg [format "Padstack \"%s\" already exists and will not be replaced." $::padGeom(name)]
+                xAIF::GUI::Message -severity warning -msg [format "Padstack \"%s\" already exists and will not be replaced." $::padGeom(name)]
                 MGC::ClosePadstackEditor
-                GUI::StatusBar::UpdateStatus -busy off
+                xAIF::GUI::StatusBar::UpdateStatus -busy off
                 return
             }
 
@@ -853,10 +853,10 @@ puts "OpenPDBEdtr - 1"
 
             ##  Report some time statistics
             set xAIF::Settings(cTime) [clock format [clock seconds] -format "%m/%d/%Y %T"]
-            GUI::Transcript -severity note -msg [format "Start Time:  %s" $xAIF::Settings(sTime)]
-            GUI::Transcript -severity note -msg [format "Completion Time:  %s" $xAIF::Settings(cTime)]
+            xAIF::GUI::Message -severity note -msg [format "Start Time:  %s" $xAIF::Settings(sTime)]
+            xAIF::GUI::Message -severity note -msg [format "Completion Time:  %s" $xAIF::Settings(cTime)]
 
-            GUI::StatusBar::UpdateStatus -busy off
+            xAIF::GUI::StatusBar::UpdateStatus -busy off
         }
 
         #
@@ -865,7 +865,7 @@ puts "OpenPDBEdtr - 1"
         proc Cell { device args } {
 puts "Y1"
             ##  Process command arguments
-            array set V [list -partition $GUI::Dashboard::CellPartition -mirror none] ;# Default values
+            array set V [list -partition $xAIF::GUI::Dashboard::CellPartition -mirror none] ;# Default values
             foreach {a value} $args {
                 if {! [info exists V($a)]} {error "unknown option $a"}
                 if {$value == {}} {error "value of \"$a\" missing"}
@@ -881,8 +881,8 @@ puts "Y2"
 
             ##  Check mirror option, make sure it is valid
             if { [lsearch [list none x y xy] $V(-mirror)] == -1 } {
-                GUI::Transcript -severity error -msg "Illegal seeting for -mirror switch, must be one of none, x, y, or xy."
-                GUI::StatusBar::UpdateStatus -busy off
+                xAIF::GUI::Message -severity error -msg "Illegal seeting for -mirror switch, must be one of none, x, y, or xy."
+                xAIF::GUI::StatusBar::UpdateStatus -busy off
                 return
             }
 
@@ -904,23 +904,23 @@ puts "Y3"
                 }
             }
 
-            GUI::StatusBar::UpdateStatus -busy on
+            xAIF::GUI::StatusBar::UpdateStatus -busy on
             set xAIF::Settings(sTime) [clock format [clock seconds] -format "%m/%d/%Y %T"]
 
             ##  Make sure a Target library or design has been defined
 puts "Y4"
 
             if {$xAIF::Settings(targetPath) == $xAIF::Settings(Nothing) && [string is false $xAIF::Settings(connectMode)] } {
-                if {$GUI::Dashboard::Mode == $xAIF::Settings(designMode)} {
-                    GUI::Transcript -severity error -msg "No Design (PCB) specified, build aborted."
-                } elseif {$GUI::Dashboard::Mode == $xAIF::Settings(libraryMode)} {
-                    GUI::Transcript -severity error -msg "No Central Library (LMC) specified, build aborted."
+                if {$xAIF::Settings(mode) == $xAIF::Const::XAIF_MODE_DESIGN} {
+                    xAIF::GUI::Message -severity error -msg "No Design (PCB) specified, build aborted."
+                } elseif {$xAIF::Settings(mode) == $xAIF::Const::XAIF_MODE_LIBRARY} {
+                    xAIF::GUI::Message -severity error -msg "No Central Library (LMC) specified, build aborted."
                 } else {
-                    puts $GUI::Dashboard::Mode
-                    GUI::Transcript -severity error -msg "Mode not set, build aborted."
+                    puts $xAIF::Settings(mode)
+                    xAIF::GUI::Message -severity error -msg "Mode not set, build aborted."
                 }
 
-                GUI::StatusBar::UpdateStatus -busy off
+                xAIF::GUI::StatusBar::UpdateStatus -busy off
                 return
             }
 
@@ -930,9 +930,9 @@ puts "Y4"
 puts "Y5"
             set errorCode [catch { MGC::OpenCellEditor } errorMessage]
             if {$errorCode != 0} {
-                GUI::Transcript -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
+                xAIF::GUI::Message -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
                 MGC::CloseCellEditor
-                GUI::StatusBar::UpdateStatus -busy off
+                xAIF::GUI::StatusBar::UpdateStatus -busy off
                 return
             }
 
@@ -941,7 +941,7 @@ puts "Y5"
             ##  isn't a "partition" so none of the partition logic applies.
 
 puts "Y6"
-            if { $GUI::Dashboard::Mode == $xAIF::Settings(libraryMode) } {
+            if { $xAIF::Settings(mode) == $xAIF::Const::XAIF_MODE_LIBRARY } {
 
                 #  Prompt for the Partition if not supplied with -partition
 
@@ -950,9 +950,9 @@ puts "Y6"
                         [AIFForms::ListBox::SelectOneFromList "Select Target Cell Partition" $xAIF::Settings(cellEdtrPrtnNames)]
 
                     if { [string equal $xAIF::Settings(cellEdtrPrtnName) ""] } {
-                        GUI::Transcript -severity error -msg "No Cell Partition selected, build aborted."
+                        xAIF::GUI::Message -severity error -msg "No Cell Partition selected, build aborted."
                         MGC::CloseCellEditor
-                        GUI::StatusBar::UpdateStatus -busy off
+                        xAIF::GUI::StatusBar::UpdateStatus -busy off
                         return
                     } else {
                         set xAIF::Settings(cellEdtrPrtnName) [lindex $xAIF::Settings(cellEdtrPrtnName) 1]
@@ -975,7 +975,7 @@ puts "Y7"
                 set partitions [$xAIF::Settings(cellEdtrDb) Partitions]
                 $xAIF::Settings(cellEdtr) Visible $visibility
 
-                GUI::Transcript -severity note -msg [format "Found %s cell %s." [$partitions Count] \
+                xAIF::GUI::Message -severity note -msg [format "Found %s cell %s." [$partitions Count] \
                     [xAIF::Utility::Plural [$partitions Count] "partition"]]
 
                 set pNames {}
@@ -987,12 +987,12 @@ puts "Y7"
                 #  Does the partition exist?
 
                 if { [lsearch $pNames $xAIF::Settings(cellEdtrPrtnName)] == -1 } {
-                    GUI::Transcript -severity note -msg [format "Creating partition \"%s\" for cell \"%s\"." \
+                    xAIF::GUI::Message -severity note -msg [format "Creating partition \"%s\" for cell \"%s\"." \
                         $::die(partition) $target]
 
                     set partition [$xAIF::Settings(cellEdtrDb) NewPartition $xAIF::Settings(cellEdtrPrtnName)]
                 } else {
-                    GUI::Transcript -severity note -msg [format "Using existing partition \"%s\" for cell \"%s\"." \
+                    xAIF::GUI::Message -severity note -msg [format "Using existing partition \"%s\" for cell \"%s\"." \
                         $xAIF::Settings(cellEdtrPrtnName) $target]
                     set partition [$partitions Item [expr [lsearch $pNames $xAIF::Settings(cellEdtrPrtnName)] +1]]
                 }
@@ -1002,13 +1002,13 @@ puts "Y7"
                 set cells [$partition Cells]
             } else {
                 if { [expr { $V(-partition) ne "" }] } {
-                    GUI::Transcript -severity warning -msg "-partition switch is ignored in Design Mode."
+                    xAIF::GUI::Message -severity warning -msg "-partition switch is ignored in Design Mode."
                 }
                 set partition [$xAIF::Settings(cellEdtrDb) ActivePartition]
                 set cells [$partition Cells]
             }
 
-            GUI::Transcript -severity note -msg [format "Found %s %s." [$cells Count] \
+            xAIF::GUI::Message -severity note -msg [format "Found %s %s." [$cells Count] \
                 [xAIF::Utility::Plural [$cells Count] "cell"]]
 
             set cNames {}
@@ -1019,7 +1019,7 @@ puts "Y7"
 
             #  Does the cell exist?  Are we using Name suffixes?
 
-            if { [string equal $GUI::Dashboard::CellSuffix numeric] } {
+            if { [string equal $xAIF::GUI::Dashboard::CellSuffix numeric] } {
                 set suffixes [lsearch -all -inline -regexp  $cNames $target-\[0-9\]+]
                 if { [string equal $suffixes ""] } {
                     set suffix "-1"
@@ -1031,7 +1031,7 @@ puts "Y7"
                 }
                 ##  Add the suffix to the target
                 append target $suffix
-            } elseif { [string equal $GUI::Dashboard::CellSuffix alpha] } {
+            } elseif { [string equal $xAIF::GUI::Dashboard::CellSuffix alpha] } {
                 ##  This is limited to 26 matches for now ...
                 set suffixes [lsearch -all -inline -regexp  $cNames $target-\[A-Z\]+]
                 if { [string equal $suffixes ""] } {
@@ -1043,7 +1043,7 @@ puts "Y7"
 
                     ##  Make sure the end of the alphabet hasn't been reached
                     if { [string equal $suffix Z] } {
-                        GUI::Transcript -severity note -msg [format "Cell suffixes (\"%s\") exhausted, aborted." $suffix]
+                        xAIF::GUI::Message -severity note -msg [format "Cell suffixes (\"%s\") exhausted, aborted." $suffix]
                         MGC::CloseCellEditor
                         return
                     }
@@ -1053,10 +1053,10 @@ puts "Y7"
                 }
                 ##  Add the suffix to the target
                 append target $suffix
-            } elseif { [string equal $GUI::Dashboard::CellSuffix datestamp] } {
+            } elseif { [string equal $xAIF::GUI::Dashboard::CellSuffix datestamp] } {
                 set suffix [clock format [clock seconds] -format {-%Y-%m-%d}]
                 append target $suffix
-            } elseif { [string equal $GUI::Dashboard::CellSuffix timestamp] } {
+            } elseif { [string equal $xAIF::GUI::Dashboard::CellSuffix timestamp] } {
                 set suffix [clock format [clock seconds] -format {-%Y-%m-%d-%H-%M-%S}]
                 append target $suffix
             } else {
@@ -1066,9 +1066,9 @@ puts "Y7"
             ##  This can fail if the cell is being referenced by the design.
 
             if { [lsearch $cNames $target] == -1 } {
-                GUI::Transcript -severity note -msg [format "Creating new cell \"%s\"." $target]
+                xAIF::GUI::Message -severity note -msg [format "Creating new cell \"%s\"." $target]
             } else {
-                GUI::Transcript -severity note -msg [format "Replacing existing cell \"%s.\"" $target]
+                xAIF::GUI::Message -severity note -msg [format "Replacing existing cell \"%s.\"" $target]
                 set cell [$cells Item [expr [lsearch $cNames $target] +1]]
 
                 ##  Delete the cell and save the database.  The delete
@@ -1076,7 +1076,7 @@ puts "Y7"
 
                 set errorCode [catch { $cell Delete } errorMessage]
                 if {$errorCode != 0} {
-                    GUI::Transcript -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
+                    xAIF::GUI::Message -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
                     MGC::CloseCellEditor
                     return
                 }
@@ -1095,8 +1095,8 @@ puts "Y7"
 
             $newCell -set Name $target
             $newCell -set Description $target
-            puts [expr $GUI::Dashboard::DefaultCellHeight]
-            $newCell -set Height [expr $::CellEditorAddinLib::ECellDBUnit(ecelldbUnitUM)] [expr $GUI::Dashboard::DefaultCellHeight]
+            puts [expr $xAIF::GUI::Dashboard::DefaultCellHeight]
+            $newCell -set Height [expr $::CellEditorAddinLib::ECellDBUnit(ecelldbUnitUM)] [expr $xAIF::GUI::Dashboard::DefaultCellHeight]
 
             #  Need to support Mount Side Opposite for APD compatibility
             #  For Mount Side Opposite use ecelldbMountTypeMixed?
@@ -1130,8 +1130,8 @@ puts "Y7"
             ##  Catch any exceptions raised by opening the database
             set errorCode [catch { MGC::OpenPadstackEditor -dontopendatabase } errorMessage]
             if {$errorCode != 0} {
-                GUI::Transcript -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
-                GUI::StatusBar::UpdateStatus -busy off
+                xAIF::GUI::Message -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
+                xAIF::GUI::StatusBar::UpdateStatus -busy off
                 return
             }
 
@@ -1161,25 +1161,25 @@ puts "Y7"
                 #  Echo some information about what will happen.
 
                 if {$padstack($pad) == $xAIF::Settings(Nothing)} {
-                    GUI::Transcript -severity error -msg \
+                    xAIF::GUI::Message -severity error -msg \
                         [format "Reference Padstack \"%s\" does not exist, build aborted." $pad]
                     $cellEditor Close False
 
-                    if { $GUI::Dashboard::Mode == $xAIF::Settings(designMode) } {
+                    if { $xAIF::Settings(mode) == $xAIF::Const::XAIF_MODE_DESIGN } {
                         MGC::ClosePadstackEditor -dontclosedatabase
                     } else {
                         MGC::ClosePadstackEditor
                     }
                     MGC::CloseCellEditor
 
-                    GUI::StatusBar::UpdateStatus -busy off
+                    xAIF::GUI::StatusBar::UpdateStatus -busy off
                     return -1
                 }
             }
 puts "K1"
 
             ##  To fix Tcom bug?
-            if { $GUI::Dashboard::Mode == $xAIF::Settings(designMode) } {
+            if { $xAIF::Settings(mode) == $xAIF::Const::XAIF_MODE_DESIGN } {
                 MGC::ClosePadstackEditor -dontclosedatabase
             } else {
                 MGC::ClosePadstackEditor
@@ -1282,7 +1282,7 @@ puts "K1"
         }
 
                 if { $skip  == False } {
-                    GUI::Transcript -severity note -msg [format "Placing pin \"%s\" using padstack \"%s\"." \
+                    xAIF::GUI::Message -severity note -msg [format "Placing pin \"%s\" using padstack \"%s\"." \
                         $diePadFields(pinnum) $diePadFields(padname)]
 
                     ##  Need to "Put" the padstack so it can be
@@ -1309,7 +1309,7 @@ puts [$pin Side]
                         [expr $diePadFields(padx) - $diePadFields(centerx)] \
                         [expr $diePadFields(pady) - $diePadFields(centery)] [expr 0] } errorMessage]
                     if {$errorCode != 0} {
-                        GUI::Transcript -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
+                        xAIF::GUI::Message -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
                         puts [format "Error:  %s  Pin:  %d  Handle:  %s" $errorMessage $i $pin]
 
                         puts [$pin IsValid]
@@ -1319,7 +1319,7 @@ puts [$pin Side]
                         break
                     }
                 } else {
-                    GUI::Transcript -severity note -msg [format "Skipping pin \"%s\" using padstack \"%s\", not in Sparse Pin list." \
+                    xAIF::GUI::Message -severity note -msg [format "Skipping pin \"%s\" using padstack \"%s\", not in Sparse Pin list." \
                         $diePadFields(pinnum) $diePadFields(padname)]
                 }
 
@@ -1401,15 +1401,15 @@ puts [expr $::MGCPCB::EPcbSide(epcbSideOpposite)]
 
             ##  Save edits and close the Cell Editor
             set time [clock format [clock seconds] -format "%m/%d/%Y %T"]
-            GUI::Transcript -severity note -msg [format "Saving new cell \"%s\" (%s)." $target $time]
-            GUI::Transcript -severity note -msg "Starting Save!"
+            xAIF::GUI::Message -severity note -msg [format "Saving new cell \"%s\" (%s)." $target $time]
+            xAIF::GUI::Message -severity note -msg "Starting Save!"
             $cellEditor Save
-            GUI::Transcript -severity note -msg "Save Done!"
+            xAIF::GUI::Message -severity note -msg "Save Done!"
             set time [clock format [clock seconds] -format "%m/%d/%Y %T"]
-            GUI::Transcript -severity note -msg [format "New cell \"%s\" (%s) saved." $target $time]
+            xAIF::GUI::Message -severity note -msg [format "New cell \"%s\" (%s) saved." $target $time]
             $cellEditor Close False
 
-        ##    if { $GUI::Dashboard::Mode == $xAIF::Settings(designMode) } {
+        ##    if { $xAIF::Settings(mode) == $xAIF::Const::XAIF_MODE_DESIGN } {
         ##        MGC::ClosePadstackEditor -dontclosedatabase
         ##    } else {
         ##        MGC::ClosePadstackEditor
@@ -1418,10 +1418,10 @@ puts [expr $::MGCPCB::EPcbSide(epcbSideOpposite)]
 
             ##  Report some time statistics
             set xAIF::Settings(cTime) [clock format [clock seconds] -format "%m/%d/%Y %T"]
-            GUI::Transcript -severity note -msg [format "Start Time:  %s" $xAIF::Settings(sTime)]
-            GUI::Transcript -severity note -msg [format "Completion Time:  %s" $xAIF::Settings(cTime)]
+            xAIF::GUI::Message -severity note -msg [format "Start Time:  %s" $xAIF::Settings(sTime)]
+            xAIF::GUI::Message -severity note -msg [format "Completion Time:  %s" $xAIF::Settings(cTime)]
 
-            GUI::StatusBar::UpdateStatus -busy off
+            xAIF::GUI::StatusBar::UpdateStatus -busy off
         }
 
         #
@@ -1429,7 +1429,7 @@ puts [expr $::MGCPCB::EPcbSide(epcbSideOpposite)]
         #
         proc PDB { device args } {
             ##  Process command arguments
-            array set V [list {-partition} $GUI::Dashboard::PartPartition] ;# Default values
+            array set V [list {-partition} $xAIF::GUI::Dashboard::PartPartition] ;# Default values
             foreach {a value} $args {
                 if {! [info exists V($a)]} {error "unknown option $a"}
                 if {$value == {}} {error "value of \"$a\" missing"}
@@ -1438,21 +1438,21 @@ puts [expr $::MGCPCB::EPcbSide(epcbSideOpposite)]
 
             set xAIF::Settings(partEdtrPrtnName) $V(-partition)
 
-            GUI::StatusBar::UpdateStatus -busy on
+            xAIF::GUI::StatusBar::UpdateStatus -busy on
             set xAIF::Settings(sTime) [clock format [clock seconds] -format "%m/%d/%Y %T"]
 
             ##  Make sure a Target library or design has been defined
 
             if {$xAIF::Settings(targetPath) == $xAIF::Settings(Nothing) && [string is false $xAIF::Settings(connectMode)] } {
-                if {$GUI::Dashboard::Mode == $xAIF::Settings(designMode)} {
-                    GUI::Transcript -severity error -msg "No Design (PCB) specified, build aborted."
-                } elseif {$GUI::Dashboard::Mode == $xAIF::Settings(libraryMode)} {
-                    GUI::Transcript -severity error -msg "No Central Library (LMC) specified, build aborted."
+                if {$xAIF::Settings(mode) == $xAIF::Const::XAIF_MODE_DESIGN} {
+                    xAIF::GUI::Message -severity error -msg "No Design (PCB) specified, build aborted."
+                } elseif {$xAIF::Settings(mode) == $xAIF::Const::XAIF_MODE_LIBRARY} {
+                    xAIF::GUI::Message -severity error -msg "No Central Library (LMC) specified, build aborted."
                 } else {
-                    GUI::Transcript -severity error -msg "Mode not set, build aborted."
+                    xAIF::GUI::Message -severity error -msg "Mode not set, build aborted."
                 }
 
-                GUI::StatusBar::UpdateStatus -busy off
+                xAIF::GUI::StatusBar::UpdateStatus -busy off
                 return
             }
 
@@ -1461,8 +1461,8 @@ puts [expr $::MGCPCB::EPcbSide(epcbSideOpposite)]
 
             set errorCode [catch { MGC::OpenPDBEditor } errorMessage]
             if {$errorCode != 0} {
-                GUI::Transcript -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
-                GUI::StatusBar::UpdateStatus -busy off
+                xAIF::GUI::Message -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
+                xAIF::GUI::StatusBar::UpdateStatus -busy off
                 return
             }
 
@@ -1470,7 +1470,7 @@ puts [expr $::MGCPCB::EPcbSide(epcbSideOpposite)]
             ##  mode than it is for design mode.  In design mode there
             ##  isn't a "partition" so none of the partition logic applies.
 
-            if { $GUI::Dashboard::Mode == $xAIF::Settings(libraryMode) } {
+            if { $xAIF::Settings(mode) == $xAIF::Const::XAIF_MODE_LIBRARY } {
                 #  Does the part exist?  Before we can check, we need a
                 #  partition.  There isn't a clear name as to what the
                 #  partition name should be so we'll use the name of the
@@ -1483,9 +1483,9 @@ puts [expr $::MGCPCB::EPcbSide(epcbSideOpposite)]
                         [AIFForms::ListBox::SelectOneFromList "Select Target Part Partition" $xAIF::Settings(partEdtrPrtnNames)]
 
                     if { [string equal $xAIF::Settings(partEdtrPrtnName) ""] } {
-                        GUI::Transcript -severity error -msg "No Part Partition selected, build aborted."
+                        xAIF::GUI::Message -severity error -msg "No Part Partition selected, build aborted."
                         MGC::CloseCellEditor
-                        GUI::StatusBar::UpdateStatus -busy off
+                        xAIF::GUI::StatusBar::UpdateStatus -busy off
                         return
                     } else {
                         set xAIF::Settings(partEdtrPrtnName) [lindex $xAIF::Settings(partEdtrPrtnName) 1]
@@ -1497,7 +1497,7 @@ puts [expr $::MGCPCB::EPcbSide(epcbSideOpposite)]
 
                 set partitions [$xAIF::Settings(partEdtrDb) Partitions]
 
-                GUI::Transcript -severity note -msg [format "Found %s part %s." [$partitions Count] \
+                xAIF::GUI::Message -severity note -msg [format "Found %s part %s." [$partitions Count] \
                     [xAIF::Utility::Plural [$partitions Count] "partition"]]
 
                 set pNames {}
@@ -1509,12 +1509,12 @@ puts [expr $::MGCPCB::EPcbSide(epcbSideOpposite)]
                 #  Does the partition exist?
 
                 if { [lsearch $pNames $xAIF::Settings(partEdtrPrtnName)] == -1 } {
-                    GUI::Transcript -severity note -msg [format "Creating partition \"%s\" for part \"%s\"." \
+                    xAIF::GUI::Message -severity note -msg [format "Creating partition \"%s\" for part \"%s\"." \
                         $xAIF::Settings(partEdtrPrtnName) $device]
 
                     set partition [$xAIF::Settings(partEdtrDb) NewPartition $xAIF::Settings(partEdtrPrtnName)]
                 } else {
-                    GUI::Transcript -severity note -msg [format "Using existing partition \"%s\" for part \"%s\"." \
+                    xAIF::GUI::Message -severity note -msg [format "Using existing partition \"%s\" for part \"%s\"." \
                         $xAIF::Settings(partEdtrPrtnName) $device]
                     set partition [$partitions Item [expr [lsearch $pNames $xAIF::Settings(partEdtrPrtnName)] +1]]
                 }
@@ -1524,13 +1524,13 @@ puts [expr $::MGCPCB::EPcbSide(epcbSideOpposite)]
                 set parts [$partition Parts]
             } else {
                 if { [expr { $V(-partition) ne "" }] } {
-                    GUI::Transcript -severity warning -msg "-partition switch is ignored in Design Mode."
+                    xAIF::GUI::Message -severity warning -msg "-partition switch is ignored in Design Mode."
                 }
                 set partition [$xAIF::Settings(partEdtrDb) ActivePartition]
                 set parts [$partition Parts]
             }
 
-            GUI::Transcript -severity note -msg [format "Found %s %s." [$parts Count] \
+            xAIF::GUI::Message -severity note -msg [format "Found %s %s." [$parts Count] \
                 [xAIF::Utility::Plural [$parts Count] "part"]]
 
             set cNames {}
@@ -1542,10 +1542,10 @@ puts [expr $::MGCPCB::EPcbSide(epcbSideOpposite)]
             #  Does the part exist?
 
             if { [lsearch $cNames $device] == -1 } {
-                GUI::Transcript -severity note -msg [format "Creating new part \"%s\"." $device]
+                xAIF::GUI::Message -severity note -msg [format "Creating new part \"%s\"." $device]
 
             } else {
-                GUI::Transcript -severity note -msg [format "Replacing existing part \"%s.\"" $device]
+                xAIF::GUI::Message -severity note -msg [format "Replacing existing part \"%s.\"" $device]
                 set part [$parts Item [expr [lsearch $cNames $device] +1]]
 
                 ##  Delete the part and save the database.  The delete
@@ -1555,9 +1555,9 @@ puts [expr $::MGCPCB::EPcbSide(epcbSideOpposite)]
 
                 set errorCode [catch { $part Delete } errorMessage]
                 if {$errorCode != 0} {
-                    GUI::Transcript -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
+                    xAIF::GUI::Message -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
                     MGC::ClosePDBEditor
-                    GUI::StatusBar::UpdateStatus -busy off
+                    xAIF::GUI::StatusBar::UpdateStatus -busy off
                     return
                 }
             }
@@ -1588,12 +1588,12 @@ puts [expr $::MGCPCB::EPcbSide(epcbSideOpposite)]
             set symRef [$mapping PutSymbolReference $device]
 
             if { [[$mapping SymbolReferences] Count] > 0 } {
-                GUI::Transcript -severity warning -msg \
+                xAIF::GUI::Message -severity warning -msg \
                     [format "Mapping has %d preexisting Symbol Reference(s)." \
                         [[$mapping SymbolReferences] Count]]
 
                 for { set i 1 } {$i <= [[$mapping SymbolReferences] Count] } {incr i} {
-                    GUI::Transcript -severity note -msg \
+                    xAIF::GUI::Message -severity note -msg \
                         [format "Removing prexisting symbol reference #%d" $i]
                     [$mapping SymbolReferences] Remove $i
                 }
@@ -1616,7 +1616,7 @@ puts [expr $::MGCPCB::EPcbSide(epcbSideOpposite)]
             set pi 1
             foreach p $::devices($device) {
                 set sc [lindex $p 1]
-                GUI::Transcript -severity note -msg [format "Adding Pin Definition %d \"%s\" %d \"Unknown\"" \
+                xAIF::GUI::Message -severity note -msg [format "Adding Pin Definition %d \"%s\" %d \"Unknown\"" \
                     $pi $sc [expr $::MGCPCBPartsEditor::EPDBPinPropertyType(epdbPinPropertyPinType)]]
                 $gate PutPinDefinition [expr $pi] "1" \
                     [expr $::MGCPCBPartsEditor::EPDBPinPropertyType(epdbPinPropertyPinType)] "Unknown"
@@ -1626,7 +1626,7 @@ puts [expr $::MGCPCB::EPcbSide(epcbSideOpposite)]
             ##  Report symbol reference count.  Not sure this is needed ...
 
             if { [[$mapping SymbolReferences] Count] != 0 } {
-                GUI::Transcript -severity warning -msg \
+                xAIF::GUI::Message -severity warning -msg \
                     [format "Symbol Reference \"%s\" is already defined." $device]
 
                 #set i 1
@@ -1654,7 +1654,7 @@ puts [expr $::MGCPCB::EPcbSide(epcbSideOpposite)]
                     #    $slot PutPin [expr $i] [format "%s" $i]
                     #}
                 } else {
-                    GUI::Transcript -severity note -msg [format "Adding pin %d (\"%s\") to slot." $pi $sc]
+                    xAIF::GUI::Message -severity note -msg [format "Adding pin %d (\"%s\") to slot." $pi $sc]
                     $slot PutPin [expr $pi] [format "%s" $sc] [format "%s" $pi]
                 }
                 incr pi
@@ -1662,16 +1662,16 @@ puts [expr $::MGCPCB::EPcbSide(epcbSideOpposite)]
 
             ##  Commit mapping and close the PDB editor
 
-            GUI::Transcript -severity note -msg [format "Saving PDB \"%s\"." $device]
+            xAIF::GUI::Message -severity note -msg [format "Saving PDB \"%s\"." $device]
             $mapping Commit
-            GUI::Transcript -severity note -msg [format "New PDB \"%s\" saved." $device]
+            xAIF::GUI::Message -severity note -msg [format "New PDB \"%s\" saved." $device]
             MGC::ClosePDBEditor
 
             ##  Report some time statistics
             set xAIF::Settings(cTime) [clock format [clock seconds] -format "%m/%d/%Y %T"]
-            GUI::Transcript -severity note -msg [format "Start Time:  %s" $xAIF::Settings(sTime)]
-            GUI::Transcript -severity note -msg [format "Completion Time:  %s" $xAIF::Settings(cTime)]
-            GUI::StatusBar::UpdateStatus -busy off
+            xAIF::GUI::Message -severity note -msg [format "Start Time:  %s" $xAIF::Settings(sTime)]
+            xAIF::GUI::Message -severity note -msg [format "Completion Time:  %s" $xAIF::Settings(cTime)]
+            xAIF::GUI::StatusBar::UpdateStatus -busy off
         }
 
         #
@@ -1722,7 +1722,7 @@ puts [expr $::MGCPCB::EPcbSide(epcbSideOpposite)]
                     set ::padGeom(width) $w
                     set ::padGeom(height) $h
 
-                    GUI::Transcript -severity note -msg [format "Creating derivitive pad \"%s\" ." $::padGeom(name)]
+                    xAIF::GUI::Message -severity note -msg [format "Creating derivitive pad \"%s\" ." $::padGeom(name)]
 
                     MGC::Generate::Pad
 
@@ -1737,7 +1737,7 @@ puts [expr $::MGCPCB::EPcbSide(epcbSideOpposite)]
                     set ::padGeom(width) $w
                     set ::padGeom(height) $h
 
-                    GUI::Transcript -severity note -msg [format "Creating derivitive pad \"%s\" ." $::padGeom(name)]
+                    xAIF::GUI::Message -severity note -msg [format "Creating derivitive pad \"%s\" ." $::padGeom(name)]
 
                     MGC::Generate::Pad
                 }
@@ -1790,7 +1790,7 @@ puts [expr $::MGCPCB::EPcbSide(epcbSideOpposite)]
                         foreach w $h h $w break
                     }
 
-                    GUI::Transcript -severity note -msg [format "Creating derivitive padstack \"%s\" ." $::padGeom(name)]
+                    xAIF::GUI::Message -severity note -msg [format "Creating derivitive padstack \"%s\" ." $::padGeom(name)]
 
                     MGC::Generate::Padstack
 
@@ -1800,7 +1800,7 @@ puts [expr $::MGCPCB::EPcbSide(epcbSideOpposite)]
                     ##  Swap the height and width
                     foreach w $h h $w break
 
-                    GUI::Transcript -severity note -msg [format "Creating derivitive padstack \"%s\" ." $::padGeom(name)]
+                    xAIF::GUI::Message -severity note -msg [format "Creating derivitive padstack \"%s\" ." $::padGeom(name)]
 
                     MGC::Generate::Padstack
                 }
@@ -1817,8 +1817,8 @@ puts [expr $::MGCPCB::EPcbSide(epcbSideOpposite)]
 
         proc Cells { } {
             foreach i [AIFForms::ListBox::SelectFromList "Select Cell(s)" [lsort -dictionary [array names ::devices]]] {
-                foreach j [array names GUI::Dashboard::CellGeneration] {
-                    if { [string is true $GUI::Dashboard::CellGeneration($j)] } {
+                foreach j [array names xAIF::GUI::Dashboard::CellGeneration] {
+                    if { [string is true $xAIF::GUI::Dashboard::CellGeneration($j)] } {
                         MGC::Generate::Cell [lindex $i 1] -mirror [string tolower [string trimleft $j Mirror]]
                     }
                 }
@@ -1847,7 +1847,7 @@ puts [expr $::MGCPCB::EPcbSide(epcbSideOpposite)]
         #  folders hold things like the netlist, placement, and wire bond information.
         #
         proc DesignStub { { d "" } } {
-            GUI::StatusBar::UpdateStatus -busy on
+            xAIF::GUI::StatusBar::UpdateStatus -busy on
 
             ##  Prompt the user for a Diectory if not supplied
 
@@ -1858,10 +1858,10 @@ puts [expr $::MGCPCB::EPcbSide(epcbSideOpposite)]
             }
 
             if { [string equal stub ""] } {
-                GUI::Transcript -severity warning -msg "No target directory selected."
+                xAIF::GUI::Message -severity warning -msg "No target directory selected."
                 return
             } else {
-                GUI::Transcript -severity note -msg [format "Design Stub \"%s\" will be populated." $rootstub]
+                xAIF::GUI::Message -severity note -msg [format "Design Stub \"%s\" will be populated." $rootstub]
             }
 
             ##  Try and create the Logic directory (netlist lives here ...)
@@ -1871,12 +1871,12 @@ puts [expr $::MGCPCB::EPcbSide(epcbSideOpposite)]
                 if { ! [ file isdirectory $rootstub/$stub ] } {
                     file mkdir $rootstub/$stub
                     if { [ file isdirectory $rootstub/$stub ] } {
-                        GUI::Transcript -severity note -msg [format "Design Stub \"%s\" was created." $rootstub/$stub]
+                        xAIF::GUI::Message -severity note -msg [format "Design Stub \"%s\" was created." $rootstub/$stub]
                     } else {
-                        GUI::Transcript -severity warning -msg [format "Design Stub \"%s\" was not created." $rootstub/$stub]
+                        xAIF::GUI::Message -severity warning -msg [format "Design Stub \"%s\" was not created." $rootstub/$stub]
                     }
                 } else {
-                        GUI::Transcript -severity note -msg [format "Design Stub \"%s\" alreasy exists." $rootstub/$stub]
+                        xAIF::GUI::Message -severity note -msg [format "Design Stub \"%s\" alreasy exists." $rootstub/$stub]
                 }
             }
         }
@@ -1897,11 +1897,11 @@ puts [expr $::MGCPCB::EPcbSide(epcbSideOpposite)]
             puts "-->$pkgcell<--"
             if { [string equal $pkgcell ""] } {
             puts "3"
-                GUI::Transcript -severity warning -msg "Package Cell not set."
+                xAIF::GUI::Message -severity warning -msg "Package Cell not set."
             } else {
             puts "4"
                 set xAIF::Settings(PackageCell) [lindex $pkgcell 1]
-                GUI::Transcript -severity note -msg [format "Package Cell set to:  %s" $xAIF::Settings(PackageCell)]
+                xAIF::GUI::Message -severity note -msg [format "Package Cell set to:  %s" $xAIF::Settings(PackageCell)]
             }
         }
 
@@ -1929,19 +1929,19 @@ puts [expr $::MGCPCB::EPcbSide(epcbSideOpposite)]
 
             ##  Need to have a Package Cell set - default to BGA if it exists?
             if { [string equal $xAIF::Settings(PackageCell) ""] } {
-                GUI::Transcript -severity error -msg "Package Cell not set."
+                xAIF::GUI::Message -severity error -msg "Package Cell not set."
                 return
             }
 
             ##  Which mode?  Design or Library?
-            if { $GUI::Dashboard::Mode == $xAIF::Settings(designMode) } {
+            if { $xAIF::Settings(mode) == $xAIF::Const::XAIF_MODE_DESIGN } {
                 ##  Invoke Expedition on the design so the Units can be set
                 ##  Catch any exceptions raised by opening the database
                 set errorCode [catch { MGC::OpenExpedition } errorMessage]
                 if {$errorCode != 0} {
-                    GUI::Transcript -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
-                    GUI::Transcript -severity error -msg "Unable to connect to Xpedition, is Xpedition running?"
-                    GUI::StatusBar::UpdateStatus -busy off
+                    xAIF::GUI::Message -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
+                    xAIF::GUI::Message -severity error -msg "Unable to connect to Xpedition, is Xpedition running?"
+                    xAIF::GUI::StatusBar::UpdateStatus -busy off
                     return
                 }
 
@@ -1996,17 +1996,17 @@ puts [expr $::MGCPCB::EPcbSide(epcbSideOpposite)]
                 }
 
             } else {
-                GUI::Transcript -severity error -msg "Setting Package Outline is only available in design mode."
+                xAIF::GUI::Message -severity error -msg "Setting Package Outline is only available in design mode."
             }
 
-            GUI::StatusBar::UpdateStatus -busy off
+            xAIF::GUI::StatusBar::UpdateStatus -busy off
         }
 
         #
         #  MGC::Design::SetPackageOutline
         #
         proc SetPackageOutline {} {
-            GUI::Transcript -severity note -msg "Setting Package Outline."
+            xAIF::GUI::Message -severity note -msg "Setting Package Outline."
             DrawOutline -mode packageoutline
         }
 
@@ -2014,21 +2014,21 @@ puts [expr $::MGCPCB::EPcbSide(epcbSideOpposite)]
         #  MGC::Design::SetRouteBorder
         #
         proc SetRouteBorder {} {
-            GUI::Transcript -severity note -msg "Setting Route Border."
+            xAIF::GUI::Message -severity note -msg "Setting Route Border."
             DrawOutline -mode routeborder
         }
         #
         #  MGC::Design::SetManufacturingOutline
         #
         proc SetManufacturingOutline {} {
-            GUI::Transcript -severity note -msg "Setting Manufacturing Outline."
+            xAIF::GUI::Message -severity note -msg "Setting Manufacturing Outline."
             DrawOutline -mode manufacturingoutline
         }
         #
         #  MGC::Design::SetTestFixtureOutline
         #
         proc SetTestFixtureOutline {} {
-            GUI::Transcript -severity note -msg "Setting Test Fixture Outline."
+            xAIF::GUI::Message -severity note -msg "Setting Test Fixture Outline."
             DrawOutline -mode testfixtureoutline
         }
 
@@ -2037,14 +2037,14 @@ puts [expr $::MGCPCB::EPcbSide(epcbSideOpposite)]
         #
         proc CheckDatabaseUnits {} {
             ##  Which mode?  Design or Library?
-            if { $GUI::Dashboard::Mode == $xAIF::Settings(designMode) } {
+            if { $xAIF::Settings(mode) == $xAIF::Const::XAIF_MODE_DESIGN } {
                 ##  Invoke Expedition on the design so the Units can be set
                 ##  Catch any exceptions raised by opening the database
                 set errorCode [catch { MGC::OpenExpedition } errorMessage]
                 if {$errorCode != 0} {
-                    GUI::Transcript -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
-                    GUI::Transcript -severity error -msg "Unable to connect to Xpedition, is Xpedition running?"
-                    GUI::StatusBar::UpdateStatus -busy off
+                    xAIF::GUI::Message -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
+                    xAIF::GUI::Message -severity error -msg "Unable to connect to Xpedition, is Xpedition running?"
+                    xAIF::GUI::StatusBar::UpdateStatus -busy off
                     return
                 }
 
@@ -2052,25 +2052,25 @@ puts [expr $::MGCPCB::EPcbSide(epcbSideOpposite)]
 
                 set dbu [[$xAIF::Settings(pcbDoc) SetupParameter] Unit]
                 if { $dbu == [expr [MapEnum::Units $::database(units) "pcb"]] } {
-                    GUI::Transcript -severity note -msg [format "Design database units (%s) match AIF file units (%s)." [MapEnum::ToUnits $dbu ] $::database(units)]
+                    xAIF::GUI::Message -severity note -msg [format "Design database units (%s) match AIF file units (%s)." [MapEnum::ToUnits $dbu ] $::database(units)]
                 } else {
-                    #GUI::Transcript -severity warning -msg [format "Design database units (%s) do not match AIF file units (%s)." [MapEnum::ToUnits $dbu ] $::database(units)]
-                    #GUI::Transcript -severity note -msg "Resolve this problem within XpeditionPCB using the  \"Setup > Setup Parameters...\" menu."
-                    GUI::Transcript -severity warning -msg [format "Design database units (%s) do not match AIF file units (%s).  Resolve in Xpedition using \"Setup Parameters...\" menu." [MapEnum::ToUnits $dbu ] $::database(units)]
+                    #xAIF::GUI::Message -severity warning -msg [format "Design database units (%s) do not match AIF file units (%s)." [MapEnum::ToUnits $dbu ] $::database(units)]
+                    #xAIF::GUI::Message -severity note -msg "Resolve this problem within XpeditionPCB using the  \"Setup > Setup Parameters...\" menu."
+                    xAIF::GUI::Message -severity warning -msg [format "Design database units (%s) do not match AIF file units (%s).  Resolve in Xpedition using \"Setup Parameters...\" menu." [MapEnum::ToUnits $dbu ] $::database(units)]
                 }
 
                 ##  Assign the PCB database units to the units found in the AIF file
 ##                set errorCode [catch { $xAIF::Settings(pcbDoc) CurrentUnit [expr [MapEnum::Units $::database(units) "pcb"]] } errorMessage]
 ##                if {$errorCode != 0} {
-##                    GUI::Transcript -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
+##                    xAIF::GUI::Message -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
 ##                } else {
-##                    GUI::Transcript -severity note -msg [format "Setting Database Units to %s." $::database(units)]
+##                    xAIF::GUI::Message -severity note -msg [format "Setting Database Units to %s." $::database(units)]
 ##                }
             } else {
-                GUI::Transcript -severity error -msg "Checking database units is only available in design mode."
+                xAIF::GUI::Message -severity error -msg "Checking database units is only available in design mode."
             }
 
-            GUI::StatusBar::UpdateStatus -busy off
+            xAIF::GUI::StatusBar::UpdateStatus -busy off
         }
     }
 
@@ -2125,7 +2125,7 @@ puts [expr $::MGCPCB::EPcbSide(epcbSideOpposite)]
         proc UpdateParameters {} {
             variable Units
             variable WBParameters
-            set GUI::Dashboard::WBParameters [format \
+            set xAIF::GUI::Dashboard::WBParameters [format \
                 {[Model=[%s]][Padstack=[%s]][XStart=[%s%s]][YStart=[%s%s]][XEnd=[%s%s]][YEnd=[%s%s]]} \
                 $WBParameters(Model) $WBParameters(Padstack) \
                 $WBParameters(XStart) $Units $WBParameters(YStart) $Units \
@@ -2139,7 +2139,7 @@ puts [expr $::MGCPCB::EPcbSide(epcbSideOpposite)]
             variable Angle
             variable Units
             variable WBDRCProperty
-            set GUI::Dashboard::WBDRCProperty [format \
+            set xAIF::GUI::Dashboard::WBDRCProperty [format \
                 {[WB2WB=[%s%s]][WB2Part=[%s%s]][WB2Metal=[%s%s]][WB2DieEdge=[%s%s]][WB2DieSurface=[%s%s]][WB2Cavity=[%s%s]][WBAngle=[%s%s]][BondSiteMargin=[%s%s]][Rows=[[[WBMin=[%s%s]][WBMax=[%s%s]]]]]} \
                     $WBDRCProperty(WB2WB) $Units $WBDRCProperty(WB2Part) $Units $WBDRCProperty(WB2Metal) $Units \
                     $WBDRCProperty(WB2DieEdge) $Units $WBDRCProperty(WB2DieSurface) $Units $WBDRCProperty(WB2Cavity) $Units \
@@ -2165,7 +2165,7 @@ puts [expr $::MGCPCB::EPcbSide(epcbSideOpposite)]
 
             puts $ps
             if { [string equal $ps ""] } {
-                GUI::Transcript -severity error -msg "No bond pad selected."
+                xAIF::GUI::Message -severity error -msg "No bond pad selected."
                 return
             } else {
                 ##  Need to account for bond pad substitution if necessary
@@ -2184,7 +2184,7 @@ puts [expr $::MGCPCB::EPcbSide(epcbSideOpposite)]
             variable WBParameters
             xAIF::Utility::PrintArray WBParameters
             puts "MGC::Wirebond::Setup"
-            $GUI::widgets(notebook) select $GUI::widgets(wirebondparams)
+            $xAIF::GUI::widgets(notebook) select $xAIF::GUI::widgets(wirebondparams)
         }
 
         ##
@@ -2193,44 +2193,44 @@ puts [expr $::MGCPCB::EPcbSide(epcbSideOpposite)]
         proc ApplyProperies {} {
             puts "MGC::Wirebond::ApplyProperies"
             ##  Which mode?  Design or Library?
-            if { $GUI::Dashboard::Mode == $xAIF::Settings(designMode) } {
+            if { $xAIF::Settings(mode) == $xAIF::Const::XAIF_MODE_DESIGN } {
                 ##  Invoke Expedition on the design so the Cell Editor can be started
                 ##  Catch any exceptions raised by opening the database
                 set errorCode [catch { MGC::OpenExpedition } errorMessage]
                 if {$errorCode != 0} {
-                    GUI::Transcript -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
-                    GUI::Transcript -severity error -msg "Unable to connect to Xpedition, is Xpedition running?"
-                    GUI::StatusBar::UpdateStatus -busy off
+                    xAIF::GUI::Message -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
+                    xAIF::GUI::Message -severity error -msg "Unable to connect to Xpedition, is Xpedition running?"
+                    xAIF::GUI::StatusBar::UpdateStatus -busy off
                     return
                 }
                 set xAIF::Settings(cellEdtr) [$xAIF::Settings(pcbDoc) CellEditor]
             } else {
-                GUI::Transcript -severity error -msg "Bond Pad placement is only available in design mode."
+                xAIF::GUI::Message -severity error -msg "Bond Pad placement is only available in design mode."
                 return
             }
 
             ##  Check the property values and make sure they are set.
-            if { [string equal $GUI::Dashboard::WBParameters ""] } {
-                GUI::Transcript -severity error -msg "Wire Bond Parameters property has not been set."
+            if { [string equal $xAIF::GUI::Dashboard::WBParameters ""] } {
+                xAIF::GUI::Message -severity error -msg "Wire Bond Parameters property has not been set."
                 return
             }
 
-            if { [string equal $GUI::Dashboard::WBDRCProperty ""] } {
-                GUI::Transcript -severity error -msg "Wire Bond DRC property has not been set."
+            if { [string equal $xAIF::GUI::Dashboard::WBDRCProperty ""] } {
+                xAIF::GUI::Message -severity error -msg "Wire Bond DRC property has not been set."
                 return
             }
 
             ##  Apply the properties to the PCB Doc
-            $xAIF::Settings(pcbDoc) PutProperty "WBParameters" $GUI::Dashboard::WBParameters
-            GUI::Transcript -severity note -msg "Wire Bond property \"WBParameters\" applied to design."
-            $xAIF::Settings(pcbDoc) PutProperty "WBDRCProperty" $GUI::Dashboard::WBDRCProperty
-            GUI::Transcript -severity note -msg "Wire Bond property \"WBDRCProperty\" applied to design."
+            $xAIF::Settings(pcbDoc) PutProperty "WBParameters" $xAIF::GUI::Dashboard::WBParameters
+            xAIF::GUI::Message -severity note -msg "Wire Bond property \"WBParameters\" applied to design."
+            $xAIF::Settings(pcbDoc) PutProperty "WBDRCProperty" $xAIF::GUI::Dashboard::WBDRCProperty
+            xAIF::GUI::Message -severity note -msg "Wire Bond property \"WBDRCProperty\" applied to design."
 
             ##  Apply default wire model to all components
             set comps [$xAIF::Settings(pcbDoc) Components]
             ::tcom::foreach comp $comps {
                 $comp PutProperty "WBParameters" {[Model=[DefaultWireModel]][PADS=[]]}
-                GUI::Transcript -severity note -msg [format "Wire Bond property \"WBParameters\" applied to component \"%s\"." [$comp RefDes]]
+                xAIF::GUI::Message -severity note -msg [format "Wire Bond property \"WBParameters\" applied to component \"%s\"." [$comp RefDes]]
             }
         }
 
@@ -2241,18 +2241,18 @@ puts [expr $::MGCPCB::EPcbSide(epcbSideOpposite)]
             puts "MGC::Wirebond::PlaceBondPads"
 
             ##  Which mode?  Design or Library?
-            if { $GUI::Dashboard::Mode == $xAIF::Settings(designMode) } {
+            if { $xAIF::Settings(mode) == $xAIF::Const::XAIF_MODE_DESIGN } {
                 ##  Invoke Expedition on the design so the Cell Editor can be started
                 ##  Catch any exceptions raised by opening the database
                 set errorCode [catch { MGC::OpenExpedition } errorMessage]
                 if {$errorCode != 0} {
-                    GUI::Transcript -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
-                    GUI::Transcript -severity error -msg "Unable to connect to Xpedition, is Xpedition running?"
-                    GUI::StatusBar::UpdateStatus -busy off
+                    xAIF::GUI::Message -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
+                    xAIF::GUI::Message -severity error -msg "Unable to connect to Xpedition, is Xpedition running?"
+                    xAIF::GUI::StatusBar::UpdateStatus -busy off
                     return
                 }
             } else {
-                GUI::Transcript -severity error -msg "Bond Pad placement is only available in design mode."
+                xAIF::GUI::Message -severity error -msg "Bond Pad placement is only available in design mode."
                 return
             }
 
@@ -2282,13 +2282,13 @@ puts [expr $::MGCPCB::EPcbSide(epcbSideOpposite)]
                     [expr $::MGCPCB::EPcbPadstackObjectType(epcbPadstackObjectBondPad)]]
 
                 if { [lsearch $padstacks $bondpad(FINNAME)] == -1} {
-                    GUI::Transcript -severity error -msg [format \
+                    xAIF::GUI::Message -severity error -msg [format \
                         "Bond Pad \"%s\" does not appear in the design or is not defined as a Bond Pad." \
                         $bondpad(FINNAME)]
                     $xAIF::Settings(pcbDoc) TransactionEnd True
                     return
                 } else {
-                    GUI::Transcript -severity note -msg [format \
+                    xAIF::GUI::Message -severity note -msg [format \
                     "Bond Pad \"%s\" found in design, will be placed." $bondpad(FINNAME)]
                 }
 
@@ -2299,14 +2299,14 @@ puts [expr $::MGCPCB::EPcbSide(epcbSideOpposite)]
                 set net [$xAIF::Settings(pcbDoc) FindNet $bondpad(NETNAME)]
 
                 if { [string equal $net ""] } {
-                    GUI::Transcript -severity warning -msg [format "Net \"%s\" was not found, may be a No Connect, using \"(Net0)\" as net." $bondpad(NETNAME)]
+                    xAIF::GUI::Message -severity warning -msg [format "Net \"%s\" was not found, may be a No Connect, using \"(Net0)\" as net." $bondpad(NETNAME)]
                     set net [$xAIF::Settings(pcbDoc) FindNet "(Net0)"]
                 } else {
-                    GUI::Transcript -severity note -msg [format "Net \"%s\" was found." $bondpad(NETNAME)]
+                    xAIF::GUI::Message -severity note -msg [format "Net \"%s\" was found." $bondpad(NETNAME)]
                 }
 
                 ##  Place the Bond Pad
-                GUI::Transcript -severity note -msg \
+                xAIF::GUI::Message -severity note -msg \
                     [format "Placing Bond Pad \"%s\" for Net \"%s\" (X: %s  Y: %s  R: %s)." \
                     $bondpad(FINNAME) $bondpad(NETNAME) $bondpad(FIN_X) $bondpad(FIN_Y) $bondpad(ANGLE)]
                 set bpo [$xAIF::Settings(pcbDoc) PutBondPad \
@@ -2319,7 +2319,7 @@ puts [expr $::MGCPCB::EPcbSide(epcbSideOpposite)]
             }
 
             $xAIF::Settings(pcbDoc) TransactionEnd True
-            GUI::StatusBar::UpdateStatus -busy off
+            xAIF::GUI::StatusBar::UpdateStatus -busy off
         }
 
         ##
@@ -2329,22 +2329,22 @@ puts [expr $::MGCPCB::EPcbSide(epcbSideOpposite)]
             puts "MGC::Wirebond::PlaceBondWires"
 
             ##  Which mode?  Design or Library?
-            if { $GUI::Dashboard::Mode == $xAIF::Settings(designMode) } {
+            if { $xAIF::Settings(mode) == $xAIF::Const::XAIF_MODE_DESIGN } {
                 ##  Invoke Expedition on the design so the Cell Editor can be started
                 ##  Catch any exceptions raised by opening the database
                 set errorCode [catch { MGC::OpenExpedition } errorMessage]
                 if {$errorCode != 0} {
-                    GUI::Transcript -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
-                    GUI::Transcript -severity error -msg "Unable to connect to Xpedition, is Xpedition running?"
-                    GUI::StatusBar::UpdateStatus -busy off
+                    xAIF::GUI::Message -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
+                    xAIF::GUI::Message -severity error -msg "Unable to connect to Xpedition, is Xpedition running?"
+                    xAIF::GUI::StatusBar::UpdateStatus -busy off
                     return
                 }
             } else {
-                GUI::Transcript -severity error -msg "Bond Pad placement is only available in design mode."
+                xAIF::GUI::Message -severity error -msg "Bond Pad placement is only available in design mode."
                 return
             }
 
-            GUI::StatusBar::UpdateStatus -busy on
+            xAIF::GUI::StatusBar::UpdateStatus -busy on
 
             ##  Start a transaction with DRC to get Bond Pads placed ...
 ##>            $xAIF::Settings(pcbDoc) TransactionStart [expr $::MGCPCB::EPcbDRCMode(epcbDRCModeNone)]
@@ -2388,7 +2388,7 @@ puts [expr $::MGCPCB::EPcbSide(epcbSideOpposite)]
                 }
 
                 if { [string is false $dpFound] } {
-                    GUI::Transcript -severity error -msg \
+                    xAIF::GUI::Message -severity error -msg \
                         [format "Unable to pick die pad at bond wire origin (X: %f  Y: %f), bond wire skipped (Net: %s  From (%f, %f) To (%f, %f)." \
                         $bondwire(FROM_X) $bondwire(FROM_Y) $bondwire(NETNAME) \
                         $bondwire(FROM_X) $bondwire(FROM_Y) $bondwire(TO_X) $bondwire(TO_Y)]
@@ -2396,7 +2396,7 @@ puts [expr $::MGCPCB::EPcbSide(epcbSideOpposite)]
 #break
                         continue
                 } else {
-                    GUI::Transcript -severity note -msg \
+                    xAIF::GUI::Message -severity note -msg \
                         [format "Found Die Pin at bond wire origin (X: %f  Y: %f) for net \"%s\"." \
                             $bondwire(FROM_X) $bondwire(FROM_Y) $bondwire(NETNAME)]
                 }
@@ -2436,13 +2436,13 @@ puts [expr $::MGCPCB::EPcbSide(epcbSideOpposite)]
                 }
 
                 if { [string is false $bpFound] } {
-                    GUI::Transcript -severity error -msg \
+                    xAIF::GUI::Message -severity error -msg \
                         [format "Unable to pick bond pad at bond wire termination (X: %f  Y: %f), bond wire skipped (Net: %s  From (%f, %f) To (%f, %f)." \
                         $bondwire(TO_X) $bondwire(TO_Y) $bondwire(NETNAME) \
                         $bondwire(FROM_X) $bondwire(FROM_Y) $bondwire(TO_X) $bondwire(TO_Y)]
                         continue
                 } else {
-                    GUI::Transcript -severity note -msg \
+                    xAIF::GUI::Message -severity note -msg \
                         [format "Found Bond Pad at bond wire termination (X: %f  Y: %f) for net \"%s\"." \
                             $bondwire(TO_X) $bondwire(TO_Y) $bondwire(NETNAME)]
                 }
@@ -2461,18 +2461,18 @@ puts [expr $::MGCPCB::EPcbSide(epcbSideOpposite)]
                 set errorCode [catch { set bw [$xAIF::Settings(pcbDoc) \
                     PutBondWire $DiePin $dpX $dpY $BondPad $bpX $bpY] } errorMessage]
                 if {$errorCode != 0} {
-                    GUI::Transcript -severity error -msg [format "API error \"%s\", placing bond wire." $errorMessage]
-                    GUI::Transcript -severity warning -msg [format "Bond Wire was not placed for net \"%s\" from (%f,%f) to (%f,%f)." \
+                    xAIF::GUI::Message -severity error -msg [format "API error \"%s\", placing bond wire." $errorMessage]
+                    xAIF::GUI::Message -severity warning -msg [format "Bond Wire was not placed for net \"%s\" from (%f,%f) to (%f,%f)." \
                         $bondwire(NETNAME) $bondwire(FROM_X) $bondwire(FROM_Y) $bondwire(TO_X) $bondwire(TO_Y)]
                     incr bwplc(fail)
                 } else {
-                    GUI::Transcript -severity note -msg [format "Bond Wire successfully placed for net \"%s\" from (%f,%f) to (%f,%f)." \
+                    xAIF::GUI::Message -severity note -msg [format "Bond Wire successfully placed for net \"%s\" from (%f,%f) to (%f,%f)." \
                         $bondwire(NETNAME) $bondwire(FROM_X) $bondwire(FROM_Y) $bondwire(TO_X) $bondwire(TO_Y)]
                     incr bwplc(pass)
 
                     ##  Assign the BondWire model to ensure proper behavior
 
-                    GUI::Transcript -severity note -msg [format "Bond Wire Model \"%s\" assigned to net \"%s\"." \
+                    xAIF::GUI::Message -severity note -msg [format "Bond Wire Model \"%s\" assigned to net \"%s\"." \
                         $MGC::Wirebond::WBParameters(Model) [[$bw Net] Name]]
                     $bw -set WireModelName $MGC::Wirebond::WBParameters(Model)
 
@@ -2493,11 +2493,11 @@ puts [expr $::MGCPCB::EPcbSide(epcbSideOpposite)]
 
                     if { $bpn != $MGC::Wirebond::WBParameters(Padstack) } {
                         $DiePin PutProperty "WBParameters" [format "\[Pads=\[\[\[Padstack=\[%s\]\]\[WP=\[\[\]\]\]\]\]\]" $bpn]
-                        GUI::Transcript -severity note -msg [format "Wire Bond property \"WBParameters\" applied to pin \"%s\"." $bpn]
+                        xAIF::GUI::Message -severity note -msg [format "Wire Bond property \"WBParameters\" applied to pin \"%s\"." $bpn]
                     } else {
                         set p [$DiePin FindProperty "WBParameters"]
                         if { $p != $xAIF::Settings(Nothing) } {
-                            GUI::Transcript -severity note -msg [format "Removing Wire Bond property \"WBParameters\" applied to pin \"%s\"." $bpn]
+                            xAIF::GUI::Message -severity note -msg [format "Removing Wire Bond property \"WBParameters\" applied to pin \"%s\"." $bpn]
                             $p Delete
                         }
                     }
@@ -2506,10 +2506,10 @@ puts [expr $::MGCPCB::EPcbSide(epcbSideOpposite)]
                 #if { [incr c] > 5 } { break }
             }
 
-            GUI::Transcript -severity note -msg [format "Bond Wire Placement Results - Placed:  %s  Failed:  %s" $bwplc(pass) $bwplc(fail)]
+            xAIF::GUI::Message -severity note -msg [format "Bond Wire Placement Results - Placed:  %s  Failed:  %s" $bwplc(pass) $bwplc(fail)]
 
 ##>            $xAIF::Settings(pcbDoc) TransactionEnd True
-            GUI::StatusBar::UpdateStatus -busy off
+            xAIF::GUI::StatusBar::UpdateStatus -busy off
         }
 
         ##
@@ -2525,7 +2525,7 @@ puts [expr $::MGCPCB::EPcbSide(epcbSideOpposite)]
             }
 
             if { $wb == "" } {
-                GUI::Transcript -severity warning -msg "No Placement file specified, Export aborted."
+                xAIF::GUI::Message -severity warning -msg "No Placement file specified, Export aborted."
                 return
             }
 
@@ -2535,7 +2535,7 @@ puts [expr $::MGCPCB::EPcbSide(epcbSideOpposite)]
             puts $f $WBRule(Value)
             close $f
 
-            GUI::Transcript -severity note -msg [format "Wire Model successfully exported to file \"%s\"." $wb]
+            xAIF::GUI::Message -severity note -msg [format "Wire Model successfully exported to file \"%s\"." $wb]
 
             return
         }
@@ -2833,15 +2833,33 @@ namespace eval xPCB {
         $xAIF::GUI::Widgets(operatingmode) configure \
             -text [format " Mode:  %s " [string totitle $Settings(operatingmode)]]
 
-        ##  Need to change the state of the menus ...
+        set db $xAIF::GUI::Widgets(dashboard)
+
+        ##  Need to change the state of the menus and some of the buttons / entry boxes
         if { [string equal $xPCB::Settings(operatingmode) $xAIF::Const::XAIF_MODE_DESIGN] } {
             set m $xAIF::GUI::Widgets(mainframe)
             $m setmenustate designmenu normal
             $m setmenustate librarymenu disabled
+            $db.design.e configure -state normal
+            $db.design.b configure -state normal
+            $db.library.le configure -state disabled
+            $db.library.lb configure -state disabled
+            $db.library.ce configure -state disabled
+            $db.library.cb configure -state disabled
+            $db.library.pe configure -state disabled
+            $db.library.pb configure -state disabled
         } else {
             set m $xAIF::GUI::Widgets(mainframe)
             $m setmenustate designmenu disabled
             $m setmenustate librarymenu normal
+            $db.design.e configure -state disabled
+            $db.design.b configure -state disabled
+            $db.library.le configure -state normal
+            $db.library.lb configure -state normal
+            $db.library.ce configure -state normal
+            $db.library.cb configure -state normal
+            $db.library.pe configure -state normal
+            $db.library.pb configure -state normal
         }
     }
 
@@ -2897,8 +2915,9 @@ namespace eval xPCB {
     ##
     proc OpenXpeditionPCB { } {
 
+        set opts [join [list $xPCB::Settings(xpeditionpcbopts) $xAIF::Settings(DesignPath)]]
         set cmd [string trim [format "|%s %s %s" $xPCB::Settings(xpeditionpcb) \
-            $xPCB::Settings(xpeditionpcbopts) [expr [string equal $::tcl_platform(platform) windows] ?"" :"2>@stdout"]]]
+            $opts [expr [string equal $::tcl_platform(platform) windows] ?"" :"2>@stdout"]]]
 
         cd $xPCB::Settings(workdir)
         if { [catch { set xPCB::Settings(xpeditionpcbchan) [open "$cmd" r+] } cmsg] == 0 } {
@@ -2907,10 +2926,10 @@ namespace eval xPCB {
                 [list xPCB::ToolConnector $xPCB::Settings(xpeditionpcbchan)]
 
             xAIF::GUI::Message -severity note -msg \
-                [format "Opened XpeditionPCB:  %s" $xPCB::Settings(xpeditionpcb)]
+                [format "Opened XpeditionPCB:  %s %s" $xPCB::Settings(xpeditionpcb) $opts]
         } else {
             xAIF::GUI::Message -severity error -msg \
-                [format "Failed to open XpeditionPCB:  %s" $xPCB::Settings(xpeditionpcb)]
+                [format "Failed to open XpeditionPCB:  %s %s" $xPCB::Settings(xpeditionpcb) $opts]
         }
         cd $xPCB::Settings(workdir)
     }
@@ -2920,8 +2939,9 @@ namespace eval xPCB {
     ##
     proc OpenLibraryManager {} {
 
+        set opts [join [list $xPCB::Settings(librarymanageropts) $xAIF::Settings(LibraryPath)]]
         set cmd [string trim [format "|%s %s %s" $xPCB::Settings(librarymanager) \
-            $xPCB::Settings(librarymanageropts) [expr [string equal $::tcl_platform(platform) windows] ?"" :"2>@stdout"]]]
+            $opts [expr [string equal $::tcl_platform(platform) windows] ?"" :"2>@stdout"]]]
 
         cd $xPCB::Settings(workdir)
         if { [catch { set xPCB::Settings(librarymanagerchan) [open "$cmd" r+] } cmsg] == 0 } {
@@ -2930,10 +2950,10 @@ namespace eval xPCB {
                 [list xPCB::ToolConnector $xPCB::Settings(librarymanagerchan)]
 
             xAIF::GUI::Message -severity note -msg \
-                [format "Opened Library Manager:  %s" $xPCB::Settings(librarymanager)]
+                [format "Opened Library Manager:  %s %s" $xPCB::Settings(librarymanager) $opts]
         } else {
             xAIF::GUI::Message -severity error -msg \
-                [format "Failed to open Library Manager:  %s" $xPCB::Settings(librarymanager)]
+                [format "Failed to open Library Manager:  %s %s" $xPCB::Settings(librarymanager) $opts]
         }
         cd $xPCB::Settings(workdir)
     }

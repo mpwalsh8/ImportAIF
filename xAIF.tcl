@@ -102,6 +102,9 @@
 #    10/22/2016 - Basic BWidget MainFrame GUI implemented with new menu structure.
 #                 Dashboard removed and replaced with Setup menus.
 #
+#    10/24/2016 - AIF processing all reconnected to new GUI.  Added Zoom Fit to
+#                 reset the view.  It isn't foolproof though, sometimes it needs
+#                 to be run a couple times.
 #
 #    Useful links:
 #      Drawing rounded polygons:    http://wiki.tcl.tk/8590
@@ -151,6 +154,8 @@ namespace eval xAIF {
         set CELL_GEN_BGA_NORMAL_VALUE         "Normal"
         set CELL_GEN_BGA_MSO_KEY              mso
         set CELL_GEN_BGA_MSO_VALUE            "Mount Side Opposite"
+        set XAIF_RING_PROCESSING_IGNORE       ignore
+        set XAIF_RING_PROCESSING_DISCARD      discard
 
         set PKG_TYPE_GBL                  OperatingMode
         set USE_TIME_STAMP                UseTimeStamp
@@ -172,7 +177,10 @@ namespace eval xAIF {
     set Settings(date) "Thu Oct 05 14:23:05 EDT 2016"
     set Settings(workdir) [pwd]
     set Settings(status) "Ready"
+    set Settings(progress) 0
     set Settings(connection) off
+    set Settings(DesignPath) {}
+    set Settings(LibraryPath) {}
 
     set Widgets(mainframe) {}
  
@@ -249,6 +257,8 @@ namespace eval xAIF {
             workdir [pwd]
             status "Ready"
             connection off
+            RingProcessing $xAIF::Const::XAIF_RING_PROCESSING_DISCARD
+            progress 0
         }
 
         ##  Keywords to scan for in AIF file

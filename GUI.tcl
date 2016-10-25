@@ -193,54 +193,68 @@ namespace eval xAIF::GUI {
                 }}
                 {separator}
                 {cascade "&Text" {} {textmenu} 0 {
-                    {command "All &On" {} "All Text Visible" {} -command { \
-                        xAIF::GUI::Message -severity warning -msg "Command has not been implemented." }}
-                    {command "All &Off" {} "All Text Hidden" {} -command { \
-                        xAIF::GUI::Message -severity warning -msg "Command has not been implemented." }}
+                    {command "All &On" {} "All Text Visible" {} \
+                        -command { xAIF::GUI::Draw::Visibility "text" -all true -mode on ; \
+                        foreach t [array names xAIF::GUI::text] { set xAIF::GUI::text([lindex $t 0]) on }  }}
+                    {command "All &Off" {} "All Text Hidden" {} \
+                        -command { xAIF::GUI::Draw::Visibility "text" -all true -mode off ; \
+                        foreach t [array names xAIF::GUI::text] { set xAIF::GUI::text([lindex $t 0]) off }  }}
                     {separator}
                     {checkbutton "&Pad Numbers" padnumbers "Show/Hide Pad Numbers" {} \
                         -variable xPCB::View(PadNumbers) -onvalue on -offvalue off \
                         -command { set s [expr [string is true $xPCB::View(PadNumbers)] ?"visible":"hidden"] ; \
-                        xAIF::GUI::Message -severity note -msg [format "Pad Numbers %s." $s] }}
+                        xAIF::GUI::Message -severity note -msg [format "Pad Numbers %s." $s] ; \
+                        xAIF::GUI::Draw::Visibility padnumber -mode toggle }}
                     {checkbutton "&Ref Designators" refdesignators "Show/Hide Pad Numbers" {} \
                         -variable xPCB::View(RefDesignators) -onvalue on -offvalue off \
                         -command { set s [expr [string is true $xPCB::View(RefDesignators)] ?"visible":"hidden"] ; \
-                        xAIF::GUI::Message -severity note -msg [format "Ref Designators %s." $s] }}
+                        xAIF::GUI::Message -severity note -msg [format "Ref Designators %s." $s] ; \
+                        xAIF::GUI::Draw::Visibility refdes -mode toggle }}
                 }}
                 {cascade "&Devices" {} {devicesmenu} 0 {
-                    {command "All &On" {} "All Devices Visible" {} -command { \
-                        xAIF::GUI::Message -severity warning -msg "Command has not been implemented." }}
-                    {command "All &Off" {} "All Devices Hidden" {} -command { \
-                        xAIF::GUI::Message -severity warning -msg "Command has not been implemented." }}
+                    {command "All &On" {} "All Devices Visible" {} \
+                        -command { xAIF::GUI::Draw::Visibility {bga device} -all true -mode on ; \
+                        foreach d [array names ::mcmdie] { set xAIF::GUI::devices($d) on }  }}
+                    {command "All &Off" {} "All Devices Hidden" {} \
+                        -command { xAIF::GUI::Draw::Visibility {bga device} -all true -mode off ; \
+                        foreach d [array names ::mcmdie] { set xAIF::GUI::devices($d) off }  }}
                     {separator}
                 }}
                 {cascade "&Net Lines" {} {netlinesmenu} 0 {
-                    {command "All &On" {} "All Net Lines Visible" {} -command { \
-                        xAIF::GUI::Message -severity warning -msg "Command has not been implemented." }}
-                    {command "All &Off" {} "All Net Lines Hidden" {} -command { \
-                        xAIF::GUI::Message -severity warning -msg "Command has not been implemented." }}
+                    {command "All &On" {} "All Net Lines Visible" {} \
+                        -command { xAIF::GUI::Draw::Visibility {netline} -all true -mode on ; \
+                        foreach nl [array names ::netlines] { set xAIF::GUI::netlines($nl) on }  }}
+                    {command "All &Off" {} "All Net Lines Hidden" {} \
+                        -command { xAIF::GUI::Draw::Visibility {netline} -all true -mode off ; \
+                        foreach nl [array names ::netlines] { set xAIF::GUI::netlines($nl) off }  }}
                     {separator}
                 }}
                 {cascade "&Pads" {} {padsmenu} 0 {
-                    {command "All &On" {} "All Pads Visible" {} -command { \
-                        xAIF::GUI::Message -severity warning -msg "Command has not been implemented." }}
-                    {command "All &Off" {} "All Pads Hidden" {} -command { \
-                        xAIF::GUI::Message -severity warning -msg "Command has not been implemented." }}
+                    {command "All &On" {} "All Pads Visible" {} \
+                        -command { xAIF::GUI::Draw::Visibility {pad} -all true -mode on ; \
+                        foreach p [array names ::pads] { set xAIF::GUI::pads($p) on }  }}
+                    {command "All &Off" {} "All Pads Hidden" {} \
+                        -command { xAIF::GUI::Draw::Visibility {pad} -all true -mode off ; \
+                        foreach p [array names ::pads] { set xAIF::GUI::pads($p) off }  }}
                     {separator}
                 }}
                 {cascade "&Bond Wires" {} {bondwiresmenu} 0 {
-                    {command "All &On" {} "All Bond Wires Visible" {} -command { \
-                        xAIF::GUI::Message -severity warning -msg "Command has not been implemented." }}
-                    {command "All &Off" {} "All Bond Wires Hidden" {} -command { \
-                        xAIF::GUI::Message -severity warning -msg "Command has not been implemented." }}
+                    {command "All &On" {} "All Bond Wires Visible" {} \
+                        -command { xAIF::GUI::Draw::Visibility {bondwire} -all true -mode on ; \
+                        foreach bw [array names ::bondwires] { set xAIF::GUI::bondwires($bw) on }  }}
+                    {command "All &Off" {} "All Bond Wires Hidden" {} \
+                        -command { xAIF::GUI::Draw::Visibility {bondwire} -all true -mode off ; \
+                        foreach bw [array names ::bondwires] { set xAIF::GUI::bondwires($bw) off }  }}
                     {separator}
                 }}
                 {separator}
                 {cascade "&Guides" {} {guidesmenu} 0 {
-                    {command "All &On" {} "All Guides Visible" {} -command { \
-                        xAIF::GUI::Message -severity warning -msg "Command has not been implemented." }}
-                    {command "All &Off" {} "All Guides Hidden" {} -command { \
-                        xAIF::GUI::Message -severity warning -msg "Command has not been implemented." }}
+                    {command "All &On" {} "All Guides Visible" {} \
+                        -command { xAIF::GUI::Draw::Visibility {guides} -all true -mode on ; \
+                        foreach g [array names ::guides] { set xAIF::GUI::guides($g) on }  }}
+                    {command "All &Off" {} "All Guides Hidden" {} \
+                        -command { xAIF::GUI::Draw::Visibility {guides} -all true -mode off ; \
+                        foreach g [array names ::guides] { set xAIF::GUI::guides($g) off }  }}
                     {separator}
                     {checkbutton "&XY Axes" xyaxes "Show/Hide X and Y Axes" {} \
                         -variable xPCB::View(XYAxes) -onvalue on -offvalue off \
@@ -318,7 +332,8 @@ namespace eval xAIF::GUI {
         }
 
         ##  Build the main frame with the menu bar
-        set Widgets(mainframe) [MainFrame .mainframe -menu $menudesc \
+        set Widgets(mainframe) [MainFrame .mainframe -menu $menudesc -progresstype infinite \
+            -progressfg green -progressmax 10 -progressvar xAIF::Settings(progress) \
             -textvariable xAIF::Settings(status) -height 600 -width 800 -sizegrip true]
         pack $Widgets(mainframe) -fill both -expand yes
 
@@ -327,6 +342,7 @@ namespace eval xAIF::GUI {
         #$Widgets(mainframe) addindicator -text [format " %s  " [file tail [info script]]]
         $Widgets(mainframe) addindicator -text [format " %s " $xAIF::Settings(name)]
         $Widgets(mainframe) addindicator -text [format " v%s " $xAIF::Settings(version)]
+        $Widgets(mainframe) showstatusbar progression
 
 ##        ##  Add active designs to Design pulldown menu
 ##        set designmenu [$Widgets(mainframe) getmenu design]
@@ -378,6 +394,9 @@ namespace eval xAIF::GUI {
                 -command [list xAIF::GUI::Message -severity note -msg [format "Default Cell Height:  %s" $i]]
         }
 
+        ##  Add View All On/Off to several menus
+        #set menu [$Widgets(mainframe) getmenu textmenu]
+
         #trace add variable xPCB::Settings(pcbAppId) write xPCB::setActiveDocument
 
         ##  Place where application widgets get stuffed.
@@ -393,12 +412,22 @@ namespace eval xAIF::GUI {
 
         ##  Puts some buttons in the left pane
         set bf [frame $l_pane.buttonframe]
+
         button $bf.openaif   -text "Open AIF"   -command { xAIF::GUI::Dashboard::SelectAIF } -relief raised -padx 5 -pady 8 -borderwidth 3
         button $bf.closeaif  -text "Close AIF"  -command { xAIF::GUI::File::CloseAIF }  -relief raised -padx 5 -pady 8 -borderwidth 3
         button $bf.reloadaif -text "Reload AIF" -command { xAIF::GUI::File::ReloadAIF }    -relief raised -padx 5 -pady 8 -borderwidth 3
+
+        Separator::create $bf.sep1 -orient horizontal
+
+        button $bf.xpcb -text "XpeditionPCB" -command { xPCB::OpenXpeditionPCB } -relief raised -padx 5 -pady 8 -borderwidth 3
+        button $bf.xlm -text "Library Tools" -command { xPCB::OpenLibraryManager } -relief raised -padx 5 -pady 8 -borderwidth 3
+
         pack $bf.openaif -pady 5 -expand y -fill both
         pack $bf.closeaif -pady 5 -expand y -fill both
         pack $bf.reloadaif -pady 5 -expand y -fill both
+        pack $bf.sep1 -pady 15 -expand y -fill both
+        pack $bf.xpcb -pady 5 -expand y -fill both
+        pack $bf.xlm -pady 5 -expand y -fill both
         pack $bf -in $l_pane -side top
         #pack $l_pane.openaif -side top -padx 3
         #pack $l_pane -fill both -expand true
@@ -439,10 +468,22 @@ namespace eval xAIF::GUI {
         ##  Ready to display the dialog
         wm deiconify .
         
+        ##  Setup an Idle Task
+        after 0 xAIF::GUI::UpdateWhenIdle
+
         ##  Make this a modal dialog
         catch { tk visibility . }
         catch { grab set . }
         catch { tkwait window . }
+
+    }
+
+    proc UpdateWhenIdle { } {
+        if { $xAIF::Settings(progress) != 0 } {
+            xAIF::GUI::StatusBar::UpdateStatus -busy on
+        } else {
+            xAIF::GUI::StatusBar::UpdateStatus -busy on
+        }
     }
 
     ##
@@ -926,7 +967,7 @@ namespace eval xAIF::GUI::Build {
 
         ##  Default Cell Height
         labelframe $dbf.defaultcellheight -pady 5 -text "Default Cell Height (um)" -padx 5
-        entry $dbf.defaultcellheight.e -width 15 -relief sunken -bd 2 -textvariable xAIF::GUI::Dashboard::DefaultCellHeight
+        entry $dbf.defaultcellheight.e -width 15 -relief sunken -bd 2 -textvariable xPCB::Settings(DefaultCellHeight)
         pack $dbf.defaultcellheight.e
 
         ##  Visibility
@@ -959,15 +1000,15 @@ namespace eval xAIF::GUI::Build {
 
         ##  Design Path
         labelframe $dbf.design -pady 3 -text "Design" -padx 5
-        entry $dbf.design.e -width 65 -relief sunken -bd 2 -textvariable xAIF::GUI::Dashboard::FullDesignPath
+        entry $dbf.design.e -width 65 -relief sunken -bd 2 -textvariable xAIF::Settings(DesignPath)
         button $dbf.design.b -text "Design ..." -width 13 -anchor w -command \
-            { set xAIF::GUI::Dashboard::FullDesignPath [tk_getOpenFile -filetypes {{PCB .pcb}}] }
+            { set xAIF::Settings(DesignPath) [tk_getOpenFile -filetypes {{PCB .pcb}}] }
         grid $dbf.design.e -row 0 -column 0 -pady 5 -padx 5 -sticky w
         grid $dbf.design.b -row 0 -column 1 -pady 5 -padx 5 -sticky ew
 
         ##  Library Path
         labelframe $dbf.library -pady 5 -text "Central Library" -padx 5
-        entry $dbf.library.le -width 65 -relief sunken -bd 2 -textvariable xAIF::GUI::Dashboard::LibraryPath
+        entry $dbf.library.le -width 65 -relief sunken -bd 2 -textvariable xAIF::Settings(LibraryPath)
         button $dbf.library.lb -text "Library ..." -command xAIF::GUI::Dashboard::SelectCentralLibrary -anchor w
         entry $dbf.library.ce -width 35 -relief sunken -bd 2 -textvariable xAIF::GUI::Dashboard::CellPartition
         button $dbf.library.cb -text "Cell Partition ..." -state disabled -command xAIF::GUI::Dashboard::SelectCellPartition
@@ -1179,11 +1220,11 @@ namespace eval xAIF::GUI::Menus {
                 xAIF::GUI::Message -severity error -msg "Unable to connect to Library Manager, is Library Manager running?"
                 xAIF::GUI::StatusBar::UpdateStatus -busy off
             } else {
-                set xAIF::GUI::Dashboard::LibraryPath  [$xAIF::Settings(libLib) FullName]
+                set xAIF::Settings(LibraryPath)  [$xAIF::Settings(libLib) FullName]
             }
         }
 
-        set xAIF::Settings(targetPath) xAIF::GUI::Dashboard::LibraryPath
+        set xAIF::Settings(targetPath) xAIF::Settings(LibraryPath)
         xAIF::GUI::Message -severity note -msg "Central Library Mode enabled."
         xAIF::GUI::StatusBar::UpdateStatus -busy off
     }
@@ -1225,11 +1266,11 @@ namespace eval xAIF::GUI::Menus {
                 xAIF::GUI::Message -severity error -msg "Unable to connect to Xpedition, is Xpedition running?"
                 xAIF::GUI::StatusBar::UpdateStatus -busy off
             } else {
-                set xAIF::GUI::Dashboard::FullDesignPath  [$xAIF::Settings(pcbDoc) FullName]
+                set xAIF::Settings(DesignPath)  [$xAIF::Settings(pcbDoc) FullName]
             }
         }
 
-        set xAIF::Settings(targetPath) xAIF::GUI::Dashboard::FullDesignPath
+        set xAIF::Settings(targetPath) xAIF::Settings(DesignPath)
         xAIF::GUI::Message -severity note -msg "Design Mode enabled."
         xAIF::GUI::StatusBar::UpdateStatus -busy off
     }
@@ -1301,18 +1342,18 @@ puts "GUI::Dashboard::SelectCentralLibrary"
         set db $xAIF::GUI::Widgets(dashboard)
 
         if { [string equal $f ""] } {
-            set xAIF::GUI::Dashboard::LibraryPath [tk_getOpenFile -filetypes {{LMC .lmc} { LLM .llm}}]
+            set xAIF::Settings(LibraryPath) [tk_getOpenFile -filetypes {{LMC .lmc} { LLM .llm}}]
         } else {
-            set xAIF::GUI::Dashboard::LibraryPath $f
+            set xAIF::Settings(LibraryPath) $f
         }
 
         ##  Valid LMC selected?  If so, enable the buttons and load the partitions
-        if { [expr { $xAIF::GUI::Dashboard::LibraryPath ne "" }] } {
-            $db.frame.library.cb configure -state normal
-            $db.frame.library.pb configure -state normal
+        if { [string length $xAIF::Settings(LibraryPath)] > 0 } {
+            #$db.frame.library.cb configure -state normal
+            #$db.frame.library.pb configure -state normal
 
             ##  Open the LMC and get the partition names
-            MGC::SetupLMC $xAIF::GUI::Dashboard::LibraryPath
+            MGC::SetupLMC $xAIF::Settings(LibraryPath)
         }
     }
 
@@ -1599,7 +1640,11 @@ puts $winylength
     ##--------------------------------------------------------
     proc ZoomReset { c } {
         set extents [$c bbox all]
-        puts $extents
+
+        ##  Don't do anything on an empty canvas
+        if { [string length $extents] == 0 } { return }
+
+        ##  Compute XY pairs and use to reset the view
         set x1 [lindex $extents 0]
         set y1 [lindex $extents 1]
         set x2 [lindex $extents 2]
@@ -2761,7 +2806,9 @@ puts "${i}::${n}::${p}"
         set x2 [expr +($::bga(width) / 2)]
         set y1 [expr -($::bga(height) / 2)]
         set y2 [expr +($::bga(height) / 2)]
-        puts [format "BGA Outline extents:  X1:  %s  Y1:  %s  X2:  %s  Y2:  %s" $x1 $y1 $x2 $y2]
+
+        xAIF::GUI::Message -severity note -msg \
+            [format "BGA Outline extents:  X1:  %s  Y1:  %s  X2:  %s  Y2:  %s" $x1 $y1 $x2 $y2]
 
         ##  Does BGA section contain POLYGON outline?  If not, use the height and width
         if { [lsearch -exact [AIF::Variables BGA] OUTLINE] != -1 } {
@@ -2781,16 +2828,13 @@ puts "${i}::${n}::${p}"
                 #set points { $x1 $y1 $x2 $y2 }
                 set points [list $x1 $y1 $x2 $y1 $x2 $y2 $x1 $y2]
             }
-            puts "A"
 
 
         } else {
-            puts "B"
             #set points { $x1 $y1 $x2 $y2 }
             #set points [list $x1 $y1 $x2 $y2]
             set points [list $x1 $y1 $x2 $y1 $x2 $y2 $x1 $y2]
         }
-        puts $points
 
         $cnvs create polygon $points -outline $color -tags "$::bga(name) bga bgaoutline"
         $cnvs create text $x2 $y2 -text $::bga(name) -fill $color \
@@ -2968,19 +3012,24 @@ namespace eval xAIF::GUI::StatusBar {
         ##  Set the color of the status light
         #set slf $xAIF::GUI::Widgets(statuslight)
         if { [string is true $V(-busy)] } {
-            set xAIF::Settings(status) "Busy"
+            set xAIF::Settings(status) "Busy ..."
+            incr xAIF::Settings(progress) 
+            puts "Progress:  $xAIF::Settings(progress)"
+            $xAIF::GUI::Widgets(mainframe).status.prg configure -fg red
             #$slf configure -background red
             #$xAIF::GUI::Widgets(progressbar) start
         } else {
             set xAIF::Settings(status) "Ready"
             #$slf configure -background green
             #$xAIF::GUI::Widgets(progressbar) stop
+            $xAIF::GUI::Widgets(mainframe).status.prg configure -fg green
+            set xAIF::Settings(progress) 0
         } 
 
         if { $xAIF::GUI::Dashboard::Mode == $xAIF::Const::XAIF_MODE_DESIGN } {
-            set $xAIF::Settings(targetPath) $xAIF::GUI::Dashboard::FullDesignPath
+            set $xAIF::Settings(targetPath) $xAIF::Settings(DesignPath)
         } else {
-            set $xAIF::Settings(targetPath) $xAIF::GUI::Dashboard::LibraryPath
+            set $xAIF::Settings(targetPath) $xAIF::Settings(LibraryPath)
         }
         set $xAIF::Settings(targetPath)
         update idletasks
