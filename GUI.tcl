@@ -136,8 +136,8 @@ namespace eval xAIF::GUI {
                     {command "&Load ..." {} "Load Design Configuration" {} -command {xPCB::LoadDesignConfigFrom}}
                 }}
                 {cascade "&Mesage Text" {} {messagetextmenu} 0 {
-                    {command "&Clear" {} "Clear Message Text" {} -command {xAIF::ClearMessageText}}
-                    {command "&Save As ..." {} "Save Message Text to File" {} -command {xAIF::SaveMessageTextToFile}}
+                    {command "&Clear" {} "Clear Message Text" {} -command {xAIF::GUI::ClearMessageText}}
+                    {command "&Save As ..." {} "Save Message Text to File" {} -command {xAIF::GUI::SaveMessageTextToFile}}
                 }}
                 {separator}
                 {command "Show &Console"  {} "Show Tcl console" {} -command {console show}}
@@ -294,14 +294,10 @@ namespace eval xAIF::GUI {
                 }}
             }
             "&Generate" all generatemenu 0 {
-                {command "&Pads ..."  {} "Generate Pads" {} -command {
-                        xAIF::GUI::Message -severity warning -msg "Command has not been implemented." }}
-                {command "P&adstacks ..."  {} "Generate Padstacks" {} -command {
-                        xAIF::GUI::Message -severity warning -msg "Command has not been implemented." }}
-                {command "&Cells ..."  {} "Generate Cells" {} -command {
-                        xAIF::GUI::Message -severity warning -msg "Command has not been implemented." }}
-                {command "P&DBs ..."  {} "Generate PDBs" {} -command {
-                        xAIF::GUI::Message -severity warning -msg "Command has not been implemented." }}
+                {command "&Pads ..."  {} "Generate Pads" {} -command { MGC::Generate::Pads }}
+                {command "P&adstacks ..."  {} "Generate Padstacks" {} -command { MGC::Generate::Padstacks }}
+                {command "&Cells ..."  {} "Generate Cells" {} -command { MGC::Generate::Cells }}
+                {command "P&DBs ..."  {} "Generate PDBs" {} -command { MGC::Generate::PDBs }}
             }
             "&Wirebond" all wirebondmenu 0 {
                 {cascade "&Setup ..."  {} {wbsetupmenu} 0 {}}
@@ -338,7 +334,8 @@ namespace eval xAIF::GUI {
         pack $Widgets(mainframe) -fill both -expand yes
 
         set Widgets(operatingmode) [$Widgets(mainframe) addindicator \
-            -text [format " Mode:  %s " [string totitle $xPCB::Settings(operatingmode)]]]
+            -text [format " Mode:  %s   Status:  %s" [string totitle $xPCB::Settings(operatingmode)] \
+            [string totitle $xPCB::Settings(connectionstatus)]]]
         #$Widgets(mainframe) addindicator -text [format " %s  " [file tail [info script]]]
         $Widgets(mainframe) addindicator -text [format " %s " $xAIF::Settings(name)]
         $Widgets(mainframe) addindicator -text [format " v%s " $xAIF::Settings(version)]
@@ -470,6 +467,7 @@ namespace eval xAIF::GUI {
         
         ##  Setup an Idle Task
         after 0 xAIF::GUI::UpdateWhenIdle
+console show
 
         ##  Make this a modal dialog
         catch { tk visibility . }
@@ -571,7 +569,8 @@ namespace eval xAIF::GUI {
         variable Widgets
         #set msgText [$Widgets(message) get 1.0 {end -1c}]
 
-        set file [tk_getSaveFile -title "Save Message Text" -parent .]
+        set file [tk_getSaveFile -title "Save Message Text" -parent . \
+            -initialdir $xAIF::Settings(workdir) -initialfile $xAIF::Const::XAIF_DEFAULT_TXT_FILE]
         if { $file == "" } {
             return; # they clicked cancel
         }
@@ -617,7 +616,7 @@ namespace eval xAIF::GUI {
         variable Widgets
         #set msgText [$Widgets(message) get 1.0 {end -1c}]
 
-        set file [tk_getSaveFile -title "Save Message Text" -parent .]
+        set file [tk_getSaveFile -title "Save Message Text" -parent . -initialdir $xAIF::Settings(workdir) -initialfile "xAIF.txt"]
         if { $file == "" } {
             return; # they clicked cancel
         }
@@ -1338,7 +1337,7 @@ namespace eval xAIF::GUI::Dashboard {
     ##  xAIF::GUI::Dashboard::SelectCentralLibrary
     ##
     proc SelectCentralLibrary { { f "" } } {
-puts "GUI::Dashboard::SelectCentralLibrary"
+puts "xAIF::GUI::Dashboard::SelectCentralLibrary"
         set db $xAIF::GUI::Widgets(dashboard)
 
         if { [string equal $f ""] } {
@@ -1510,12 +1509,6 @@ namespace eval xAIF::GUI::View {
     proc Zoom { canvas factor \
             {xcenter ""} {ycenter ""} \
             {winxlength ""} {winylength ""} } {
-puts $canvas
-puts $factor
-puts $xcenter
-puts $ycenter
-puts $winxlength
-puts $winylength
 
         ##  Do nothing if the canvas is empty
         if { [string equal "" [$canvas bbox all]] } { return }
@@ -1874,9 +1867,14 @@ namespace eval xAIF::GUI::File {
     ##
     proc CloseAIF {} {
         xAIF::GUI::StatusBar::UpdateStatus -busy on
-        xAIF::GUI::Message -severity note -msg [format "AIF file \"%s\" closed." $xAIF::Settings(filename)]
         InitialState
         xAIF::GUI::StatusBar::UpdateStatus -busy off
+
+        if { [string length $xAIF::Settings(filename)] > 0 } {
+            xAIF::GUI::Message -severity note -msg [format "AIF file \"%s\" closed." $xAIF::Settings(filename)]
+        } else {
+            xAIF::GUI::Message -severity warning -msg "An AIF file is not currently open, close ignored."
+        }
     }
 
     ##

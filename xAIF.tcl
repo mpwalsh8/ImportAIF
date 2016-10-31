@@ -140,6 +140,8 @@ namespace eval xAIF {
     namespace eval Const {
         set XAIF_MODE_DESIGN                  design
         set XAIF_MODE_LIBRARY                 library
+        set XAIF_STATUS_CONNECTED             connected
+        set XAIF_STATUS_DISCONNECTED          disconnected
         set CELL_GEN_SUFFIX_NONE_KEY          none
         set CELL_GEN_SUFFIX_NONE_VALUE        "None"
         set CELL_GEN_SUFFIX_NUMERIC_KEY       numeric
@@ -162,6 +164,7 @@ namespace eval xAIF {
         set PKG_TYPE_INFO_S               info_s
         set PKG_TYPE_INFO_POP             info_pop
         set XAIF_DEFAULT_CFG_FILE         xAIF.cfg
+        set XAIF_DEFAULT_TXT_FILE         xAIF.txt
     }
 
     variable Settings
@@ -363,18 +366,29 @@ foreach script { AIF.tcl Forms.tcl GUI.tcl MapEnum.tcl MGC.tcl Netlist.tcl } {
 ##  Platform?
 
 if { [string equal $::tcl_platform(platform) windows] } {
-    ##  Load the Mentor DLL for Xpedition
-    set DLL [file join $::env(SDD_HOME) wg $::env(SDD_PLATFORM) bin ExpeditionPCB.exe]
-    if { [file exists $DLL] } {
-        ::tcom::import $DLL
-    } else {
-        puts stderr [format "//  Error:  Unable to load Xpedition API from \"%s\"." $DLL]
-        exit 1
-   }
+    ##  Load the Mentor DLL for Xpedition and the requisite editors
 
-   ##  Setup Executables
-   set xPCB::Settings(xpeditionpcb) [file join $::env(SDD_HOME) common $::env(SDD_PLATFORM) bin ExpeditionPCB.exe]
-   set xPCB::Settings(librarymanager) [file join $::env(SDD_HOME) common $::env(SDD_PLATFORM) bin LibraryManager.exe]
+    set DLLs [list \
+        [file join $::env(SDD_HOME) wg     $::env(SDD_PLATFORM) bin ExpeditionPCB.exe] \
+        [file join $::env(SDD_HOME) wg     $::env(SDD_PLATFORM) lib CellEditorAddin.dll] \
+        [file join $::env(SDD_HOME) common $::env(SDD_PLATFORM) lib PDBEditor.dll] \
+        [file join $::env(SDD_HOME) common $::env(SDD_PLATFORM) lib PadstackEditor.dll] \
+    ]
+
+    #set DLL [file join $::env(SDD_HOME) wg $::env(SDD_PLATFORM) bin ExpeditionPCB.exe]
+    foreach DLL $DLLs {
+        if { [file exists $DLL] } {
+            puts stderr [format "//  Note:  Loading API from \"%s\"." $DLL]
+            ::tcom::import $DLL
+        } else {
+            puts stderr [format "//  Error:  Unable to load API from \"%s\"." $DLL]
+            exit 1
+        }
+    }
+
+    ##  Setup Executables
+    set xPCB::Settings(xpeditionpcb) [file join $::env(SDD_HOME) common $::env(SDD_PLATFORM) bin ExpeditionPCB.exe]
+    set xPCB::Settings(librarymanager) [file join $::env(SDD_HOME) common $::env(SDD_PLATFORM) bin LibraryManager.exe]
 } elseif { [string equal $::tcl_platform(platform) unix] } {
     ##  Load the Mentor TLB for Xpedition
     set TLB [file join $::env(SDD_HOME) wg $::env(SDD_PLATFORM) bin ExpeditionPCB.tlb]
@@ -384,11 +398,11 @@ if { [string equal $::tcl_platform(platform) windows] } {
     } else {
         puts stderr [format "//  Error:  Unable to load Xpedition API from \"%s\"." $TLB]
         exit 1
-   }
+    }
 
-   ##  Setup Executables
-   set xPCB::Settings(xpeditionpcb) [file join $::env(SDD_HOME) common $::env(SDD_PLATFORM) bin ExpeditionPCB]
-   set xPCB::Settings(librarymanager) [file join $::env(SDD_HOME) common $::env(SDD_PLATFORM) bin LibraryManager]
+    ##  Setup Executables
+    set xPCB::Settings(xpeditionpcb) [file join $::env(SDD_HOME) common $::env(SDD_PLATFORM) bin ExpeditionPCB]
+    set xPCB::Settings(librarymanager) [file join $::env(SDD_HOME) common $::env(SDD_PLATFORM) bin LibraryManager]
 } else {
     ##  Unsupported platform
     puts [format "//  Error:  Platform \"%s\" is unsupported." $tcl_platform(platform)]
@@ -401,4 +415,3 @@ parray tcl_platform
 #xPCB::getOpenDocumentPaths $xPCB::Settings(pcbApp)
 xAIF::Init
 xAIF::GUI::Build
-console show

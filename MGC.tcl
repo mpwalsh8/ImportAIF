@@ -200,7 +200,7 @@ puts "X4"
         xAIF::GUI::Message -severity note -msg [format "Opening Padstack Editor in %s mode." $xAIF::Settings(mode)]
 
         ##  Which mode?  Design or Library?
-        if { $xAIF::Settings(mode) == $xAIF::Const::XAIF_MODE_DESIGN } {
+        if { [string compare -nocase $xAIF::Settings(mode) $xAIF::Const::XAIF_MODE_DESIGN] == 0 } {
             ##  Invoke Expedition on the design so the Padstack Editor can be started
             ##  Catch any exceptions raised by opening the database
 
@@ -221,7 +221,7 @@ puts "X4"
             }
             set xAIF::Settings(pdstkEdtr) [$xAIF::Settings(pcbDoc) PadstackEditor]
             set xAIF::Settings(pdstkEdtrDb) [$xAIF::Settings(pdstkEdtr) ActiveDatabase]
-        } elseif { $xAIF::Settings(mode) == $xAIF::Const::XAIF_MODE_LIBRARY } {
+        } elseif { [string compare -nocase $xAIF::Settings(mode) $xAIF::Const::XAIF_MODE_LIBRARY] == 0 } {
             set xAIF::Settings(pdstkEdtr) [::tcom::ref createobject "MGCPCBLibraries.PadstackEditorDlg"]
             # Open the database
             set errorCode [catch {set xAIF::Settings(pdstkEdtrDb) [$xAIF::Settings(pdstkEdtr) \
@@ -253,7 +253,7 @@ puts "X4"
     proc ClosePadstackEditor { { mode "-closedatabase" } } {
         ##  Which mode?  Design or Library?
 
-        if { $xAIF::Settings(mode) == $xAIF::Const::XAIF_MODE_DESIGN } {
+        if { [string compare -nocase $xAIF::Settings(mode) $xAIF::Const::XAIF_MODE_DESIGN] == 0 } {
             xAIF::GUI::Message -severity note -msg "Closing database for Padstack Editor."
             set errorCode [catch { $xAIF::Settings(pdstkEdtr) UnlockServer } errorMessage]
             if {$errorCode != 0} {
@@ -279,7 +279,7 @@ puts "X4"
                 ##  Close Expedition
                 $xAIF::Settings(pcbApp) Quit
             }
-        } elseif { $xAIF::Settings(mode) == $xAIF::Const::XAIF_MODE_LIBRARY } {
+        } elseif { [string compare -nocase $xAIF::Settings(mode) $xAIF::Const::XAIF_MODE_LIBRARY] == 0 } {
             xAIF::GUI::Message -severity note -msg "Closing database for Padstack Editor."
             set errorCode [catch { $xAIF::Settings(pdstkEdtr) UnlockServer } errorMessage]
             if {$errorCode != 0} {
@@ -300,7 +300,7 @@ puts "X4"
     #
     proc OpenCellEditor { } {
         ##  Which mode?  Design or Library?
-        if { $xAIF::Settings(mode) == $xAIF::Const::XAIF_MODE_DESIGN } {
+        if { [string compare -nocase $xAIF::Settings(mode) $xAIF::Const::XAIF_MODE_DESIGN] == 0 } {
             set xAIF::Settings(targetPath) $xAIF::Settings(DesignPath)
             ##  Invoke Expedition on the design so the Cell Editor can be started
             ##  Catch any exceptions raised by opening the database
@@ -364,7 +364,7 @@ puts "Z6"
     proc CloseCellEditor {} {
         ##  Which mode?  Design or Library?
 
-        if { $xAIF::Settings(mode) == $xAIF::Const::XAIF_MODE_DESIGN } {
+        if { [string compare -nocase $xAIF::Settings(mode) $xAIF::Const::XAIF_MODE_DESIGN] == 0 } {
             xAIF::GUI::Message -severity note -msg "Closing database for Cell Editor."
             set errorCode [catch { $xAIF::Settings(cellEdtr) UnlockServer } errorMessage]
             if {$errorCode != 0} {
@@ -390,7 +390,7 @@ puts "Z6"
                 ##  Close Expedition
                 $xAIF::Settings(pcbApp) Quit
             }
-        } elseif { $xAIF::Settings(mode) == $xAIF::Const::XAIF_MODE_LIBRARY } {
+        } elseif { [string compare -nocase $xAIF::Settings(mode) $xAIF::Const::XAIF_MODE_LIBRARY] == 0 } {
             xAIF::GUI::Message -severity note -msg "Closing database for Cell Editor."
             set errorCode [catch { $xAIF::Settings(cellEdtr) UnlockServer } errorMessage]
             if {$errorCode != 0} {
@@ -412,7 +412,7 @@ puts "Z6"
     proc OpenPDBEditor {} {
 puts "P1"
         ##  Which mode?  Design or Library?
-        if { $xAIF::Settings(mode) == $xAIF::Const::XAIF_MODE_DESIGN } {
+        if { [string compare -nocase $xAIF::Settings(mode) $xAIF::Const::XAIF_MODE_DESIGN] == 0 } {
             set xAIF::Settings(targetPath) $xAIF::Settings(DesignPath)
             ##  Invoke Expedition on the design so the PDB Editor can be started
             ##  Catch any exceptions raised by opening the database
@@ -428,7 +428,7 @@ puts "P3"
             set xAIF::Settings(partEdtr) [$xAIF::Settings(pcbDoc) PartEditor]
             xAIF::GUI::Message -severity note -msg "Using design database for PDB Editor."
             set xAIF::Settings(partEdtrDb) [$xAIF::Settings(partEdtr) ActiveDatabase]
-        } elseif { $xAIF::Settings(mode) == $xAIF::Const::XAIF_MODE_LIBRARY } {
+        } elseif { [string compare -nocase $xAIF::Settings(mode) $xAIF::Const::XAIF_MODE_LIBRARY] == 0 } {
             set xAIF::Settings(targetPath) $xAIF::Settings(LibraryPath)
 puts "P4"
             set xAIF::Settings(partEdtr) [::tcom::ref createobject "MGCPCBLibraries.PartsEditorDlg"]
@@ -474,7 +474,7 @@ puts "OpenPDBEdtr - 1"
     proc ClosePDBEditor { } {
         ##  Which mode?  Design or Library?
 
-        if { $xAIF::Settings(mode) == $xAIF::Const::XAIF_MODE_DESIGN } {
+        if { [string compare -nocase $xAIF::Settings(mode) $xAIF::Const::XAIF_MODE_DESIGN] == 0 } {
             xAIF::GUI::Message -severity note -msg "Closing database for PDB Editor."
             set errorCode [catch { $xAIF::Settings(partEdtr) UnlockServer } errorMessage]
             if {$errorCode != 0} {
@@ -501,7 +501,7 @@ puts "OpenPDBEdtr - 1"
                 ##  Close Expedition
                 $xAIF::Settings(pcbApp) Quit
             }
-        } elseif { $xAIF::Settings(mode) == $xAIF::Const::XAIF_MODE_LIBRARY } {
+        } elseif { [string compare -nocase $xAIF::Settings(mode) $xAIF::Const::XAIF_MODE_LIBRARY] == 0 } {
             xAIF::GUI::Message -severity note -msg "Closing database for PDB Editor."
             set errorCode [catch { $xAIF::Settings(partEdtr) UnlockServer } errorMessage]
             if {$errorCode != 0} {
@@ -625,9 +625,9 @@ puts "OpenPDBEdtr - 1"
             ##  Make sure a Target library or design has been defined
 
             if { [string equal $xAIF::Settings(targetPath) ""] && [ string is true $xAIF::Settings(connectMode)] } {
-                if {$xAIF::Settings(mode) == $xAIF::Const::XAIF_MODE_DESIGN} {
+                if { [string compare -nocase $xAIF::Settings(mode) $xAIF::Const::XAIF_MODE_DESIGN] == 0 } {
                     xAIF::GUI::Message -severity error -msg "No Design (PCB) specified, build aborted."
-                } elseif {$xAIF::Settings(mode) == $xAIF::Const::XAIF_MODE_LIBRARY} {
+                } elseif { [string compare -nocase $xAIF::Settings(mode) $xAIF::Const::XAIF_MODE_LIBRARY] == 0 } {
                     xAIF::GUI::Message -severity error -msg "No Central Library (LMC) specified, build aborted."
                 } else {
                     xAIF::GUI::Message -severity error -msg "Mode not set, build aborted."
@@ -740,9 +740,9 @@ puts "OpenPDBEdtr - 1"
             ##  Make sure a Target library or design has been defined
 
             if {$xAIF::Settings(targetPath) == $xAIF::Settings(Nothing) && [string is false $xAIF::Settings(connectMode)] } {
-                if {$xAIF::Settings(mode) == $xAIF::Const::XAIF_MODE_DESIGN} {
+                if { [string compare -nocase $xAIF::Settings(mode) $xAIF::Const::XAIF_MODE_DESIGN] == 0 } {
                     xAIF::GUI::Message -severity error -msg "No Design (PCB) specified, build aborted."
-                } elseif {$xAIF::Settings(mode) == $xAIF::Const::XAIF_MODE_LIBRARY} {
+                } elseif { [string compare -nocase $xAIF::Settings(mode) $xAIF::Const::XAIF_MODE_LIBRARY] == 0 } {
                     xAIF::GUI::Message -severity error -msg "No Central Library (LMC) specified, build aborted."
                 } else {
                     xAIF::GUI::Message -severity error -msg "Mode not set, build aborted."
@@ -911,9 +911,9 @@ puts "Y3"
 puts "Y4"
 
             if {$xAIF::Settings(targetPath) == $xAIF::Settings(Nothing) && [string is false $xAIF::Settings(connectMode)] } {
-                if {$xAIF::Settings(mode) == $xAIF::Const::XAIF_MODE_DESIGN} {
+                if { [string compare -nocase $xAIF::Settings(mode) $xAIF::Const::XAIF_MODE_DESIGN] == 0 } {
                     xAIF::GUI::Message -severity error -msg "No Design (PCB) specified, build aborted."
-                } elseif {$xAIF::Settings(mode) == $xAIF::Const::XAIF_MODE_LIBRARY} {
+                } elseif { [string compare -nocase $xAIF::Settings(mode) $xAIF::Const::XAIF_MODE_LIBRARY] == 0 } {
                     xAIF::GUI::Message -severity error -msg "No Central Library (LMC) specified, build aborted."
                 } else {
                     puts $xAIF::Settings(mode)
@@ -941,7 +941,7 @@ puts "Y5"
             ##  isn't a "partition" so none of the partition logic applies.
 
 puts "Y6"
-            if { $xAIF::Settings(mode) == $xAIF::Const::XAIF_MODE_LIBRARY } {
+            if { [string compare -nocase $xAIF::Settings(mode) $xAIF::Const::XAIF_MODE_LIBRARY] == 0 } {
 
                 #  Prompt for the Partition if not supplied with -partition
 
@@ -1165,7 +1165,7 @@ puts "Y7"
                         [format "Reference Padstack \"%s\" does not exist, build aborted." $pad]
                     $cellEditor Close False
 
-                    if { $xAIF::Settings(mode) == $xAIF::Const::XAIF_MODE_DESIGN } {
+                    if { [string compare -nocase $xAIF::Settings(mode) $xAIF::Const::XAIF_MODE_DESIGN] == 0 } {
                         MGC::ClosePadstackEditor -dontclosedatabase
                     } else {
                         MGC::ClosePadstackEditor
@@ -1179,7 +1179,7 @@ puts "Y7"
 puts "K1"
 
             ##  To fix Tcom bug?
-            if { $xAIF::Settings(mode) == $xAIF::Const::XAIF_MODE_DESIGN } {
+            if { [string compare -nocase $xAIF::Settings(mode) $xAIF::Const::XAIF_MODE_DESIGN] == 0 } {
                 MGC::ClosePadstackEditor -dontclosedatabase
             } else {
                 MGC::ClosePadstackEditor
@@ -2578,6 +2578,7 @@ namespace eval xPCB {
     set Settings(LayerNumbers) {}
 
     set Settings(operatingmode) $xAIF::Const::XAIF_MODE_DESIGN
+    set Settings(connectionstatus) $xAIF::Const::XAIF_STATUS_DISCONNECTED
 
     set Settings(consoleEcho) off
     set Settings(debugmsgs) on
@@ -2678,7 +2679,7 @@ namespace eval xPCB {
     proc setActiveDocument {} {
         variable Settings
 
-        ##  Find the application instance associated with the pcbAppId
+        ###  Find the application instance associated with the pcbAppId
         set tmpApp [[$Settings(pcbApp) Utility] FindApplication $Settings(pcbAppId)]
 
         ##  Make sure it is still open, issue an error otherwise
@@ -2694,6 +2695,14 @@ namespace eval xPCB {
 
                 ##  Default the work directory from the design
                 Setup::WorkDirectoryFromDesign
+                set xAIF::Settings(DesignPath) [lindex $Settings(pcbOpenDocumentPaths) $Settings(pcbAppId)]
+                set xAIF::Settings(targetPath) [lindex $Settings(pcbOpenDocumentPaths) $Settings(pcbAppId)]
+
+                ##  Update connection status
+                set xPCB::Settings(connectionstatus) $xAIF::Const::XAIF_STATUS_CONNECTED
+                $xAIF::GUI::Widgets(operatingmode) configure \
+                    -text [format " Mode:  %s   Status:  %s" [string totitle $xPCB::Settings(operatingmode)] \
+                    [string totitle $xPCB::Settings(connectionstatus)]]
             }
         } else {
             xAIF::GUI::Message -severity error -msg \
@@ -2713,7 +2722,9 @@ namespace eval xPCB {
         set Settings(pcbOpenDocumentPaths) {}
 
         ##  Make sure a valid Xpedtition handle exists
-        xPCB::Connect
+        #xPCB::Connect
+        if { [catch { xPCB::Connect } ] != 0 } { return }
+
         ##  Figure out if any designs are open
         xPCB::getOpenDocumentPaths $xPCB::Settings(pcbApp)
 
@@ -2755,6 +2766,8 @@ namespace eval xPCB {
         set Settings(LayerNumbers) {}
 
         set ConductorLayers [$Settings(pcbDoc) LayerStack False]
+puts $ConductorLayers
+puts [$Settings(pcbDoc) FullName]
 
         xAIF::GUI::Message -severity note -msg \
             [format "Design contains %s Conductor Layers." [$ConductorLayers Count]]
@@ -2767,6 +2780,9 @@ namespace eval xPCB {
             #puts [[$layer LayerProperties] LayerUsage]
         }
 
+##  @TODO
+##  Below isn't necessary but remains until certain ...
+if { 0 } {
         ##  Remove any existing layer and hatch cascade menus and generate new ones
         set layermenu [$xAIF::GUI::Widgets(mainframe) getmenu activelayernamesmenu]
         set hatchmenu [$xAIF::GUI::Widgets(mainframe) getmenu activelayerhatchwidthsmenu]
@@ -2799,6 +2815,7 @@ namespace eval xPCB {
         $hatchmenu add separator
         $hatchmenu add cascade -label "Default" -menu $hatchmenu.defaulthw
         HatchWidthCascade $hatchmenu "default" "Default"
+}
         set xAIF::Settings(status) "Ready"
     }
 
@@ -2831,7 +2848,8 @@ namespace eval xPCB {
         xAIF::GUI::Message -severity note -msg \
             [format "Operating Mode set to \"%s\"." [string totitle $Settings(operatingmode)]]
         $xAIF::GUI::Widgets(operatingmode) configure \
-            -text [format " Mode:  %s " [string totitle $Settings(operatingmode)]]
+            -text [format " Mode:  %s   Status:  %s" [string totitle $xPCB::Settings(operatingmode)] \
+            [string totitle $xPCB::Settings(connectionstatus)]]
 
         set db $xAIF::GUI::Widgets(dashboard)
 
@@ -2872,8 +2890,9 @@ namespace eval xPCB {
             set Settings(pcbGui) [$Settings(pcbApp) Gui]
             set Settings(pcbUtil) [$Settings(pcbApp) Utility]
         } else {
-            puts "//  Error:  Unable to connect to Xpedition, is Xpedition running?"
-            exit 1
+            xAIF::GUI::Message -severity error -msg "Unable to connect to Xpedition, is Xpedition running?"
+            puts stderr "//  Error:  Unable to connect to Xpedition, is Xpedition running?"
+            return -code 3
         }
     }
 
@@ -2979,7 +2998,7 @@ namespace eval xPCB {
         variable Settings
 
         if { $f == "" } {
-            set f [file join [$Settings(pcbDoc) Path] Config $XCU::DEFAULT_CFG_FILE]
+            set f [file join [$Settings(pcbDoc) Path] Config $xAIF::Const::XAIF_DEFAULT_CFG_FILE]
         }
 
         ##  Build up the configuration state to save ...
@@ -3020,7 +3039,7 @@ namespace eval xPCB {
 
         set f [tk_getSaveFile -title "Save Design Configuration" -parent . \
             -filetypes {{{Config Files} .cfg} {{Text Files} .txt} {{All Files} *}} \
-            -initialdir [file join [$Settings(pcbDoc) Path] Config] -initialfile $XCU::DEFAULT_CFG_FILE]
+            -initialdir [file join [$Settings(pcbDoc) Path] Config] -initialfile $xAIF::Const::XAIF_DEFAULT_CFG_FILE]
         if { $f == "" } {
             return; # they clicked cancel
         }
@@ -3035,7 +3054,7 @@ namespace eval xPCB {
         variable Settings
 
         if { $f == "" } {
-            set f [file join [$Settings(pcbDoc) Path] Config $XCU::DEFAULT_CFG_FILE]
+            set f [file join [$Settings(pcbDoc) Path] Config $xAIF::Const::XAIF_DEFAULT_CFG_FILE]
         }
 
         set x [catch { set fid [open $f r] }]
@@ -3056,7 +3075,8 @@ namespace eval xPCB {
             #tk_messageBox -parent . -icon info -message "Design Configuration loaded from \"$f\"."
             xAIF::GUI::Message -severity note -msg "Design Configuration loaded from \"$f\"."
         }
-
+##  @TODO
+return
         set cfgVars {}
 
         foreach L $Settings(LayerNames) {
@@ -3086,7 +3106,7 @@ namespace eval xPCB {
 
         set f [tk_getOpenFile -title "Load Design Configuration" -parent . \
             -filetypes {{{Config Files} .cfg} {{Text Files} .txt} {{All Files} *}} \
-            -initialdir [file join [$Settings(pcbDoc) Path] Config] -initialfile $XCU::DEFAULT_CFG_FILE]
+            -initialdir [file join [$Settings(pcbDoc) Path] Config] -initialfile $xAIF::Const::XAIF_DEFAULT_CFG_FILE]
         if { $f == "" } {
             return; # they clicked cancel
         }
@@ -3117,30 +3137,6 @@ namespace eval xPCB {
         ##
         proc WorkDirectoryFromDesign { } {
             WorkDirectory [file dirname [$xPCB::Settings(pcbDoc) FullName]]
-        }
-    }
-
-    ##
-    ##  xAIF::SaveMessageTextToFile
-    ##
-    proc SaveMessageTextToFile { } {
-        variable Widgets
-        #set msgText [$Widgets(message) get 1.0 {end -1c}]
-
-        set file [tk_getSaveFile -title "Save Message Text" -parent .]
-        if { $file == "" } {
-            return; # they clicked cancel
-        }
-        set x [catch { set fid [open $file w+] }]
-        set y [catch { puts $fid [string trim [$Widgets(message) get 1.0 end-1c]] }]
-        set z [catch { close $fid }]
-        if { $x || $y || $z || ![file exists $file] || ![file isfile $file] || ![file readable $file] } {
-            tk_messageBox -parent . -icon error \
-                -message "An error occurred while saving to \"$file\"."
-            Message -severity error -msg "An error occurred saving Message Text to \"$file\"."
-        } else {
-            tk_messageBox -parent . -icon info -message "Message Text saved to \"$file\"."
-            Message -severity note -msg "Message Text saved to \"$file\"."
         }
     }
 
