@@ -68,7 +68,7 @@ namespace eval MapEnum {
                 return $::PadstackEditorLib::EPsDBPadShape(epsdbPadShapeOblong)
             }
             default {
-                return $xAIF::Settings(Nothing)
+                return $xAIF::Const::XAIF_NOTHING
             }
         }
     }
@@ -92,7 +92,7 @@ namespace eval MapEnum {
                     return $::PadstackEditorLib::EPsDBUnit(epsdbUnitMils)
                 }
                 default {
-                    return $xAIF::Settings(Nothing)
+                    return $xAIF::Const::XAIF_NOTHING
                 }
             }
         } elseif { $type == "cell" } {
@@ -110,7 +110,7 @@ namespace eval MapEnum {
                     return $::CellEditorAddinLib::ECellDBUnit(ecelldbUnitMils)
                 }
                 default {
-                    return $xAIF::Settings(Nothing)
+                    return $xAIF::Const::XAIF_NOTHING
                 }
             }
         } elseif { $type == "pcb" } {
@@ -128,11 +128,11 @@ namespace eval MapEnum {
                     return $::MGCPCB::EPcbUnit(epcbUnitMils)
                 }
                 default {
-                    return $xAIF::Settings(Nothing)
+                    return $xAIF::Const::XAIF_NOTHING
                 }
             }
         } else {
-            return $xAIF::Settings(Nothing)
+            return $xAIF::Const::XAIF_NOTHING
         }
     }
 
@@ -152,7 +152,7 @@ namespace eval MapEnum {
             puts $::MGCPCB::EPcbUnit(epcbUnitInch)
             GUI::Transcript -severity warning -msg [format "Unknown units (%s)." $enum]
 
-            return $xAIF::Settings(Nothing)
+            return $xAIF::Const::XAIF_NOTHING
         }
     }
 }

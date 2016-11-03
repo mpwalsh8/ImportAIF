@@ -198,14 +198,14 @@ namespace eval AIF {
 
                 foreach v $vars {
                     #puts [format "-->  %s" $v]
-                    set ::bga([string tolower $v]) [AIF::GetVar $v BGA]
+                    set xAIF::bga([string tolower $v]) [AIF::GetVar $v BGA]
                 }
 
                 ##  Add the BGA to the list of devices
-                set ::mcmdie($xAIF::Settings(BGAREF)) $::bga(name)
+                set xAIF::mcmdie($xAIF::Settings(BGAREF)) $xAIF::bga(name)
 
-                foreach i [array names ::bga] {
-                    xAIF::GUI::Message -severity note -msg [format "BGA \"%s\":  %s" [string toupper $i] $::bga($i)]
+                foreach i [array names xAIF::bga] {
+                    xAIF::GUI::Message -severity note -msg [format "BGA \"%s\":  %s" [string toupper $i] $xAIF::bga($i)]
                 }
             } else {
                 xAIF::GUI::Message -severity error -msg [format "AIF file \"%s\" does not contain a BGA section." $xAIF::Settings(filename)]
@@ -230,15 +230,15 @@ namespace eval AIF {
 
                 foreach v $vars {
                     #puts [format "-->  %s" $v]
-                    set ::die([string tolower $v]) [AIF::GetVar $v DIE]
+                    set xAIF::die([string tolower $v]) [AIF::GetVar $v DIE]
                 }
 
-                foreach i [array names ::die] {
-                    xAIF::GUI::Message -severity note -msg [format "Die \"%s\":  %s" [string toupper $i] $::die($i)]
+                foreach i [array names xAIF::die] {
+                    xAIF::GUI::Message -severity note -msg [format "Die \"%s\":  %s" [string toupper $i] $xAIF::die($i)]
                 }
 
                 ##  Need a partition for Cell and PDB generaton when  in CL mode
-                #set ::die(partition) [format "%s_die" $::die(name)]
+                #set xAIF::die(partition) [format "%s_die" $xAIF::die(name)]
 
             } else {
                 xAIF::GUI::Message -severity error -msg [format "AIF file \"%s\" does not contain a DIE section." $xAIF::Settings(filename)]
@@ -256,7 +256,7 @@ namespace eval AIF {
         #  Get All Die references
         #
         proc GetAllDie {} {
-            return [array names ::mcmdie]
+            return [array names xAIF::mcmdie]
         }
 
         #  AIF::MCMDie::Section
@@ -279,14 +279,14 @@ namespace eval AIF {
 
                     foreach ref $refs {
                         xAIF::GUI::Message -severity note -msg [format "Device:  %s  Ref:  %s" $v [string  trim $ref]]
-                        set ::mcmdie([string trim $ref]) $v
+                        set xAIF::mcmdie([string trim $ref]) $v
                     }
                 }
 
                 foreach i [GetAllDie] {
                     xAIF::GUI::Message -severity note -msg \
                         [format "Device \"%s\" with reference designator:  %s" \
-                        $::mcmdie($i) $i]
+                        $xAIF::mcmdie($i) $i]
                 }
             } else {
                 xAIF::GUI::Message -severity error -msg [format "AIF file \"%s\" does not contain a MCM_DIE section." $xAIF::Settings(filename)]
@@ -304,12 +304,12 @@ namespace eval AIF {
 
         #  Get all Pad names
         proc GetAllPads {} {
-            return [array names ::pads]
+            return [array names xAIF::pads]
         }
 
         #  Return all of the parameters for a pad
         proc GetParams { pad } {
-            return [regexp -inline -all -- {\S+} $::pads($pad)]
+            return [regexp -inline -all -- {\S+} $xAIF::pads($pad)]
         }
 
         #  Return a specific parameter for a pad (default to first parameter)
@@ -393,17 +393,17 @@ namespace eval AIF {
 
                 foreach v $vars {
                     #puts [format "-->  %s" $v]
-                    set ::database([string tolower $v]) [AIF::GetVar $v DATABASE]
+                    set xAIF::database([string tolower $v]) [AIF::GetVar $v DATABASE]
                 }
 
                 ##  Make sure file format is AIF!
 
-                if { $::database(type) != "AIF" } {
+                if { $xAIF::database(type) != "AIF" } {
                     xAIF::GUI::Message -severity error -msg [format "File \"%s\" is not an AIF file." $xAIF::Settings(filename)]
                     set rv -1
                 }
 
-                if { ([lsearch [AIF::Variables "DATABASE"] "MCM"] != -1) && ($::database(mcm) == "TRUE") } {
+                if { ([lsearch [AIF::Variables "DATABASE"] "MCM"] != -1) && ($xAIF::database(mcm) == "TRUE") } {
                     xAIF::GUI::Message -severity note -msg [format "File \"%s\" is a MCM-AIF file." $xAIF::Settings(filename)]
                     set xAIF::Settings(MCMAIF) 1
                     set xAIF::GUI::Widgets(AIFType) "File Type:  MCM-AIF"
@@ -418,13 +418,13 @@ namespace eval AIF {
 
                 ##  Check units for legal option - AIF supports UM, MM, CM, INCH, MIL
 
-                if { [lsearch -exact $xAIF::units [string tolower $::database(units)]] == -1 } {
-                    xAIF::GUI::Message -severity error -msg [format "Units \"%s\" are not supported AIF syntax." $::database(units)]
+                if { [lsearch -exact $xAIF::units [string tolower $xAIF::database(units)]] == -1 } {
+                    xAIF::GUI::Message -severity error -msg [format "Units \"%s\" are not supported AIF syntax." $xAIF::database(units)]
                     set rv -1
                 }
 
-                foreach i [array names ::database] {
-                    xAIF::GUI::Message -severity note -msg [format "Database \"%s\":  %s" [string toupper $i] $::database($i)]
+                foreach i [array names xAIF::database] {
+                    xAIF::GUI::Message -severity note -msg [format "Database \"%s\":  %s" [string toupper $i] $xAIF::database($i)]
                 }
             } else {
                 xAIF::GUI::Message -severity error -msg [format "AIF file \"%s\" does not contain a DATABASE section." $xAIF::Settings(filename)]
@@ -457,15 +457,15 @@ namespace eval AIF {
 
                 ##  Flush the pads array
 
-                array set ::pads {}
-                array set ::padtypes {}
+                array set xAIF::pads {}
+                array set xAIF::padtypes {}
 
                 ##  Populate the pads array
 
                 foreach v $vars {
-                    set ::pads($v) [AIF::GetVar $v PADS]
+                    set xAIF::pads($v) [AIF::GetVar $v PADS]
                     ##  Default all padtypes to SMD, may be adjusted later when processing netlist
-                    set ::padtypes($v) "smdpad"
+                    set xAIF::padtypes($v) "smdpad"
 
                     #  Add pad to the View Devices menu and make it visible
                     set xAIF::GUI::pads($v) on
@@ -476,10 +476,10 @@ namespace eval AIF {
                         -command  "xAIF::GUI::Draw::Visibility pad-$v -mode toggle"
                 }
 
-                foreach i [array names ::pads] {
+                foreach i [array names xAIF::pads] {
 
-                    set padshape [lindex [regexp -inline -all -- {\S+} [lindex $::pads($i) 0]] 0]
-                    puts [format ">>> Pad:  %s %s" $i $::pads($i)]
+                    set padshape [lindex [regexp -inline -all -- {\S+} [lindex $xAIF::pads($i) 0]] 0]
+                    puts [format ">>> Pad:  %s %s" $i $xAIF::pads($i)]
 
                     ##  Check units for legal option - AIF supports UM, MM, CM, INCH, MIL
 
@@ -491,7 +491,7 @@ namespace eval AIF {
                     }
                 }
 
-                xAIF::GUI::Message -severity note -msg [format "AIF source file contains %d %s." [array size ::pads] [xAIF::Utility::Plural [array size ::pads] "pad"]]
+                xAIF::GUI::Message -severity note -msg [format "AIF source file contains %d %s." [array size xAIF::pads] [xAIF::Utility::Plural [array size xAIF::pads] "pad"]]
             } else {
                 xAIF::GUI::Message -severity error -msg [format "AIF file \"%s\" does not contain a PADS section." $xAIF::Settings(filename)]
                 set rv -1

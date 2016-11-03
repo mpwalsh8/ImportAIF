@@ -144,8 +144,8 @@ namespace eval AIFForms {
 
             frame $dlg.f.buttons -relief flat
 
-            button $dlg.f.buttons.ok -text "Ok" -command { AIFForms::ListBox::SelectFromListBox }
-            button $dlg.f.buttons.cancel -text "Cancel" -command { destroy $AIFForms::ListBox::widgets(lb) }
+            button $dlg.f.buttons.ok -text "Ok" -width 10 -command { AIFForms::ListBox::SelectFromListBox }
+            button $dlg.f.buttons.cancel -text "Cancel" -width 10 -command { destroy $AIFForms::ListBox::widgets(lb) }
 
             pack $dlg.f.buttons.ok -side left
             pack $dlg.f.buttons.cancel -side right

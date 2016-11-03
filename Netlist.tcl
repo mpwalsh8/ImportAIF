@@ -202,9 +202,9 @@ namespace eval Netlist {
 
             set txt [format ".%s\n" [AIF::GetVar UNITS DATABASE]]
 
-            foreach i [array names ::mcmdie] {
+            foreach i [array names xAIF::mcmdie] {
                 set ctr "0,0"
-                set sect [format "MCM_%s_%s" $::mcmdie($i) $i]
+                set sect [format "MCM_%s_%s" $xAIF::mcmdie($i) $i]
 
                 ##  If the device has a section, extract the CENTER keyword
                 if { [lsearch [AIF::Sections] $sect] != -1 } {
@@ -244,8 +244,8 @@ namespace eval Netlist {
                     set Y [string trim [lindex [split $ctr] 1]]
                 }
 
-                append txt [format ".REF %s %s,%s 0 top\n" $::die(refdes) $X $Y]
-                xAIF::GUI::Message -severity note -msg [format "Standard AIF file, adding die (\"%s\") to the placement file." $::die(refdes)]
+                append txt [format ".REF %s %s,%s 0 top\n" $xAIF::die(refdes) $X $Y]
+                xAIF::GUI::Message -severity note -msg [format "Standard AIF file, adding die (\"%s\") to the placement file." $xAIF::die(refdes)]
             }
 
             set f [open $plcmnt "w+"]

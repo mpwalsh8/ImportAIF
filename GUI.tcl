@@ -151,20 +151,20 @@ namespace eval xAIF::GUI {
                 {separator}
                 {cascade "Cell &Generation" {} {cellgenerationmenu} 0 {
                     {checkbutton "&Default" cellgendefault "Enable/Disable Cell Generation Default View" {} \
-                        -variable xPCB::Settings(MirrorNone) -onvalue on -offvalue off \
-                        -command { set s [expr [string is true $xPCB::Settings(MirrorNone)] ?"enabled":"disabled"] ; \
+                        -variable xAIF::Settings(MirrorNone) -onvalue on -offvalue off \
+                        -command { set s [expr [string is true $xAIF::Settings(MirrorNone)] ?"enabled":"disabled"] ; \
                         xAIF::GUI::Message -severity note -msg [format "Cell Generation default view %s." $s] }}
                     {checkbutton "Mirror &X" cellgendefault "Enable/Disable Cell Generation mirrored across X axis" {} \
-                        -variable xPCB::Settings(MirrorX) -onvalue on -offvalue off \
-                        -command { set s [expr [string is true $xPCB::Settings(MirrorX)] ?"enabled":"disabled"] ; \
+                        -variable xAIF::Settings(MirrorX) -onvalue on -offvalue off \
+                        -command { set s [expr [string is true $xAIF::Settings(MirrorX)] ?"enabled":"disabled"] ; \
                         xAIF::GUI::Message -severity note -msg [format "Cell Generation mirrored across X axis %s." $s] }}
                     {checkbutton "Mirror &Y" cellgendefault "Enable/Disable Cell Generation mirrored across Y axis" {} \
-                        -variable xPCB::Settings(MirrorY) -onvalue on -offvalue off \
-                        -command { set s [expr [string is true $xPCB::Settings(MirrorY)] ?"enabled":"disabled"] ; \
+                        -variable xAIF::Settings(MirrorY) -onvalue on -offvalue off \
+                        -command { set s [expr [string is true $xAIF::Settings(MirrorY)] ?"enabled":"disabled"] ; \
                         xAIF::GUI::Message -severity note -msg [format "Cell Generation mirrored across Y axis %s." $s] }}
                     {checkbutton "&Mirror XY" cellgendefault "Enable/Disable Cell Generation mirrored across X and Y axes" {} \
-                        -variable xPCB::Settings(MirrorXY) -onvalue on -offvalue off \
-                        -command { set s [expr [string is true $xPCB::Settings(MirrorXY)] ?"enabled":"disabled"] ; \
+                        -variable xAIF::Settings(MirrorXY) -onvalue on -offvalue off \
+                        -command { set s [expr [string is true $xAIF::Settings(MirrorXY)] ?"enabled":"disabled"] ; \
                         xAIF::GUI::Message -severity note -msg [format "Cell Generation mirrored across X and Y axes %s." $s] }}
                 }}
                 {cascade "Cell &Name Suffix" {} {cellnamesuffixmenu} 0 { }}
@@ -172,8 +172,8 @@ namespace eval xAIF::GUI {
                 {cascade "&Default Cell Height" {} {defaultcellheightmenu} 0 { }}
                 {separator}
                 {checkbutton "&Verbose Messages" verbosemsgs "Enable/Disable Verbose Messages" {} \
-                    -variable xPCB::Settings(verbosemsgs) -onvalue on -offvalue off \
-                    -command { set s [expr [string is true $xPCB::Settings(verbosemsgs)] ?"enabled":"disabled"] ; \
+                    -variable xAIF::Settings(verbosemsgs) -onvalue on -offvalue off \
+                    -command { set s [expr [string is true $xAIF::Settings(verbosemsgs)] ?"enabled":"disabled"] ; \
                     xAIF::GUI::Message -severity note -msg [format "Verbose Messages %s." $s] }}
             }
             "&View" all viewmenu 0 {
@@ -214,47 +214,47 @@ namespace eval xAIF::GUI {
                 {cascade "&Devices" {} {devicesmenu} 0 {
                     {command "All &On" {} "All Devices Visible" {} \
                         -command { xAIF::GUI::Draw::Visibility {bga device} -all true -mode on ; \
-                        foreach d [array names ::mcmdie] { set xAIF::GUI::devices($d) on }  }}
+                        foreach d [array names xAIF::mcmdie] { set xAIF::GUI::devices($d) on }  }}
                     {command "All &Off" {} "All Devices Hidden" {} \
                         -command { xAIF::GUI::Draw::Visibility {bga device} -all true -mode off ; \
-                        foreach d [array names ::mcmdie] { set xAIF::GUI::devices($d) off }  }}
+                        foreach d [array names xAIF::mcmdie] { set xAIF::GUI::devices($d) off }  }}
                     {separator}
                 }}
                 {cascade "&Net Lines" {} {netlinesmenu} 0 {
                     {command "All &On" {} "All Net Lines Visible" {} \
                         -command { xAIF::GUI::Draw::Visibility {netline} -all true -mode on ; \
-                        foreach nl [array names ::netlines] { set xAIF::GUI::netlines($nl) on }  }}
+                        foreach nl [array names xAIF::netlines] { set xAIF::GUI::netlines($nl) on }  }}
                     {command "All &Off" {} "All Net Lines Hidden" {} \
                         -command { xAIF::GUI::Draw::Visibility {netline} -all true -mode off ; \
-                        foreach nl [array names ::netlines] { set xAIF::GUI::netlines($nl) off }  }}
+                        foreach nl [array names xAIF::netlines] { set xAIF::GUI::netlines($nl) off }  }}
                     {separator}
                 }}
                 {cascade "&Pads" {} {padsmenu} 0 {
                     {command "All &On" {} "All Pads Visible" {} \
                         -command { xAIF::GUI::Draw::Visibility {pad} -all true -mode on ; \
-                        foreach p [array names ::pads] { set xAIF::GUI::pads($p) on }  }}
+                        foreach p [array names xAIF::pads] { set xAIF::GUI::pads($p) on }  }}
                     {command "All &Off" {} "All Pads Hidden" {} \
                         -command { xAIF::GUI::Draw::Visibility {pad} -all true -mode off ; \
-                        foreach p [array names ::pads] { set xAIF::GUI::pads($p) off }  }}
+                        foreach p [array names xAIF::pads] { set xAIF::GUI::pads($p) off }  }}
                     {separator}
                 }}
                 {cascade "&Bond Wires" {} {bondwiresmenu} 0 {
                     {command "All &On" {} "All Bond Wires Visible" {} \
                         -command { xAIF::GUI::Draw::Visibility {bondwire} -all true -mode on ; \
-                        foreach bw [array names ::bondwires] { set xAIF::GUI::bondwires($bw) on }  }}
+                        foreach bw [array names xAIF::bondwires] { set xAIF::GUI::bondwires($bw) on }  }}
                     {command "All &Off" {} "All Bond Wires Hidden" {} \
                         -command { xAIF::GUI::Draw::Visibility {bondwire} -all true -mode off ; \
-                        foreach bw [array names ::bondwires] { set xAIF::GUI::bondwires($bw) off }  }}
+                        foreach bw [array names xAIF::bondwires] { set xAIF::GUI::bondwires($bw) off }  }}
                     {separator}
                 }}
                 {separator}
                 {cascade "&Guides" {} {guidesmenu} 0 {
                     {command "All &On" {} "All Guides Visible" {} \
                         -command { xAIF::GUI::Draw::Visibility {guides} -all true -mode on ; \
-                        foreach g [array names ::guides] { set xAIF::GUI::guides($g) on }  }}
+                        foreach g [array names xAIF::guides] { set xAIF::GUI::guides($g) on }  }}
                     {command "All &Off" {} "All Guides Hidden" {} \
                         -command { xAIF::GUI::Draw::Visibility {guides} -all true -mode off ; \
-                        foreach g [array names ::guides] { set xAIF::GUI::guides($g) off }  }}
+                        foreach g [array names xAIF::guides] { set xAIF::GUI::guides($g) off }  }}
                     {separator}
                     {checkbutton "&XY Axes" xyaxes "Show/Hide X and Y Axes" {} \
                         -variable xPCB::View(XYAxes) -onvalue on -offvalue off \
@@ -268,7 +268,7 @@ namespace eval xAIF::GUI {
             }
             "&Library" { all librarymenu } librarymenu 0 {
                 {cascade "&Active Library"  {} {activelibrariesmenu} 0 {}}
-                {command "&Scan for Libraries"  {} "Scan for Active Libraries" {} -command {xPCB::setOpenLibraries}}
+                {command "&Scan for Libraries"  {} "Scan for Active Libraries" {} -command {xLM::setOpenLibraries}}
                 {separator}
                 {cascade "&Work Directory" {} {} 0 {
                     {command "&From Library" {} "Set Work Directory from Library" {} -command { xPCB::Setup::WorkDirectoryFromLibrary }}
@@ -300,6 +300,7 @@ namespace eval xAIF::GUI {
                 {command "P&DBs ..."  {} "Generate PDBs" {} -command { MGC::Generate::PDBs }}
             }
             "&Wirebond" all wirebondmenu 0 {
+                {command "&Setup ..."  {} "Setup Wirebond Parameters" {} -command { $xAIF::GUI::Widgets(notebook) raise wbpf }}
                 {cascade "&Setup ..."  {} {wbsetupmenu} 0 {}}
                 {separator}
                 {command "&Apply Wirebond Properties"  {} "Apply Wirebond Properties" {} -command {
@@ -312,7 +313,7 @@ namespace eval xAIF::GUI {
             }
             "&Tools" all toolsmenu 0 {
                 {command "&XpeditionPCB ..."         {xpeditionpcb}   "Launch XpeditionPCB"       {} -command {xPCB::OpenXpeditionPCB}}
-                {command "&Library Manager ..."      {librarymanager} "Launch Library Manager"    {} -command {xPCB::OpenLibraryManager}}
+                {command "&Library Manager ..."      {librarymanager} "Launch Library Manager"    {} -command {xLM::OpenLibraryManager}}
             }
             "&Help" all help 0 {
                 {command "&About" {} "About the Program" {} -command xAIF::GUI::Help::About}
@@ -321,8 +322,8 @@ namespace eval xAIF::GUI {
                 {command "&Internal State" {} "Internal State of Settings" {} -command xAIF::GUI::Help::InternalState}
                 {separator}
                 {checkbutton "&Debug Messages" debugmsgs "Enable/Disable Debug Messages" {} \
-                    -variable xPCB::Settings(debugmsgs) -onvalue on -offvalue off \
-                    -command { set s [expr [string is true $xPCB::Settings(debugmsgs)] ?"enabled":"disabled"] ; \
+                    -variable xAIF::Settings(debugmsgs) -onvalue on -offvalue off \
+                    -command { set s [expr [string is true $xAIF::Settings(debugmsgs)] ?"enabled":"disabled"] ; \
                     xAIF::GUI::Message -severity note -msg [format "Debug Messages %s." $s] }}
             }
         }
@@ -334,8 +335,8 @@ namespace eval xAIF::GUI {
         pack $Widgets(mainframe) -fill both -expand yes
 
         set Widgets(operatingmode) [$Widgets(mainframe) addindicator \
-            -text [format " Mode:  %s   Status:  %s" [string totitle $xPCB::Settings(operatingmode)] \
-            [string totitle $xPCB::Settings(connectionstatus)]]]
+            -text [format " Mode:  %s   Status:  %s" [string totitle $xAIF::Settings(operatingmode)] \
+            [string totitle $xAIF::Settings(connectionstatus)]]]
         #$Widgets(mainframe) addindicator -text [format " %s  " [file tail [info script]]]
         $Widgets(mainframe) addindicator -text [format " %s " $xAIF::Settings(name)]
         $Widgets(mainframe) addindicator -text [format " v%s " $xAIF::Settings(version)]
@@ -343,7 +344,7 @@ namespace eval xAIF::GUI {
 
 ##        ##  Add active designs to Design pulldown menu
 ##        set designmenu [$Widgets(mainframe) getmenu design]
-##        foreach dpath $xPCB::Settings(pcbOpenDocumentPaths) id $xPCB::Settings(pcbOpenDocumentIds) {
+##        foreach dpath $xAIF::Settings(pcbOpenDocumentPaths) id $xAIF::Settings(pcbOpenDocumentIds) {
 ##            $designmenu add radiobutton -label [file tail $dpath] \
 ##                -variable xPCB::Settings(pcbAppId) -value $id \
 ##                -command { xPCB::setActiveDocument ; xPCB::setConductorLayers }
@@ -352,10 +353,10 @@ namespace eval xAIF::GUI {
         ##  Add active designs to Design pulldown menu
         set menu [$Widgets(mainframe) getmenu operatingmodemenu]
         $menu add radiobutton -label "Design" \
-            -variable xPCB::Settings(operatingmode) -value $xAIF::Const::XAIF_MODE_DESIGN \
+            -variable xAIF::Settings(operatingmode) -value $xAIF::Const::XAIF_MODE_DESIGN \
             -command { xPCB::setOperatingMode } -underline 0
         $menu add radiobutton -label "Library" \
-            -variable xPCB::Settings(operatingmode) -value $xAIF::Const::XAIF_MODE_LIBRARY \
+            -variable xAIF::Settings(operatingmode) -value $xAIF::Const::XAIF_MODE_LIBRARY \
             -command { xPCB::setOperatingMode } -underline 0
 
         ##  Add Cell Name Suffix options to Setup > Cell Name Suffix pulldown menu
@@ -368,7 +369,7 @@ namespace eval xAIF::GUI {
             $xAIF::Const::CELL_GEN_SUFFIX_TIMESTAMP_KEY $xAIF::Const::CELL_GEN_SUFFIX_TIMESTAMP_VALUE]
 
         foreach { k v } $l {
-            $menu add radiobutton -label $v -variable xPCB::Settings(CellNameSuffix) -value $k \
+            $menu add radiobutton -label $v -variable xAIF::Settings(CellNameSuffix) -value $k \
                 -command [list xAIF::GUI::Message -severity note -msg [format "Cell Name Suffix:  %s" $v]]
         }
 
@@ -379,7 +380,7 @@ namespace eval xAIF::GUI {
             $xAIF::Const::CELL_GEN_BGA_MSO_KEY          $xAIF::Const::CELL_GEN_BGA_MSO_VALUE]
 
         foreach { k v } $l {
-            $menu add radiobutton -label $v -variable xPCB::Settings(BGACellGeneration) -value $k \
+            $menu add radiobutton -label $v -variable xAIF::Settings(BGACellGeneration) -value $k \
                 -command [list xAIF::GUI::Message -severity note -msg [format "BGA Cell Generation:  %s" $v]]
         }
 
@@ -387,7 +388,7 @@ namespace eval xAIF::GUI {
         set menu [$Widgets(mainframe) getmenu defaultcellheightmenu]
         foreach i { 0 10 20 25 40 50 100 200 500 1000 } {
             $menu add radiobutton -label [format "%s" $i] \
-                -variable xPCB::Settings(DefaultCellHeight) -value $i \
+                -variable xAIF::Settings(DefaultCellHeight) -value $i \
                 -command [list xAIF::GUI::Message -severity note -msg [format "Default Cell Height:  %s" $i]]
         }
 
@@ -410,21 +411,29 @@ namespace eval xAIF::GUI {
         ##  Puts some buttons in the left pane
         set bf [frame $l_pane.buttonframe]
 
+        button $bf.dbf -text "Dashboard" -command { $xAIF::GUI::Widgets(notebook) raise dbf } -relief raised -padx 5 -pady 8 -borderwidth 3
+        button $bf.lvf -text "Layout View" -command { $xAIF::GUI::Widgets(notebook) raise lvf } -relief raised -padx 5 -pady 8 -borderwidth 3
+
+        Separator::create $bf.sep1 -orient horizontal
+
         button $bf.openaif   -text "Open AIF"   -command { xAIF::GUI::Dashboard::SelectAIF } -relief raised -padx 5 -pady 8 -borderwidth 3
         button $bf.closeaif  -text "Close AIF"  -command { xAIF::GUI::File::CloseAIF }  -relief raised -padx 5 -pady 8 -borderwidth 3
         button $bf.reloadaif -text "Reload AIF" -command { xAIF::GUI::File::ReloadAIF }    -relief raised -padx 5 -pady 8 -borderwidth 3
 
-        Separator::create $bf.sep1 -orient horizontal
+        Separator::create $bf.sep2 -orient horizontal
 
         button $bf.xpcb -text "XpeditionPCB" -command { xPCB::OpenXpeditionPCB } -relief raised -padx 5 -pady 8 -borderwidth 3
-        button $bf.xlm -text "Library Tools" -command { xPCB::OpenLibraryManager } -relief raised -padx 5 -pady 8 -borderwidth 3
+        button $bf.xlm -text "Library Tools" -command { xLM::OpenLibraryManager } -relief raised -padx 5 -pady 8 -borderwidth 3
 
-        pack $bf.openaif -pady 5 -expand y -fill both
-        pack $bf.closeaif -pady 5 -expand y -fill both
-        pack $bf.reloadaif -pady 5 -expand y -fill both
+        pack $bf.dbf -pady 5 -expand y -fill both -ipady 5
+        pack $bf.lvf -pady 5 -expand y -fill both -ipady 5
         pack $bf.sep1 -pady 15 -expand y -fill both
-        pack $bf.xpcb -pady 5 -expand y -fill both
-        pack $bf.xlm -pady 5 -expand y -fill both
+        pack $bf.openaif -pady 5 -expand y -fill both -ipady 5
+        pack $bf.closeaif -pady 5 -expand y -fill both -ipady 5
+        pack $bf.reloadaif -pady 5 -expand y -fill both -ipady 5
+        pack $bf.sep2 -pady 15 -expand y -fill both
+        pack $bf.xpcb -pady 5 -expand y -fill both -ipady 5
+        pack $bf.xlm -pady 5 -expand y -fill both -ipady 5
         pack $bf -in $l_pane -side top
         #pack $l_pane.openaif -side top -padx 3
         #pack $l_pane -fill both -expand true
@@ -535,19 +544,19 @@ console show
             update idletasks
 
             ##  Echo to console?  Only works on Windows ...
-            if { [string is true $xPCB::Settings(consoleEcho)] } {
+            if { [string is true $xAIF::Settings(consoleEcho)] } {
                 puts stdout $msg
                 flush stdout
             }
 
             ##  Echo to stderr when debug enabled
-            if { [string is true $xPCB::Settings(debugmsgs)] } {
+            if { [string is true $xAIF::Settings(debugmsgs)] } {
                 puts stderr $msg
                 flush stdout
             }
 
             ##  Add message to Xpedition Message Window Output Tab
-            if { [string is true $xPCB::Settings(verbosemsgs)]  && [string is true $xAIF::Settings(connection)] } {
+            if { [string is true $xAIF::Settings(verbosemsgs)]  && [string is true $xAIF::Settings(connection)] } {
                 set pcbApp $xPCB::Settings(pcbApp)
                 set mwot [[[[$pcbApp Addins] Item "Message Window"] Control] AddTab "Output"]
                 $mwot AppendText "$msg\n"
@@ -922,8 +931,8 @@ namespace eval xAIF::GUI::Build {
         ##  Mode
         labelframe $dbf.mode -pady 2 -text "Mode" -padx 2
         foreach i [list $xAIF::Const::XAIF_MODE_DESIGN $xAIF::Const::XAIF_MODE_LIBRARY] {
-            radiobutton $dbf.mode.b$i -text [string totitle $i] -variable xPCB::Settings(operatingmode) \
-            -relief flat -value $i -variable xPCB::Settings(operatingmode) -command { xPCB::setOperatingMode }
+            radiobutton $dbf.mode.b$i -text [string totitle $i] -variable xAIF::Settings(operatingmode) \
+            -relief flat -value $i -variable xAIF::Settings(operatingmode) -command { xPCB::setOperatingMode }
             pack $dbf.mode.b$i  -side left -pady 2 -anchor w
         }
 
@@ -936,7 +945,7 @@ namespace eval xAIF::GUI::Build {
             $xAIF::Const::CELL_GEN_SUFFIX_TIMESTAMP_KEY $xAIF::Const::CELL_GEN_SUFFIX_TIMESTAMP_VALUE]
         labelframe $dbf.cellsuffix -pady 2 -text "Cell Name Suffix (aka Version)" -padx 2
         foreach { k  v } $l {
-            radiobutton $dbf.cellsuffix.b$k -text $v -variable xPCB::Settings(CellNameSuffix) -value $k \
+            radiobutton $dbf.cellsuffix.b$k -text $v -variable xAIF::Settings(CellNameSuffix) -value $k \
                 -command [list xAIF::GUI::Message -severity note -msg [format "Cell Name Suffix:  %s" $v]]
             pack $dbf.cellsuffix.b$k  -side top -pady 2 -anchor w
         }
@@ -944,9 +953,9 @@ namespace eval xAIF::GUI::Build {
         ##  Cell Generation
         labelframe $dbf.cellgeneration -pady 2 -text "Cell Generation" -padx 2
         foreach { i j } { MirrorNone "Default" MirrorX "Mirror across Y-Axis" MirrorY "Mirror across X-Axis" MirrorXY "Mirror across X & Y Axes" } {
-            checkbutton $dbf.cellgeneration.b$i -text "$j" -relief flat -onvalue on -offvalue off -variable xPCB::Settings($i)
-            #checkbutton $dbf.cellgeneration.b$i -text "$j" -relief flat -onvalue on -offvalue off -variable xPCB::Settings($i) \
-            #    -command [list set s [expr [string is true $xPCB::Settings($i)] ?"enabled":"disabled"] ; \
+            checkbutton $dbf.cellgeneration.b$i -text "$j" -relief flat -onvalue on -offvalue off -variable xAIF::Settings($i)
+            #checkbutton $dbf.cellgeneration.b$i -text "$j" -relief flat -onvalue on -offvalue off -variable xAIF::Settings($i) \
+            #    -command [list set s [expr [string is true $xAIF::Settings($i)] ?"enabled":"disabled"] ; \
             #    xAIF::GUI::Message -severity note -msg [format "Cell Generation default view %s." \$s]]
             pack $dbf.cellgeneration.b$i  -side top -pady 2 -anchor w
         }
@@ -957,7 +966,7 @@ namespace eval xAIF::GUI::Build {
             $xAIF::Const::CELL_GEN_BGA_NORMAL_KEY       $xAIF::Const::CELL_GEN_BGA_NORMAL_VALUE \
             $xAIF::Const::CELL_GEN_BGA_MSO_KEY          $xAIF::Const::CELL_GEN_BGA_MSO_VALUE]
         foreach { k v } $l {
-            radiobutton $dbf.bgageneration.b$k -text $v -variable xPCB::Settings(BGACellGeneration) -value $k \
+            radiobutton $dbf.bgageneration.b$k -text $v -variable xAIF::Settings(BGACellGeneration) -value $k \
                 -command [list xAIF::GUI::Message -severity note -msg [format "BGA Cell Generation:  %s" $v]]
             pack $dbf.bgageneration.b$k  -side top -pady 2 -anchor w
         }
@@ -966,16 +975,16 @@ namespace eval xAIF::GUI::Build {
 
         ##  Default Cell Height
         labelframe $dbf.defaultcellheight -pady 5 -text "Default Cell Height (um)" -padx 5
-        entry $dbf.defaultcellheight.e -width 15 -relief sunken -bd 2 -textvariable xPCB::Settings(DefaultCellHeight)
+        entry $dbf.defaultcellheight.e -width 15 -relief sunken -bd 2 -textvariable xAIF::Settings(DefaultCellHeight)
         pack $dbf.defaultcellheight.e
 
         ##  Visibility
         labelframe $dbf.visibility -pady 2 -text "Application Visibility" -padx 2
         foreach { i j } { on On off Off } {
-            radiobutton $dbf.visibility.b$i -text "$j" -variable xAIF::GUI::Dashboard::Visibility \
+            radiobutton $dbf.visibility.b$i -text "$j" -variable xAIF::Settings(appVisible) \
 	                -relief flat -value $i -command { xAIF::GUI::Message -severity note -msg \
                 [format "Application visibility is now %s." \
-                [expr [string is true $xAIF::GUI::Dashboard::Visibility] ? "on" : "off"]] }
+                [expr [string is true $xAIF::Settings(appVisible)] ? "on" : "off"]] }
             pack $dbf.visibility.b$i  -side left -pady 2 -anchor w
         }
 
@@ -1214,7 +1223,7 @@ namespace eval xAIF::GUI::Menus {
         if { $xAIF::Settings(connectMode) } {
             ##  Invoke Expedition on the design so the Cell Editor can be started
             ##  Catch any exceptions raised by opening the database
-            set errorCode [catch { MGC::OpenLibraryManager } errorMessage]
+            set errorCode [catch { xLM::OpenLibraryManager } errorMessage]
             if {$errorCode != 0} {
                 xAIF::GUI::Message -severity error -msg "Unable to connect to Library Manager, is Library Manager running?"
                 xAIF::GUI::StatusBar::UpdateStatus -busy off
@@ -1223,7 +1232,7 @@ namespace eval xAIF::GUI::Menus {
             }
         }
 
-        set xAIF::Settings(targetPath) xAIF::Settings(LibraryPath)
+        set xAIF::Settings(TargetPath) xAIF::Settings(LibraryPath)
         xAIF::GUI::Message -severity note -msg "Central Library Mode enabled."
         xAIF::GUI::StatusBar::UpdateStatus -busy off
     }
@@ -1265,11 +1274,11 @@ namespace eval xAIF::GUI::Menus {
                 xAIF::GUI::Message -severity error -msg "Unable to connect to Xpedition, is Xpedition running?"
                 xAIF::GUI::StatusBar::UpdateStatus -busy off
             } else {
-                set xAIF::Settings(DesignPath)  [$xAIF::Settings(pcbDoc) FullName]
+                set xPCB::Settings(DesignPath)  [$xPCB::Settings(pcbDoc) FullName]
             }
         }
 
-        set xAIF::Settings(targetPath) xAIF::Settings(DesignPath)
+        set xAIF::Settings(TargetPath) xAIF::Settings(DesignPath)
         xAIF::GUI::Message -severity note -msg "Design Mode enabled."
         xAIF::GUI::StatusBar::UpdateStatus -busy off
     }
@@ -1281,7 +1290,7 @@ namespace eval xAIF::GUI::Menus {
         $xAIF::GUI::Widgets(setupmenu) entryconfigure  3 -state normal
         $xAIF::GUI::Widgets(setupmenu) entryconfigure 4 -state disabled
         $xAIF::GUI::Widgets(setupmenu) entryconfigure 7 -state normal
-        #set xAIF::Settings(targetPath) $xAIF::Settings(Nothing)
+        #set xAIF::Settings(TargetPath) $xAIF::Const::XAIF_NOTHING
         xAIF::GUI::StatusBar::UpdateStatus -busy off
     }
 }
@@ -1388,7 +1397,7 @@ puts "xAIF::GUI::Dashboard::SelectCentralLibrary"
     ##  xAIF::GUI::Dashboard::SetApplicationVisibility
     ##
     proc SetApplicationVisibility {} {
-        set xAIF::Settings(appVisible) [expr [string is true $xAIF::GUI::Dashboard::Visibility] ? on : off]
+        set xAIF::Settings(appVisible) [expr [string is true $xAIF::Settings(appVisible)] ? on : off]
     }
 }
 
@@ -1663,7 +1672,7 @@ namespace eval xAIF::GUI::File {
     proc Init { } {
 
         ##  Database Details
-        array set ::database {
+        array set xAIF::database {
             type ""
             version ""
             units "um"
@@ -1671,7 +1680,7 @@ namespace eval xAIF::GUI::File {
         }
 
         ##  Die Details
-        array set ::die {
+        array set xAIF::die {
             name ""
             refdes "U1"
             width 0
@@ -1681,7 +1690,7 @@ namespace eval xAIF::GUI::File {
         }
 
         ##  BGA Details
-        array set ::bga {
+        array set xAIF::bga {
             name ""
             refdes "A1"
             width 0
@@ -1689,29 +1698,29 @@ namespace eval xAIF::GUI::File {
         }
 
         ##  Store devices in a Tcl list
-        array set ::devices {}
+        array set xAIF::devices {}
 
         ##  Store mcm die in a Tcl dictionary
-        ###set ::mcmdie [dict create]
-        array set ::mcmdie {}
+        ###set xAIF::mcmdie [dict create]
+        array set xAIF::mcmdie {}
 
         ##  Store pads in a Tcl dictionary
-        ###set ::pads [dict create]
-        array set ::pads {}
-        ###set ::padtypes [dict create]
-        array set ::padtypes {}
+        ###set xAIF::pads [dict create]
+        array set xAIF::pads {}
+        ###set xAIF::padtypes [dict create]
+        array set xAIF::padtypes {}
 
         ##  Store net names in a Tcl list
-        set ::netnames [list]
+        set xAIF::netnames [list]
 
         ##  Store netlist in a Tcl list
-        set ::netlist [list]
-        set ::netlines [list]
+        set xAIF::netlist [list]
+        set xAIF::netlines [list]
 
         ##  Store bondpad connections in a Tcl list
-        set ::bondpads [list]
-        set ::bondwires [list]
-        array set ::bondpadsubst {}
+        set xAIF::bondpads [list]
+        set xAIF::bondwires [list]
+        array set xAIF::bondpadsubst {}
     }
 
     ##
@@ -1744,7 +1753,7 @@ namespace eval xAIF::GUI::File {
     proc OpenAIF { { f "" } } {
     set zzz 0
         xAIF::GUI::StatusBar::UpdateStatus -busy on
-        InitialState
+        #InitialState
 
         ##  Set up the sections so they can be highlighted in the AIF source
 
@@ -1755,7 +1764,7 @@ namespace eval xAIF::GUI::File {
             #puts $xAIF::sections($i)
             set sectionRegExp [format "%s%s%s%s%s%s%s" $sectionRegExp \
                 [expr {$sectionRegExp == "" ? "(" : "|" }] \
-                $xAIF::Settings(BackSlash) $xAIF::Settings(LeftBracket) $xAIF::sections($i) $xAIF::Settings(BackSlash) $xAIF::Settings(RightBracket) ]
+                $xAIF::Const::XAIF_BACKSLASH $xAIF::Const::XAIF_LEFTBRACKET $xAIF::sections($i) $xAIF::Const::XAIF_BACKSLASH $xAIF::Const::XAIF_RIGHTBRACKET ]
         }
 
         set ignored {}
@@ -1765,7 +1774,7 @@ namespace eval xAIF::GUI::File {
             #puts $xAIF::ignored($i)
             set ignoreRegExp [format "%s%s%s%s%s%s%s" $ignoreRegExp \
                 [expr {$ignoreRegExp == "" ? "(" : "|" }] \
-                $xAIF::Settings(BackSlash) $xAIF::Settings(LeftBracket) $xAIF::ignored($i) $xAIF::Settings(BackSlash) $xAIF::Settings(RightBracket) ]
+                $xAIF::Const::XAIF_BACKSLASH $xAIF::Const::XAIF_LEFTBRACKET $xAIF::ignored($i) $xAIF::Const::XAIF_BACKSLASH $xAIF::Const::XAIF_RIGHTBRACKET ]
         }
 
         set ignoreRegExp [format "%s)" $ignoreRegExp]
@@ -1773,7 +1782,7 @@ namespace eval xAIF::GUI::File {
 
         ##  Prompt the user for a file if not supplied
 
-        if { $f != $xAIF::Settings(Nothing) } {
+        if { $f != $xAIF::Const::XAIF_NOTHING } {
             set xAIF::Settings(filename) $f
         } else {
             set xAIF::Settings(filename) [ xAIF::GUI::Dashboard::SelectAIF]
@@ -1781,7 +1790,7 @@ namespace eval xAIF::GUI::File {
 
         ##  Process the user supplied file
 
-        if {$xAIF::Settings(filename) != $xAIF::Settings(Nothing) } {
+        if {$xAIF::Settings(filename) != $xAIF::Const::XAIF_NOTHING } {
             xAIF::GUI::Message -severity note -msg [format "Loading AIF file \"%s\"." $xAIF::Settings(filename)]
             set txt $xAIF::GUI::Widgets(sourceview)
             $txt configure -state normal
@@ -1790,10 +1799,18 @@ namespace eval xAIF::GUI::File {
             set f [open $xAIF::Settings(filename)]
             $txt insert end [read $f]
             xAIF::GUI::Message -severity note -msg [format "Scanning AIF file \"%s\" for sections." $xAIF::Settings(filename)]
+puts "Q1"
             ctext::addHighlightClass $txt diesections blue $sections
+puts "Q2"
             ctext::addHighlightClassForRegexp $txt diesections blue $sectionRegExp
+puts "Q3"
             ctext::addHighlightClassForRegexp $txt ignoredsections red $ignoreRegExp
+puts "Q4"
+puts $sections
+puts $sectionRegExp
+puts $ignoreRegExp
             $txt highlight 1.0 end
+puts "Q5"
             $txt configure -state disabled
             close $f
             xAIF::GUI::Message -severity note -msg [format "Loaded AIF file \"%s\"." $xAIF::Settings(filename)]
@@ -1884,7 +1901,7 @@ namespace eval xAIF::GUI::File {
 
         ##  Put everything back into an initial state
         xAIF::GUI::File::Init
-        set xAIF::Settings(filename) $xAIF::Settings(Nothing)
+        set xAIF::Settings(filename) $xAIF::Const::XAIF_NOTHING
 
         ##  Remove all content from the AIF source view
         set txt $xAIF::GUI::Widgets(sourceview)
@@ -2000,7 +2017,7 @@ namespace eval xAIF::GUI::File {
         variable SparsePinsFilePath
         xAIF::GUI::StatusBar::UpdateStatus -busy on
         xAIF::GUI::Message -severity note -msg [format "Sparse Pins file \"%s\" closed." $xAIF::Settings(sparsepinsfile)]
-        set SparsePinsFilePath $xAIF::Settings(Nothing)
+        set SparsePinsFilePath $xAIF::Const::XAIF_NOTHING
         set txt $xAIF::GUI::Widgets(sparsepinsview)
         $txt configure -state normal
         $txt delete 1.0 end
@@ -2034,13 +2051,13 @@ namespace eval xAIF::GUI::Draw {
         ##  Draw the BGA outline (if it exists)
         if { $xAIF::Settings(BGA) == 1 } {
             xAIF::GUI::Draw::BGAOutline
-            set ::devices($::bga(name)) [list]
+            set xAIF::devices($xAIF::bga(name)) [list]
 
             ##  Add BGA to the View Devices menu and make it visible
-            set xAIF::GUI::devices($::bga(name)) on
-            $m add checkbutton -label "$::bga(name)" -underline 0 \
-                -variable xAIF::GUI::devices($::bga(name)) -onvalue on -offvalue off \
-                -command  "xAIF::GUI::Draw::Visibility $::bga(name) -mode toggle"
+            set xAIF::GUI::devices($xAIF::bga(name)) on
+            $m add checkbutton -label "$xAIF::bga(name)" -underline 0 \
+                -variable xAIF::GUI::devices($xAIF::bga(name)) -onvalue on -offvalue off \
+                -command  "xAIF::GUI::Draw::Visibility $xAIF::bga(name) -mode toggle"
 
             $m add separator
         }
@@ -2049,9 +2066,9 @@ namespace eval xAIF::GUI::Draw {
 
         if { $xAIF::Settings(MCMAIF) == 1 } {
             foreach i [AIF::MCMDie::GetAllDie] {
-                #set section [format "MCM_%s_%s" [string toupper $i] [dict get $::mcmdie $i]]
-                ###set section [format "MCM_%s_%s" [dict get $::mcmdie $i] $i]
-                set section [format "MCM_%s_%s" $::mcmdie($i) $i]
+                #set section [format "MCM_%s_%s" [string toupper $i] [dict get $xAIF::mcmdie $i]]
+                ###set section [format "MCM_%s_%s" [dict get $xAIF::mcmdie $i] $i]
+                set section [format "MCM_%s_%s" $xAIF::mcmdie($i) $i]
                 if { [lsearch -exact [::AIF::Sections] $section] != -1 } {
                     array set part {
                         REF ""
@@ -2073,7 +2090,7 @@ namespace eval xAIF::GUI::Draw {
                     ##  Need the REF designator for later
 
                     set part(REF) $i
-                    set ::devices($part(NAME)) [list]
+                    set xAIF::devices($part(NAME)) [list]
 
                     ##  Split the CENTER keyword into X and Y components
                     ##
@@ -2119,7 +2136,7 @@ namespace eval xAIF::GUI::Draw {
                 ##  Need the REF designator for later
 
                 set part(REF) $xAIF::Settings(DIEREF)
-                set ::devices($part(NAME)) [list]
+                set xAIF::devices($part(NAME)) [list]
 
                 ##  Split the CENTER keyword into X and Y components
                 ##
@@ -2222,8 +2239,8 @@ namespace eval xAIF::GUI::Draw {
                 xAIF::GUI::Message -severity error -msg [format "Net name \"%s\" is not supported AIF syntax." $netname]
                 set rv -1
             } else {
-                if { [lsearch -exact $::netlist $netname ] == -1 } {
-                    #lappend ::netlist $netname
+                if { [lsearch -exact $xAIF::netlist $netname ] == -1 } {
+                    #lappend xAIF::netlist $netname
                     xAIF::GUI::Message -severity note -msg [format "Found net name \"%s\"." $netname]
                 }
             }
@@ -2243,22 +2260,22 @@ namespace eval xAIF::GUI::Draw {
 
                 ##  Record the pad and location in the device list
                 if { $xAIF::Settings(MCMAIF) == 1 } {
-                    ###set name [dict get $::mcmdie $ref]
-                    set name $::mcmdie($ref)
+                    ###set name [dict get $xAIF::mcmdie $ref]
+                    set name $xAIF::mcmdie($ref)
                 } else {
                     set name [AIF::GetVar NAME DIE]
                 }
 
-                lappend ::devices($name) [list $nlr(PADNAME) $padnum $nlr(PAD_X) $nlr(PAD_Y)]
+                lappend xAIF::devices($name) [list $nlr(PADNAME) $padnum $nlr(PAD_X) $nlr(PAD_Y)]
 
                 xAIF::GUI::Draw::AddPin $nlr(PAD_X) $nlr(PAD_Y) $nlr(PADNUM) $nlr(NETNAME) $nlr(PADNAME) $line_no "diepad pad pad-$nlr(PADNAME) $ref"
-                ###if { ![dict exists $::padtypes $nlr(PADNAME)] } {
-                ###    dict lappend ::padtypes $nlr(PADNAME) "smdpad"
+                ###if { ![dict exists $xAIF::padtypes $nlr(PADNAME)] } {
+                ###    dict lappend xAIF::padtypes $nlr(PADNAME) "smdpad"
                 ###}
-                if { [lsearch [array names ::padtypes] $nlr(PADNAME)] == -1 } {
-                    set ::padtypes($nlr(PADNAME)) "smdpad"
+                if { [lsearch [array names xAIF::padtypes] $nlr(PADNAME)] == -1 } {
+                    set xAIF::padtypes($nlr(PADNAME)) "smdpad"
                 }
-                set ::padtypes($nlr(PADNAME)) "smdpad"
+                set xAIF::padtypes($nlr(PADNAME)) "smdpad"
             } else {
                 xAIF::GUI::Message -severity warning -msg [format "Skipping die pad for net \"%s\" on line %d, no pad assignment." $netname, $line_no]
             }
@@ -2269,18 +2286,18 @@ namespace eval xAIF::GUI::Draw {
                 #puts "---------------------> Ball"
 
                 ##  Record the pad and location in the device list
-                lappend ::devices($::bga(name)) [list $nlr(BALLNAME) $nlr(BALLNUM) $nlr(BALL_X) $nlr(BALL_Y)]
+                lappend xAIF::devices($xAIF::bga(name)) [list $nlr(BALLNAME) $nlr(BALLNUM) $nlr(BALL_X) $nlr(BALL_Y)]
                 #puts "---------------------> Ball Middle"
 
                 xAIF::GUI::Draw::AddPin $nlr(BALL_X) $nlr(BALL_Y) $nlr(BALLNUM) $nlr(NETNAME) $nlr(BALLNAME) $line_no "ballpad pad pad-$nlr(BALLNAME)" "white" "red"
                 #puts "---------------------> Ball Middle"
-                ###if { ![dict exists $::padtypes $nlr(BALLNAME)] } {
-                ###    dict lappend ::padtypes $nlr(BALLNAME) "ballpad"
+                ###if { ![dict exists $xAIF::padtypes $nlr(BALLNAME)] } {
+                ###    dict lappend xAIF::padtypes $nlr(BALLNAME) "ballpad"
                 ###}
-                if { [lsearch [array names ::padtypes] $nlr(BALLNAME)] == -1 } {
-                    set ::padtypes($nlr(BALLNAME)) "ballpad"
+                if { [lsearch [array names xAIF::padtypes] $nlr(BALLNAME)] == -1 } {
+                    set xAIF::padtypes($nlr(BALLNAME)) "ballpad"
                 }
-                set ::padtypes($nlr(BALLNAME)) "ballpad"
+                set xAIF::padtypes($nlr(BALLNAME)) "ballpad"
                 #puts "---------------------> Ball End"
             } else {
                 xAIF::GUI::Message -severity warning -msg [format "Skipping ball pad for net \"%s\" on line %d, no ball assignment." $netname, $line_no]
@@ -2291,14 +2308,14 @@ namespace eval xAIF::GUI::Draw {
             if { $nlr(FINNAME) != "-" } {
                 puts "---------------------> Finger"
                 xAIF::GUI::Draw::AddPin $nlr(FIN_X) $nlr(FIN_Y) $nlr(FINNUM) $nlr(NETNAME) $nlr(FINNAME) $line_no "bondpad pad pad-$nlr(FINNAME)" "purple" "white" $nlr(ANGLE)
-                lappend ::bondpads [list $nlr(NETNAME) $nlr(FINNAME) $nlr(FIN_X) $nlr(FIN_Y) $nlr(ANGLE)]
-                if { [lsearch [array names ::padtypes] $nlr(FINNAME)] == -1 } {
-                    set ::padtypes($nlr(FINNAME)) "bondpad"
+                lappend xAIF::bondpads [list $nlr(NETNAME) $nlr(FINNAME) $nlr(FIN_X) $nlr(FIN_Y) $nlr(ANGLE)]
+                if { [lsearch [array names xAIF::padtypes] $nlr(FINNAME)] == -1 } {
+                    set xAIF::padtypes($nlr(FINNAME)) "bondpad"
                 }
-                set ::padtypes($nlr(FINNAME)) "bondpad"
+                set xAIF::padtypes($nlr(FINNAME)) "bondpad"
 
                 ##  Does this bond pad need a swap to account for bond fingers constructed vertically?
-                if { [lsearch [array names ::bondpadsubst] $nlr(FINNAME)] == -1 } {
+                if { [lsearch [array names xAIF::bondpadsubst] $nlr(FINNAME)] == -1 } {
 
                     ##  Extract height and width from the PADS section
                     set w [lindex [AIF::GetVar $nlr(FINNAME) PADS] 1]
@@ -2307,7 +2324,7 @@ namespace eval xAIF::GUI::Draw {
                     ##  If height > width a bond pad substitution is required so Xpedition will operate correctly
 
                     if { $h > $w } {
-                        set ::bondpadsubst($nlr(FINNAME)) [format "%s_h" $nlr(FINNAME)]
+                        set xAIF::bondpadsubst($nlr(FINNAME)) [format "%s_h" $nlr(FINNAME)]
                     }
                 }
             } else {
@@ -2323,31 +2340,31 @@ namespace eval xAIF::GUI::Draw {
             ##  Look for bond wire connections
 
             if { $nlr(PAD_X) != "-"  && $nlr(PAD_Y) != "-"  && $nlr(FINNAME) != "-" && $nlr(FIN_X) != "-"  && $nlr(FIN_Y) != "-" } {
-                lappend ::bondwires [list $nlr(NETNAME) $nlr(PAD_X) $nlr(PAD_Y) $nlr(FIN_X) $nlr(FIN_Y)]
+                lappend xAIF::bondwires [list $nlr(NETNAME) $nlr(PAD_X) $nlr(PAD_Y) $nlr(FIN_X) $nlr(FIN_Y)]
             }
 
             ##  Look for net line connections (which are different than netlist connections)
 
             if { $nlr(PAD_X) != "-"  && $nlr(PAD_Y) != "-"  && $nlr(BALL_X) != "-"  && $nlr(BALL_Y) != "-" } {
-                lappend ::netlines [list $nlr(NETNAME) $nlr(PAD_X) $nlr(PAD_Y) $nlr(BALL_X) $nlr(BALL_Y)]
+                lappend xAIF::netlines [list $nlr(NETNAME) $nlr(PAD_X) $nlr(PAD_Y) $nlr(BALL_X) $nlr(BALL_Y)]
             }
 
             ##  Add any connections to the netlist
 
             if { $nlr(PADNUM) != "-" && $nlr(PADNAME) != "-" && $nlr(PAD_X) != "-"  && $nlr(PAD_Y) != "-" } {
                 if { 1 } {
-                    lappend ::netlist [list $nlr(NETNAME) $nlr(PADNUM)]
+                    lappend xAIF::netlist [list $nlr(NETNAME) $nlr(PADNUM)]
                 } else {
-                    lappend ::netlist [list $nlr(NETNAME) [format "%s.%s" $xAIF::Settings(DIEREF) $nlr(PADNUM)]]
+                    lappend xAIF::netlist [list $nlr(NETNAME) [format "%s.%s" $xAIF::Settings(DIEREF) $nlr(PADNUM)]]
                 }
             }
 
     if { 1 } {
             if { $nlr(BALLNUM) != "-" && $nlr(BALLNAME) != "-" && $nlr(BALL_X) != "-"  && $nlr(BALL_Y) != "-" } {
                 if { 0 } {
-                    lappend ::netlist [list $nlr(NETNAME) [format "%s.%s" $::bga(refdes) $nlr(BALLNUM)]]
+                    lappend xAIF::netlist [list $nlr(NETNAME) [format "%s.%s" $xAIF::bga(refdes) $nlr(BALLNUM)]]
                 } else {
-                    lappend ::netlist [list $nlr(NETNAME) [format "%s.%s" $::bga(refdes) $nlr(BALLNUM)]]
+                    lappend xAIF::netlist [list $nlr(NETNAME) [format "%s.%s" $xAIF::bga(refdes) $nlr(BALLNUM)]]
                 }
             }
     }
@@ -2357,17 +2374,17 @@ namespace eval xAIF::GUI::Draw {
         ##  replicated pins in our device list.  Need to roll through them
         ##  and make sure all of the stored lists are unique.
 
-        foreach d [array names ::devices] {
-            set ::devices($d) [lsort -unique $::devices($d)]
+        foreach d [array names xAIF::devices] {
+            set xAIF::devices($d) [lsort -unique $xAIF::devices($d)]
         }
 
         ##  Similarly, bond pads can have more than one connection and may
         ##  appear in the AIF file multiple times.  Need to eliminate any
         ##  duplicates prevent placing bond pads multiple times.
 
-        puts [format "++++++>  %d" [llength $::bondpads]]
-        set ::bondpads [lsort -unique $::bondpads]
-        puts [format "++++++>  %d" [llength $::bondpads]]
+        puts [format "++++++>  %d" [llength $xAIF::bondpads]]
+        set xAIF::bondpads [lsort -unique $xAIF::bondpads]
+        puts [format "++++++>  %d" [llength $xAIF::bondpads]]
 
         ##  Generate KYN Netlist
         $kyn configure -state normal
@@ -2380,7 +2397,7 @@ namespace eval xAIF::GUI::Draw {
 
         ##  Netlist content
         set p ""
-        foreach n $::netlist {
+        foreach n $xAIF::netlist {
 #puts $n
             set c ""
             foreach i $n {
@@ -2409,8 +2426,8 @@ namespace eval xAIF::GUI::Draw {
         ##  Output the part list
         $kyn insert end "\n%Part\n"
         foreach i [AIF::MCMDie::GetAllDie] {
-            ###$kyn insert end [format "\\%s\\   \\%s\\\n" [dict get $::mcmdie $i] $i]
-            $kyn insert end [format "\\%s\\   \\%s\\\n" $::mcmdie($i) $i]
+            ###$kyn insert end [format "\\%s\\   \\%s\\\n" [dict get $xAIF::mcmdie $i] $i]
+            $kyn insert end [format "\\%s\\   \\%s\\\n" $xAIF::mcmdie($i) $i]
         }
 
         ##  If this AIF file does not contain a MCM_DIE section then
@@ -2418,19 +2435,19 @@ namespace eval xAIF::GUI::Draw {
         ##  added separately.
 
         if { [lsearch -exact $::AIF::sections MCM_DIE] == -1 } {
-            $kyn insert end [format "\\%s\\   \\%s\\\n" $::die(name) $::die(refdes)]
+            $kyn insert end [format "\\%s\\   \\%s\\\n" $xAIF::die(name) $xAIF::die(refdes)]
         }
 
 
         ##  If there is a BGA, make sure to put it in the part list
         #if { $xAIF::Settings(BGA) == 1 } {
-        ##    $kyn insert end [format "\\%s\\   \\%s\\\n" $::bga(name) $::bga(refdes)]
+        ##    $kyn insert end [format "\\%s\\   \\%s\\\n" $xAIF::bga(name) $xAIF::bga(refdes)]
         #}
 
         $kyn configure -state disabled
 
         ##  Draw Bond Wires
-        foreach bw $::bondwires {
+        foreach bw $xAIF::bondwires {
             foreach {net x1 y1 x2 y2} $bw {
                 #puts [format "Wire (%s) -- X1:  %s  Y1:  %s  X2:  %s  Y2:  %s" $net $x1 $y1 $x2 $y2]
                 $cnvs create line $x1 $y1 $x2 $y2 -tags "bondwire bondwire-$net" -fill "orange" -width 1
@@ -2451,7 +2468,7 @@ namespace eval xAIF::GUI::Draw {
         }
 
         ##  Draw Net Lines
-        foreach nl $::netlines {
+        foreach nl $xAIF::netlines {
             foreach {net x1 y1 x2 y2} $nl {
                 #puts [format "Net Line (%s) -- X1:  %s  Y1:  %s  X2:  %s  Y2:  %s" $net $x1 $y1 $x2 $y2]
                 $cnvs create line $x1 $y1 $x2 $y2 -tags "netline netline-$net" -fill "cyan" -width 1
@@ -2477,8 +2494,8 @@ namespace eval xAIF::GUI::Draw {
         ##  This is an estimate based on trying a couple of
         ##  die files.
 
-        set scaleX [expr ($xAIF::widgets(windowSizeX) / (2*$::die(width)) * $xAIF::Settings(ScaleFactor))]
-        #puts [format "A:  %s  B:  %s  C:  %s" $scaleX $xAIF::widgets(windowSizeX) $::die(width)]
+        set scaleX [expr ($xAIF::Const::XAIF_WINDOWSIZEX / (2*$xAIF::die(width)) * $xAIF::Const::XAIF_SCALEFACTOR)]
+        #puts [format "A:  %s  B:  %s  C:  %s" $scaleX $xAIF::Const::XAIF_WINDOWSIZEX) $xAIF::die(width)]
         if { $scaleX > 0 } {
             #zoom 1 0 0 
             set extents [$cnvs bbox all]
@@ -2521,10 +2538,10 @@ namespace eval xAIF::GUI::Draw {
         $kyn insert end "%Prior=1\n\n"
         $kyn insert end "%page=0\n"
 
-        puts $::netlist
+        puts $xAIF::netlist
         ##  Netlist content
         set p ""
-        foreach n $::netlist {
+        foreach n $xAIF::netlist {
             set c ""
             foreach i $n {
                 if { [lsearch $n $i] == 0 } {
@@ -2554,8 +2571,8 @@ puts "${i}::${n}::${p}"
         ##  Output the part list
         $kyn insert end "\n%Part\n"
         foreach i [AIF::MCMDie::GetAllDie] {
-            ###$kyn insert end [format "\\%s\\   \\%s\\\n" [dict get $::mcmdie $i] $i]
-            $kyn insert end [format "\\%s\\   \\%s\\\n" $::mcmdie($i) $i]
+            ###$kyn insert end [format "\\%s\\   \\%s\\\n" [dict get $xAIF::mcmdie $i] $i]
+            $kyn insert end [format "\\%s\\   \\%s\\\n" $xAIF::mcmdie($i) $i]
         }
 
         ##  If this AIF file does not contain a MCM_DIE section then
@@ -2563,13 +2580,13 @@ puts "${i}::${n}::${p}"
         ##  added separately.
 
         if { [lsearch -exact $::AIF::sections MCM_DIE] == -1 } {
-            $kyn insert end [format "\\%s\\   \\%s\\\n" $::die(name) $::die(refdes)]
+            $kyn insert end [format "\\%s\\   \\%s\\\n" $xAIF::die(name) $xAIF::die(refdes)]
         }
 
 
         ##  If there is a BGA, make sure to put it in the part list
         #if { $xAIF::Settings(BGA) == 1 } {
-        ##    $kyn insert end [format "\\%s\\   \\%s\\\n" $::bga(name) $::bga(refdes)]
+        ##    $kyn insert end [format "\\%s\\   \\%s\\\n" $xAIF::bga(name) $xAIF::bga(refdes)]
         #}
 
         $kyn configure -state disabled
@@ -2760,10 +2777,10 @@ puts "${i}::${n}::${p}"
     ##  xAIF::GUI::Draw::AddOutline
     ##
     proc AddOutline {} {
-        set x2 [expr ($::die(width) / 2) * $xAIF::Settings(ScaleFactor)]
-        set x1 [expr (-1 * $x2) * $xAIF::Settings(ScaleFactor)]
-        set y2 [expr ($::die(height) / 2) * $xAIF::Settings(ScaleFactor)]
-        set y1 [expr (-1 * $y2) * $xAIF::Settings(ScaleFactor)]
+        set x2 [expr ($xAIF::die(width) / 2) * $xAIF::Const::XAIF_SCALEFACTOR]
+        set x1 [expr (-1 * $x2) * $xAIF::Const::XAIF_SCALEFACTOR]
+        set y2 [expr ($xAIF::die(height) / 2) * $xAIF::Const::XAIF_SCALEFACTOR]
+        set y1 [expr (-1 * $y2) * $xAIF::Const::XAIF_SCALEFACTOR]
 
         set cnvs $xAIF::GUI::Widgets(layoutcview)
         $cnvs create rectangle $x1 $y1 $x2 $y2 -outline blue -tags "outline"
@@ -2800,10 +2817,10 @@ puts "${i}::${n}::${p}"
     proc BGAOutline { { color "white" } } {
         set cnvs $xAIF::GUI::Widgets(layoutview)
 
-        set x1 [expr -($::bga(width) / 2)]
-        set x2 [expr +($::bga(width) / 2)]
-        set y1 [expr -($::bga(height) / 2)]
-        set y2 [expr +($::bga(height) / 2)]
+        set x1 [expr -($xAIF::bga(width) / 2)]
+        set x2 [expr +($xAIF::bga(width) / 2)]
+        set y1 [expr -($xAIF::bga(height) / 2)]
+        set y2 [expr +($xAIF::bga(height) / 2)]
 
         xAIF::GUI::Message -severity note -msg \
             [format "BGA Outline extents:  X1:  %s  Y1:  %s  X2:  %s  Y2:  %s" $x1 $y1 $x2 $y2]
@@ -2818,10 +2835,10 @@ puts "${i}::${n}::${p}"
                 puts $points 
             } else {
                 xAIF::GUI::Message -severity warning -msg "Only one polygon supported for BGA outline, reverting to derived outline."
-                set x1 [expr -($::bga(width) / 2)]
-                set x2 [expr +($::bga(width) / 2)]
-                set y1 [expr -($::bga(height) / 2)]
-                set y2 [expr +($::bga(height) / 2)]
+                set x1 [expr -($xAIF::bga(width) / 2)]
+                set x2 [expr +($xAIF::bga(width) / 2)]
+                set y1 [expr -($xAIF::bga(height) / 2)]
+                set y2 [expr +($xAIF::bga(height) / 2)]
 
                 #set points { $x1 $y1 $x2 $y2 }
                 set points [list $x1 $y1 $x2 $y1 $x2 $y2 $x1 $y2]
@@ -2834,9 +2851,9 @@ puts "${i}::${n}::${p}"
             set points [list $x1 $y1 $x2 $y1 $x2 $y2 $x1 $y2]
         }
 
-        $cnvs create polygon $points -outline $color -tags "$::bga(name) bga bgaoutline"
-        $cnvs create text $x2 $y2 -text $::bga(name) -fill $color \
-            -anchor sw -font [list arial] -justify right -tags "$::bga(name) bga text refdes"
+        $cnvs create polygon $points -outline $color -tags "$xAIF::bga(name) bga bgaoutline"
+        $cnvs create text $x2 $y2 -text $xAIF::bga(name) -fill $color \
+            -anchor sw -font [list arial] -justify right -tags "$xAIF::bga(name) bga text refdes"
 
         ##  Add some text to note the corner XY coordinates - visual reference only
         $cnvs create text $x1 $y1 -text [format "X: %.2f  Y: %.2f" $x1 $y1] -fill $color \
@@ -2849,9 +2866,9 @@ puts "${i}::${n}::${p}"
             -anchor ne -font [list arial] -justify left -tags "guides dimension text"
 
         ##  Add cross hairs through the origin - visual reference only
-        $cnvs create line [expr $x1 - $::bga(width) / 4] 0 [expr $x2 +$::bga(width) / 4] 0 \
+        $cnvs create line [expr $x1 - $xAIF::bga(width) / 4] 0 [expr $x2 +$xAIF::bga(width) / 4] 0 \
             -fill $color -dash . -tags "guides xyaxis"
-        $cnvs create line 0 [expr $y1 - $::bga(height) / 4] 0 [expr $y2 +$::bga(height) / 4] \
+        $cnvs create line 0 [expr $y1 - $xAIF::bga(height) / 4] 0 [expr $y2 +$xAIF::bga(height) / 4] \
             -fill $color -dash . -tags "guides xyaxis"
 
         $cnvs configure -scrollregion [$cnvs bbox all]
@@ -3025,11 +3042,11 @@ namespace eval xAIF::GUI::StatusBar {
         } 
 
         if { $xAIF::GUI::Dashboard::Mode == $xAIF::Const::XAIF_MODE_DESIGN } {
-            set $xAIF::Settings(targetPath) $xAIF::Settings(DesignPath)
+            set $xAIF::Settings(TargetPath) $xAIF::Settings(DesignPath)
         } else {
-            set $xAIF::Settings(targetPath) $xAIF::Settings(LibraryPath)
+            set $xAIF::Settings(TargetPath) $xAIF::Settings(LibraryPath)
         }
-        set $xAIF::Settings(targetPath)
+        set $xAIF::Settings(TargetPath)
         update idletasks
     }
 }
@@ -3077,7 +3094,9 @@ namespace eval xAIF::GUI::Help {
     ##  xAIF::GUI::Help::InternalState
     ##
     proc InternalState {} {
+        parray xLM::Settings
         parray xPCB::Settings
+        parray xAIF::Settings
     }
 
     ##

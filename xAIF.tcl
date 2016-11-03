@@ -138,6 +138,7 @@ namespace eval xAIF {
     ##  Tcl doesn't technical support constants so this is the next best thing ...
 
     namespace eval Const {
+        set XAIF_NOTHING                      ""
         set XAIF_MODE_DESIGN                  design
         set XAIF_MODE_LIBRARY                 library
         set XAIF_STATUS_CONNECTED             connected
@@ -158,6 +159,12 @@ namespace eval xAIF {
         set CELL_GEN_BGA_MSO_VALUE            "Mount Side Opposite"
         set XAIF_RING_PROCESSING_IGNORE       ignore
         set XAIF_RING_PROCESSING_DISCARD      discard
+        set XAIF_LEFTBRACKET                  "\["
+        set XAIF_RIGHTBRACKET                 "\]"
+        set XAIF_BACKSLASH                    "\\"
+        set XAIF_WINDOWSIZEX                  800
+        set XAIF_WINDOWSIZEY                  600
+        set XAIF_SCALEFACTOR                  1
 
         set PKG_TYPE_GBL                  OperatingMode
         set USE_TIME_STAMP                UseTimeStamp
@@ -167,26 +174,164 @@ namespace eval xAIF {
         set XAIF_DEFAULT_TXT_FILE         xAIF.txt
     }
 
-    variable Settings
     variable sections
     variable ignored
     variable widgets
     variable units
     variable padshapes
 
+    set Widgets(mainframe) {}
+    variable View
+
+    set View(XYAxes) on
+    set View(Dimensions) on
+    set View(PadNumbers) on
+    set View(RefDesignators) on
+
+    variable Settings
+
     ##  Define Settings and default values
     set Settings(name) "Xpedition AIF Utility (xAIF)"
     set Settings(version) "2.0-beta-1"
-    set Settings(date) "Thu Oct 05 14:23:05 EDT 2016"
+    set Settings(date) "Thu Nov 03 14:00:05 EDT 2016"
     set Settings(workdir) [pwd]
     set Settings(status) "Ready"
     set Settings(progress) 0
     set Settings(connection) off
     set Settings(DesignPath) {}
     set Settings(LibraryPath) {}
+    set Settings(TargetPath) {}
+    set Settings(SparseMode) off
 
-    set Widgets(mainframe) {}
- 
+    set Settings(BGA) 0
+    set Settings(MCMAIF) 0
+    set Settings(DIEREF) "U1"
+    set Settings(BGAREF) "A1"
+
+    array set pads {}
+    array set padgeom {}
+    array set padtypes {}
+
+    set bondpads {}
+    set bondwires {}
+    set bondpadsubst {}
+
+    set netlist {}
+    set netnames {}
+    set netlines {}
+
+    array set die {}
+    array set bga {}
+    array set devices {}
+    array set mcmdie {}
+    array set database {}
+
+    set Settings(workdir) [pwd]
+
+    set Settings(MirrorNone) on
+    set Settings(MirrorX) off
+    set Settings(MirrorY) off
+    set Settings(MirrorXY) off
+
+    set Settings(DefaultCellHeight) 50
+    set Settings(CellNameSuffix) $xAIF::Const::CELL_GEN_SUFFIX_NONE_KEY
+    set Settings(BGACellGeneration) $xAIF::Const::CELL_GEN_BGA_NORMAL_KEY
+
+    set Settings(LayerNames) {}
+    set Settings(LayerNumbers) {}
+
+    set Settings(operatingmode) $xAIF::Const::XAIF_MODE_DESIGN
+    set Settings(connectionstatus) $xAIF::Const::XAIF_STATUS_DISCONNECTED
+
+    set Settings(consoleEcho) off
+    set Settings(debugmsgs) o
+
+    set Settings(verbosemsgs) on
+
+    set Settings(pdstkEdtr) ""
+    set Settings(pdstkEdtrDb) ""
+
+    set Settings(cellEdtr) ""
+    set Settings(cellEdtrDb) ""
+    set Settings(cellEdtrPrtn) "xAIF-Work"
+    set Settings(cellEdtrPrtnName) ""
+    set Settings(cellEdtrPrtnNames) {}
+
+    set Settings(partEdtr) ""
+    set Settings(partEdtrDb) ""
+    set Settings(partEdtrPrtn) "xAIF-Work"
+    set Settings(partEdtrPrtnName) ""
+    set Settings(partEdtrPrtnNames) {}
+
+    ##  Tool command lines
+
+    set Settings(xpeditionpcb) ""
+    set Settings(xpeditionpcbopts) ""
+
+    set Settings(librarymanager) ""
+    set Settings(librarymanageropts) ""
+
+    ##  Supported units
+    set xAIF::units [list um mm cm inch mil]
+
+    ##  Supported pad shapes
+    set xAIF::padshapes [list circle round oblong obround rectangle rect square sq poly]
+
+    ##  Keywords to scan for in AIF file
+    array unset xAIF::sections
+    #array set xAIF::sections {
+    #    die "die_name"
+    #    padGeomName "pad_geom_name"
+    #    padGeomShape "pad_geom_shape"
+    #    dieActiveSize "die_active_size"
+    #    dieSize "die_size"
+    #    diePads "die_pads"
+    #}
+
+    ##  Sections within the AIF file
+    array set xAIF::sections {
+        database "DATABASE"
+        die "DIE"
+        diePads "PADS"
+        netlist "NETLIST"
+        bga "BGA"
+        mcm_die "MCM_DIE"
+    }
+
+    array set xAIF::ignored {
+        rings "RINGS"
+        bondable_ring_area "BONDABLE_RING_AREA"
+        wire "WIRE"
+        fiducials "FIDUCIALS"
+        die_logo "DIE_LOGO"
+    }
+
+    ##  Database Details
+    array set xAIF::database {
+        type ""
+        version ""
+        units "um"
+        mcm "FALSE"
+    }
+
+    ##  Die Details
+    array set xAIF::die {
+        name ""
+        refdes "U1"
+        width 0
+        height 0
+        center { 0 0 }
+        partition ""
+    }
+
+    ##  BGA Details
+    array set xAIF::bga {
+        name ""
+        refdes "A1"
+        width 0
+        height 0
+    }
+
     ##
     ##  xAIF::Init
     ##
@@ -194,7 +339,8 @@ namespace eval xAIF {
         variable Settings
 
         ##  define variables in the xAIF namespace
-        array unset Settings
+        #array unset Settings
+        if { 0 } {
         array set Settings {
             busy "Busy"
             ready "Ready"
@@ -205,7 +351,7 @@ namespace eval xAIF {
             sparseMode 0
             AIFFile ""
             #sparsePinsFile ""
-            targetPath ""
+            TargetPath ""
             PCBDesign ""
             CentralLibrary ""
     	    filename ""
@@ -263,6 +409,7 @@ namespace eval xAIF {
             RingProcessing $xAIF::Const::XAIF_RING_PROCESSING_DISCARD
             progress 0
         }
+        }
 
         ##  Keywords to scan for in AIF file
         array unset xAIF::sections
@@ -313,7 +460,7 @@ namespace eval xAIF {
             mode ""
             AIFFile ""
             AIFType "File Type:"
-            targetPath ""
+            TargetPath ""
             CellPartnDlg ".chooseCellPartitionDialog"
             PartPartnDlg ".choosePartPartitionDialog"
         }
@@ -388,7 +535,7 @@ if { [string equal $::tcl_platform(platform) windows] } {
 
     ##  Setup Executables
     set xPCB::Settings(xpeditionpcb) [file join $::env(SDD_HOME) common $::env(SDD_PLATFORM) bin ExpeditionPCB.exe]
-    set xPCB::Settings(librarymanager) [file join $::env(SDD_HOME) common $::env(SDD_PLATFORM) bin LibraryManager.exe]
+    set xLM::Settings(librarymanager) [file join $::env(SDD_HOME) common $::env(SDD_PLATFORM) bin LibraryManager.exe]
 } elseif { [string equal $::tcl_platform(platform) unix] } {
     ##  Load the Mentor TLB for Xpedition
     set TLB [file join $::env(SDD_HOME) wg $::env(SDD_PLATFORM) bin ExpeditionPCB.tlb]
@@ -402,7 +549,7 @@ if { [string equal $::tcl_platform(platform) windows] } {
 
     ##  Setup Executables
     set xPCB::Settings(xpeditionpcb) [file join $::env(SDD_HOME) common $::env(SDD_PLATFORM) bin ExpeditionPCB]
-    set xPCB::Settings(librarymanager) [file join $::env(SDD_HOME) common $::env(SDD_PLATFORM) bin LibraryManager]
+    set xLM::Settings(librarymanager) [file join $::env(SDD_HOME) common $::env(SDD_PLATFORM) bin LibraryManager]
 } else {
     ##  Unsupported platform
     puts [format "//  Error:  Platform \"%s\" is unsupported." $tcl_platform(platform)]
@@ -413,5 +560,5 @@ parray tcl_platform
 
 #xPCB::Connect
 #xPCB::getOpenDocumentPaths $xPCB::Settings(pcbApp)
-xAIF::Init
+#xAIF::Init
 xAIF::GUI::Build
