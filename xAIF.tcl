@@ -237,9 +237,6 @@ namespace eval xAIF {
     set Settings(CellNameSuffix) $xAIF::Const::CELL_GEN_SUFFIX_NONE_KEY
     set Settings(BGACellGeneration) $xAIF::Const::CELL_GEN_BGA_NORMAL_KEY
 
-    set Settings(LayerNames) {}
-    set Settings(LayerNumbers) {}
-
     set Settings(operatingmode) $xAIF::Const::XAIF_MODE_DESIGN
     set Settings(connectionstatus) $xAIF::Const::XAIF_STATUS_DISCONNECTED
 

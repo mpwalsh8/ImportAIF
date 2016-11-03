@@ -52,13 +52,13 @@
 ##
 namespace eval MGC {
     #
-    #  Open Expedition, open the database, handle licensing.
+    #  Open Xpedition, open the database, handle licensing.
     #
-    proc OpenExpedition {} {
-        #  Crank up Expedition
+    proc OpenXpedition {} {
+        #  Crank up Xpedition
 
         if { [string is true $xAIF::Settings(connectMode)] } {
-            xAIF::GUI::Message -severity note -msg "Connecting to existing Expedition session."
+            xAIF::GUI::Message -severity note -msg "Connecting to existing Xpedition session."
             #  Need to make sure Xpedition is actually running ...
             set errorCode [catch { set xPCB::Settings(pcbApp) [::tcom::ref getactiveobject "MGCPCB.ExpeditionPCBApplication"] } errorMessage]
             if {$errorCode != 0} {
@@ -82,12 +82,12 @@ namespace eval MGC {
             }
         } else {
             set xAIF::Settings(TargetPath) $xAIF::Settings(DesignPath)
-            xAIF::GUI::Message -severity note -msg "Opening Expedition."
+            xAIF::GUI::Message -severity note -msg "Opening Xpedition."
             set xPCB::Settings(pcbApp) [::tcom::ref createobject "MGCPCB.ExpeditionPCBApplication"]
             $xPCB::Settings(pcbApp) Visible $xAIF::Settings(appVisible)
 
             # Open the database
-            xAIF::GUI::Message -severity note -msg "Opening database for Expedition."
+            xAIF::GUI::Message -severity note -msg "Opening database for Xpedition."
 
             #  Create a PCB document object
             set errorCode [catch {set xPCB::Settings(pcbDoc) [$xPCB::Settings(pcbApp) \
@@ -104,7 +104,7 @@ namespace eval MGC {
         #  Set application visibility
         $xPCB::Settings(pcbApp) Visible $xAIF::Settings(appVisible)
 
-        #  Ask Expedition document for the key
+        #  Ask Xpedition document for the key
         set key [$xPCB::Settings(pcbDoc) Validate "0" ] 
 
         #  Get token from license server
@@ -201,15 +201,15 @@ puts "X4"
 
         ##  Which mode?  Design or Library?
         if { [string compare -nocase $xAIF::Settings(operatingmode) $xAIF::Const::XAIF_MODE_DESIGN] == 0 } {
-            ##  Invoke Expedition on the design so the Padstack Editor can be started
+            ##  Invoke Xpedition on the design so the Padstack Editor can be started
             ##  Catch any exceptions raised by opening the database
 
-            ##  Is Expedition already open?  It will be if the Padstack Editor
+            ##  Is Xpedition already open?  It will be if the Padstack Editor
             ##  is called as part of building a Cell.  In this case, there is no
-            ##  reason to reopen Expedition as it will end up in read-only mode.
+            ##  reason to reopen Xpedition as it will end up in read-only mode.
 
             if { $mode == "-opendatabase" } {
-                set errorCode [catch { MGC::OpenExpedition } errorMessage]
+                set errorCode [catch { MGC::OpenXpedition } errorMessage]
                 if {$errorCode != 0} {
                     xAIF::GUI::Message -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
                     xAIF::GUI::Message -severity error -msg "Unable to connect to Xpedition, is Xpedition running?"
@@ -217,7 +217,7 @@ puts "X4"
                     return -code return 1
                 }
             } else {
-                xAIF::GUI::Message -severity note -msg "Reusing previously opened instance of Expedition."
+                xAIF::GUI::Message -severity note -msg "Reusing previously opened instance of Xpedition."
             }
             set xPCB::Settings(pdstkEdtr) [$xPCB::Settings(pcbDoc) PadstackEditor]
             set xAIF::Settings(pdstkEdtrDb) [$xAIF::Settings(pdstkEdtr) ActiveDatabase]
@@ -264,19 +264,19 @@ puts "X4"
             ##  Close Padstack Editor
             $xAIF::Settings(pdstkEdtr) SaveActiveDatabase
             $xAIF::Settings(pdstkEdtr) Quit
-            ##  Close the Expedition Database
+            ##  Close the Xpedition Database
 
-            ##  May want to leave Expedition and the database open ...
+            ##  May want to leave Xpedition and the database open ...
             #if { $mode == "-closedatabase" } {
             #    $xPCB::Settings(pcbDoc) Save
             #    $xPCB::Settings(pcbDoc) Close
-            #    ##  Close Expedition
+            #    ##  Close Xpedition
             #    $xPCB::Settings(pcbApp) Quit
             #}
             if { [string is false $xAIF::Settings(connectMode)] } {
-                ##  Close the Expedition Database and terminate Expedition
+                ##  Close the Xpedition Database and terminate Xpedition
                 $xPCB::Settings(pcbDoc) Close
-                ##  Close Expedition
+                ##  Close Xpedition
                 $xPCB::Settings(pcbApp) Quit
             }
         } elseif { [string compare -nocase $xAIF::Settings(operatingmode) $xAIF::Const::XAIF_MODE_LIBRARY] == 0 } {
@@ -302,9 +302,9 @@ puts "X4"
         ##  Which mode?  Design or Library?
         if { [string compare -nocase $xAIF::Settings(operatingmode) $xAIF::Const::XAIF_MODE_DESIGN] == 0 } {
             set xAIF::Settings(TargetPath) $xAIF::Settings(DesignPath)
-            ##  Invoke Expedition on the design so the Cell Editor can be started
+            ##  Invoke Xpedition on the design so the Cell Editor can be started
             ##  Catch any exceptions raised by opening the database
-            set errorCode [catch { MGC::OpenExpedition } errorMessage]
+            set errorCode [catch { MGC::OpenXpedition } errorMessage]
             if {$errorCode != 0} {
                 xAIF::GUI::Message -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
                 xAIF::GUI::Message -severity error -msg "Unable to connect to Xpedition, is Xpedition running?"
@@ -381,13 +381,13 @@ puts "Z6"
             #$xAIF::Settings(cellEdtr) SaveActiveDatabase
             $xAIF::Settings(cellEdtr) Quit
 
-            ##  Save the Expedition Database
+            ##  Save the Xpedition Database
             $xPCB::Settings(pcbDoc) Save
 
             if { [string is false $xAIF::Settings(connectMode)] } {
-                ##  Close the Expedition Database and terminate Expedition
+                ##  Close the Xpedition Database and terminate Xpedition
                 $xPCB::Settings(pcbDoc) Close
-                ##  Close Expedition
+                ##  Close Xpedition
                 $xPCB::Settings(pcbApp) Quit
             }
         } elseif { [string compare -nocase $xAIF::Settings(operatingmode) $xAIF::Const::XAIF_MODE_LIBRARY] == 0 } {
@@ -414,9 +414,9 @@ puts "P1"
         ##  Which mode?  Design or Library?
         if { [string compare -nocase $xAIF::Settings(operatingmode) $xAIF::Const::XAIF_MODE_DESIGN] == 0 } {
             set xAIF::Settings(TargetPath) $xAIF::Settings(DesignPath)
-            ##  Invoke Expedition on the design so the PDB Editor can be started
+            ##  Invoke Xpedition on the design so the PDB Editor can be started
             ##  Catch any exceptions raised by opening the database
-            set errorCode [catch { MGC::OpenExpedition } errorMessage]
+            set errorCode [catch { MGC::OpenXpedition } errorMessage]
             if {$errorCode != 0} {
 puts "P2"
                 xAIF::GUI::Message -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
@@ -485,20 +485,20 @@ puts "OpenPDBEdtr - 1"
             ##  Close Padstack Editor
             $xAIF::Settings(partEdtr) SaveActiveDatabase
             $xAIF::Settings(partEdtr) Quit
-            ##  Close the Expedition Database
+            ##  Close the Xpedition Database
             ##  Need to save?
             if { [$xPCB::Settings(pcbDoc) IsSaved] == "False" } {
                 $xPCB::Settings(pcbDOc) Save
             }
             #$xPCB::Settings(pcbDoc) Save
             #$xPCB::Settings(pcbDoc) Close
-            ##  Close Expedition
+            ##  Close Xpedition
             #$xPCB::Settings(pcbApp) Quit
 
             if { [string is false $xAIF::Settings(connectMode)] } {
-                ##  Close the Expedition Database and terminate Expedition
+                ##  Close the Xpedition Database and terminate Xpedition
                 $xPCB::Settings(pcbDoc) Close
-                ##  Close Expedition
+                ##  Close Xpedition
                 $xPCB::Settings(pcbApp) Quit
             }
         } elseif { [string compare -nocase $xAIF::Settings(operatingmode) $xAIF::Const::XAIF_MODE_LIBRARY] == 0 } {
@@ -1611,7 +1611,7 @@ puts [expr $::MGCPCB::EPcbSide(epcbSideOpposite)]
 
             ##  Add a pin defintition for each pin to the gate
             ##  The swap code for all of the pins is set to "1"
-            ##  which ensures the pins are swappable within Expedition.
+            ##  which ensures the pins are swappable within Xpedition.
 
             set pi 1
             foreach p $xAIF::devices($device) {
@@ -1935,9 +1935,9 @@ puts [expr $::MGCPCB::EPcbSide(epcbSideOpposite)]
 
             ##  Which mode?  Design or Library?
             if { $xAIF::Settings(operatingmode) == $xAIF::Const::XAIF_MODE_DESIGN } {
-                ##  Invoke Expedition on the design so the Units can be set
+                ##  Invoke Xpedition on the design so the Units can be set
                 ##  Catch any exceptions raised by opening the database
-                set errorCode [catch { MGC::OpenExpedition } errorMessage]
+                set errorCode [catch { MGC::OpenXpedition } errorMessage]
                 if {$errorCode != 0} {
                     xAIF::GUI::Message -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
                     xAIF::GUI::Message -severity error -msg "Unable to connect to Xpedition, is Xpedition running?"
@@ -2038,9 +2038,9 @@ puts [expr $::MGCPCB::EPcbSide(epcbSideOpposite)]
         proc CheckDatabaseUnits {} {
             ##  Which mode?  Design or Library?
             if { $xAIF::Settings(operatingmode) == $xAIF::Const::XAIF_MODE_DESIGN } {
-                ##  Invoke Expedition on the design so the Units can be set
+                ##  Invoke Xpedition on the design so the Units can be set
                 ##  Catch any exceptions raised by opening the database
-                set errorCode [catch { MGC::OpenExpedition } errorMessage]
+                set errorCode [catch { MGC::OpenXpedition } errorMessage]
                 if {$errorCode != 0} {
                     xAIF::GUI::Message -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
                     xAIF::GUI::Message -severity error -msg "Unable to connect to Xpedition, is Xpedition running?"
@@ -2194,9 +2194,9 @@ puts [expr $::MGCPCB::EPcbSide(epcbSideOpposite)]
             puts "MGC::Wirebond::ApplyProperies"
             ##  Which mode?  Design or Library?
             if { $xAIF::Settings(operatingmode) == $xAIF::Const::XAIF_MODE_DESIGN } {
-                ##  Invoke Expedition on the design so the Cell Editor can be started
+                ##  Invoke Xpedition on the design so the Cell Editor can be started
                 ##  Catch any exceptions raised by opening the database
-                set errorCode [catch { MGC::OpenExpedition } errorMessage]
+                set errorCode [catch { MGC::OpenXpedition } errorMessage]
                 if {$errorCode != 0} {
                     xAIF::GUI::Message -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
                     xAIF::GUI::Message -severity error -msg "Unable to connect to Xpedition, is Xpedition running?"
@@ -2242,9 +2242,9 @@ puts [expr $::MGCPCB::EPcbSide(epcbSideOpposite)]
 
             ##  Which mode?  Design or Library?
             if { $xAIF::Settings(operatingmode) == $xAIF::Const::XAIF_MODE_DESIGN } {
-                ##  Invoke Expedition on the design so the Cell Editor can be started
+                ##  Invoke Xpedition on the design so the Cell Editor can be started
                 ##  Catch any exceptions raised by opening the database
-                set errorCode [catch { MGC::OpenExpedition } errorMessage]
+                set errorCode [catch { MGC::OpenXpedition } errorMessage]
                 if {$errorCode != 0} {
                     xAIF::GUI::Message -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
                     xAIF::GUI::Message -severity error -msg "Unable to connect to Xpedition, is Xpedition running?"
@@ -2330,9 +2330,9 @@ puts [expr $::MGCPCB::EPcbSide(epcbSideOpposite)]
 
             ##  Which mode?  Design or Library?
             if { $xAIF::Settings(operatingmode) == $xAIF::Const::XAIF_MODE_DESIGN } {
-                ##  Invoke Expedition on the design so the Cell Editor can be started
+                ##  Invoke Xpedition on the design so the Cell Editor can be started
                 ##  Catch any exceptions raised by opening the database
-                set errorCode [catch { MGC::OpenExpedition } errorMessage]
+                set errorCode [catch { MGC::OpenXpedition } errorMessage]
                 if {$errorCode != 0} {
                     xAIF::GUI::Message -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
                     xAIF::GUI::Message -severity error -msg "Unable to connect to Xpedition, is Xpedition running?"
@@ -2556,6 +2556,9 @@ namespace eval xPCB {
     set Settings(pcbOpenDocuments) {}
     set Settings(pcbOpenDocumentIds) {}
 
+    set Settings(LayerNames) {}
+    set Settings(LayerNumbers) {}
+
     ##  Tool command lines
 
     set Settings(xpeditionpcb) ""
@@ -2605,7 +2608,7 @@ namespace eval xPCB {
         # collect the active document
         set docObj [$appObj ActiveDocument]
 
-        # Ask Expeditions document for the key
+        # Ask Xpeditions document for the key
         set key [$docObj Validate "0" ]
 
         # Get token from license server
@@ -2702,15 +2705,15 @@ namespace eval xPCB {
         $designmenu delete 0 end
 
         ##  Add active designs to Design pulldown menu
-        foreach dpath $xAIF::Settings(pcbOpenDocumentPaths) id $xAIF::Settings(pcbOpenDocumentIds) {
+        foreach dpath $xPCB::Settings(pcbOpenDocumentPaths) id $xPCB::Settings(pcbOpenDocumentIds) {
             $designmenu add radiobutton -label [file tail $dpath] \
                 -variable xPCB::Settings(pcbAppId) -value $id \
                 -command { xPCB::setActiveDocument ; xPCB::setConductorLayers }
         }
 
         ##  Initialize the active design to the first one in the list
-        if { [llength $xAIF::Settings(pcbOpenDocumentIds)] > 0 } {
-            set xPCB::Settings(pcbAppId) [lindex $xAIF::Settings(pcbOpenDocumentIds) 0]
+        if { [llength $xPCB::Settings(pcbOpenDocumentIds)] > 0 } {
+            set xPCB::Settings(pcbAppId) [lindex $xPCB::Settings(pcbOpenDocumentIds) 0]
             xPCB::setActiveDocument
             xPCB::setConductorLayers
             xPCB::LoadDesignConfig
@@ -2903,21 +2906,21 @@ if { 0 } {
     ##
     proc OpenXpeditionPCB { } {
 
-        set opts [join [list $xAIF::Settings(xpeditionpcbopts) [file normalize $xAIF::Settings(DesignPath)]]]
-        set cmd [string trim [format "|%s %s %s" $xAIF::Settings(xpeditionpcb) \
+        set opts [join [list $xPCB::Settings(xpeditionpcbopts) [file normalize $xAIF::Settings(DesignPath)]]]
+        set cmd [string trim [format "|%s %s %s" $xPCB::Settings(xpeditionpcb) \
             $opts [expr [string equal $::tcl_platform(platform) windows] ?"" :"2>@stdout"]]]
 
         cd $xAIF::Settings(workdir)
-        if { [catch { set xAIF::Settings(xpeditionpcbchan) [open "$cmd" r+] } cmsg] == 0 } {
-            fconfigure $xAIF::Settings(xpeditionpcbchan) -buffering line -blocking 0
-            fileevent $xAIF::Settings(xpeditionpcbchan) readable \
-                [list xPCB::ToolConnector $xAIF::Settings(xpeditionpcbchan)]
+        if { [catch { set xPCB::Settings(xpeditionpcbchan) [open "$cmd" r+] } cmsg] == 0 } {
+            fconfigure $xPCB::Settings(xpeditionpcbchan) -buffering line -blocking 0
+            fileevent $xPCB::Settings(xpeditionpcbchan) readable \
+                [list xPCB::ToolConnector $xPCB::Settings(xpeditionpcbchan)]
 
             xAIF::GUI::Message -severity note -msg \
-                [format "Opened XpeditionPCB:  %s %s" $xAIF::Settings(xpeditionpcb) $opts]
+                [format "Opened XpeditionPCB:  %s %s" $xPCB::Settings(xpeditionpcb) $opts]
         } else {
             xAIF::GUI::Message -severity error -msg \
-                [format "Failed to open XpeditionPCB:  %s %s" $xAIF::Settings(xpeditionpcb) $opts]
+                [format "Failed to open XpeditionPCB:  %s %s" $xPCB::Settings(xpeditionpcb) $opts]
         }
         cd $xAIF::Settings(workdir)
     }

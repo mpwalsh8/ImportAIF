@@ -1221,7 +1221,7 @@ namespace eval xAIF::GUI::Menus {
         ##  If "Connect Mode" is on, go get the active library and populate the Dashboard
 
         if { $xAIF::Settings(connectMode) } {
-            ##  Invoke Expedition on the design so the Cell Editor can be started
+            ##  Invoke Xpedition on the design so the Cell Editor can be started
             ##  Catch any exceptions raised by opening the database
             set errorCode [catch { xLM::OpenLibraryManager } errorMessage]
             if {$errorCode != 0} {
@@ -1266,9 +1266,9 @@ namespace eval xAIF::GUI::Menus {
         ##  If "Connect Mode" is on, go get the active design and populate the Dashboard
 
         if { $xAIF::Settings(connectMode) } {
-            ##  Invoke Expedition on the design so the Cell Editor can be started
+            ##  Invoke Xpedition on the design so the Cell Editor can be started
             ##  Catch any exceptions raised by opening the database
-            set errorCode [catch { MGC::OpenExpedition } errorMessage]
+            set errorCode [catch { MGC::OpenXpedition } errorMessage]
             if {$errorCode != 0} {
                 xAIF::GUI::Message -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
                 xAIF::GUI::Message -severity error -msg "Unable to connect to Xpedition, is Xpedition running?"
