@@ -302,7 +302,6 @@ namespace eval xAIF::GUI {
             }
             "&Wirebond" all wirebondmenu 0 {
                 {command "&Setup ..."  {} "Setup Wirebond Parameters" {} -command { $xAIF::GUI::Widgets(notebook) raise wbpf }}
-                {cascade "&Setup ..."  {} {wbsetupmenu} 0 {}}
                 {separator}
                 {command "&Apply Wirebond Properties"  {} "Apply Wirebond Properties" {} -command {
                         xAIF::GUI::Message -severity warning -msg "Command has not been implemented." }}
