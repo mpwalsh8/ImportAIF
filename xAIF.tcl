@@ -240,8 +240,9 @@ namespace eval xAIF {
     set Settings(operatingmode) $xAIF::Const::XAIF_MODE_DESIGN
     set Settings(connectionstatus) $xAIF::Const::XAIF_STATUS_DISCONNECTED
 
-    set Settings(consoleEcho) off
-    set Settings(debugmsgs) o
+    set Settings(ShowConsole) on
+    set Settings(ConsoleEcho) off
+    set Settings(debugmsgs) off
 
     set Settings(verbosemsgs) on
 
@@ -503,7 +504,7 @@ namespace eval xAIF {
 ##  Load additional xAIF modules
 ##  Load various pieces which comprise the application
 foreach script { AIF.tcl Forms.tcl GUI.tcl MapEnum.tcl MGC.tcl Netlist.tcl } {
-    puts [format "# Note:  Loading %s ..." $script]
+    puts [format "//  Note:  Loading %s ..." $script]
     source [file join $xAIFLibPath $script]
 }
 
@@ -522,7 +523,7 @@ if { [string equal $::tcl_platform(platform) windows] } {
     #set DLL [file join $::env(SDD_HOME) wg $::env(SDD_PLATFORM) bin ExpeditionPCB.exe]
     foreach DLL $DLLs {
         if { [file exists $DLL] } {
-            puts stderr [format "//  Note:  Loading API from \"%s\"." $DLL]
+            puts stdout [format "//  Note:  Loading API from \"%s\"." $DLL]
             ::tcom::import $DLL
         } else {
             puts stderr [format "//  Error:  Unable to load API from \"%s\"." $DLL]
@@ -538,7 +539,7 @@ if { [string equal $::tcl_platform(platform) windows] } {
     set TLB [file join $::env(SDD_HOME) wg $::env(SDD_PLATFORM) bin ExpeditionPCB.tlb]
     if { [file exists $TLB] } {
         ::tcom::import $TLB
-        puts stderr [format "//  Note:  Importing Xpedition API: %s" $TLB]
+        puts stdout [format "//  Note:  Importing Xpedition API: %s" $TLB]
     } else {
         puts stderr [format "//  Error:  Unable to load Xpedition API from \"%s\"." $TLB]
         exit 1
@@ -553,7 +554,7 @@ if { [string equal $::tcl_platform(platform) windows] } {
     exit 1
 }
 
-parray tcl_platform
+#parray tcl_platform
 
 #xPCB::Connect
 #xPCB::getOpenDocumentPaths $xPCB::Settings(pcbApp)

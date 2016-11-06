@@ -118,7 +118,7 @@ namespace eval xAIF::GUI {
         option add *Dialog.msg.font xAIFDialogFontBold
 
         set menudesc {
-            "&File" all file 0 {
+            "&File" all filemenu 0 {
                 {command "&Open AIF ..."  {} "Open AIF File" {Ctrl O} -command xAIF::GUI::Dashboard::SelectAIF}
                 {command "&Close AIF"  {} "Close AIF File" {Ctrl D} -command xAIF::GUI::File::CloseAIF}
                 {command "&Reload AIF"  {} "Reload AIF File" {Ctrl R} -command xAIF::GUI::File::ReloadAIF}
@@ -140,8 +140,9 @@ namespace eval xAIF::GUI {
                     {command "&Save As ..." {} "Save Message Text to File" {} -command {xAIF::GUI::SaveMessageTextToFile}}
                 }}
                 {separator}
-                {command "Show &Console"  {} "Show Tcl console" {} -command {console show}}
-                {command "&Hide Console"  {} "Hide Tcl console" {} -command {console hide}}
+                {checkbutton "&Show Tcl Console" consolemenu "Show/Hide Tcl Console" {} \
+                    -variable xAIF::Settings(ShowConsole) -onvalue on -offvalue off \
+                    -command { set s [expr [string is true $xAIF::Settings(ShowConsole)] ?"show":"hide"] ; console $s }}
                 {separator}
                 {command "&Quit"          {} "Quit" {Ctrl Z} -command { if { [tk_messageBox -title "Close xAIF" -icon question -message "Ok to Quit?" -type okcancel] == "ok" } { destroy . ; exit 1 }}}
             }
@@ -315,7 +316,7 @@ namespace eval xAIF::GUI {
                 {command "&XpeditionPCB ..."         {xpeditionpcb}   "Launch XpeditionPCB"       {} -command {xPCB::OpenXpeditionPCB}}
                 {command "&Library Manager ..."      {librarymanager} "Launch Library Manager"    {} -command {xLM::OpenLibraryManager}}
             }
-            "&Help" all help 0 {
+            "&Help" all helpmenu 0 {
                 {command "&About" {} "About the Program" {} -command xAIF::GUI::Help::About}
                 {command "&Version" {} "Program Version Details" {} -command xAIF::GUI::Help::Version}
                 {command "&Environment" {} "Environment Variable Details" {} -command xAIF::GUI::Help::EnvVars}
@@ -392,6 +393,14 @@ namespace eval xAIF::GUI {
                 -command [list xAIF::GUI::Message -severity note -msg [format "Default Cell Height:  %s" $i]]
         }
 
+        ##  Disable the Show/Hide Console menu when not on Windows.
+        set m $xAIF::GUI::Widgets(mainframe)
+        if { [string equal $::tcl_platform(platform) windows] } {
+            $m setmenustate consolemenu normal
+        } else {
+            $m setmenustate consolemenu disabled
+        }
+        
         ##  Add View All On/Off to several menus
         #set menu [$Widgets(mainframe) getmenu textmenu]
 
@@ -476,7 +485,11 @@ namespace eval xAIF::GUI {
         
         ##  Setup an Idle Task
         after 0 xAIF::GUI::UpdateWhenIdle
-console show
+
+        ##  Display the Console at startup?  Useful for development and debug
+        if { [string is true $xAIF::Settings(ShowConsole)] && [string equal $::tcl_platform(platform) windows] } {
+            console show
+        }
 
         ##  Make this a modal dialog
         catch { tk visibility . }
@@ -533,7 +546,7 @@ console show
             if { [string equal $V(-severity) none] } {
                 set msg [format "%s" $V(-msg)]
             } else {
-                set msg [format "//  %s:  %s" [string toupper $V(-severity) 0 0] $V(-msg)]
+                set msg [format "//  %s:  %s" [string totitle $V(-severity)] $V(-msg)]
             }
 
             set txt $Widgets(message)
@@ -544,8 +557,12 @@ console show
             update idletasks
 
             ##  Echo to console?  Only works on Windows ...
-            if { [string is true $xAIF::Settings(consoleEcho)] } {
-                puts stdout $msg
+            if { [string is true $xAIF::Settings(ConsoleEcho)] } {
+                if { [string compare -nocase $V(-severity) "note"] == 0 } {
+                    puts stdout $msg
+                } else {
+                    puts stderr $msg
+                }
                 flush stdout
             }
 
@@ -741,9 +758,9 @@ namespace eval xAIF::GUI::Build {
         ##  Hide the netlist tab, it is used but shouldn't be visible
         #$nb hide $nf
         #$nb hide $ssf
-        foreach i [$pane configure] {
-            puts $i
-        }
+        #foreach i [$pane configure] {
+        #    puts $i
+        #}
 
         xAIF::GUI::Build::Notebook::LayoutFrame $lvf
         xAIF::GUI::Build::Notebook::AIFSourceFrame $sf
