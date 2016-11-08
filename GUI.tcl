@@ -113,6 +113,7 @@ namespace eval xAIF::GUI {
         #font create xAIFFontBold -family Helvetica -size 10 -weight bold
         font create xAIFFontItalic -family arial -size 10 -weight normal -slant italic
         font create xAIFFontBoldItalic -family arial -size 10 -weight bold -slant italic
+        font create xAIFCanvasFont -family Helvetica -size 10 -weight bold
 
         ##  Make the fonts in the dialog boxes look consistent with rest of the UI
         option add *Dialog.msg.font xAIFDialogFontBold
@@ -2629,7 +2630,7 @@ puts "${i}::${n}::${p}"
 
                 ##  Add text: Use pin number if it was supplied, otherwise pad name
                 $cnvs create text $x $y -text $padtxt -fill $outline \
-                    -anchor center -font [list arial] -justify center \
+                    -anchor center -font xAIFCanvasFont -justify center \
                     -tags "text padnumber padnumber-$pin $tags"
             }
             "CIRCLE" -
@@ -2641,7 +2642,7 @@ puts "${i}::${n}::${p}"
 
                 ##  Add text: Use pin number if it was supplied, otherwise pad name
                 $cnvs create text $x $y -text $padtxt -fill $outline \
-                    -anchor center -font [list arial] -justify center \
+                    -anchor center -font xAIFCanvasFont -justify center \
                     -tags "text padnumber padnumber-$pin $tags"
             }
             "OBLONG" -
@@ -2678,7 +2679,7 @@ puts "${i}::${n}::${p}"
 
                 ##  Add text: Use pin number if it was supplied, otherwise pad name
                 $cnvs create text $x $y -text $padtxt -fill $outline \
-                    -anchor center -font [list arial] -justify center \
+                    -anchor center -font xAIFCanvasFont -justify center \
                     -tags "text padnumber padnumber-$pin $tags"
 
                 ##  Handle any angle ajustment
@@ -2726,7 +2727,7 @@ puts "${i}::${n}::${p}"
 
                 ##  Add text: Use pin number if it was supplied, otherwise pad name
                 $cnvs create text $x $y -text $padtxt -fill $outline \
-                    -anchor center -font [list arial] -justify center \
+                    -anchor center -font xAIFCanvasFont -justify center \
                     -tags "text padnumber padnumber-$pin $tags"
             }
             "POLY" {
@@ -2745,7 +2746,7 @@ puts "${i}::${n}::${p}"
 
                 ##  Add text: Use pin number if it was supplied, otherwise pad name
                 $cnvs create text $x $y -text $padtxt -fill $outline \
-                    -anchor center -font [list arial] -justify center \
+                    -anchor center -font xAIFCanvasFont -justify center \
                     -tags "text padnumber padnumber-$pin $tags"
 
                 ##  Handle any angle ajustment
@@ -2820,7 +2821,7 @@ puts "${i}::${n}::${p}"
         set cnvs $xAIF::GUI::Widgets(layoutview)
         $cnvs create rectangle $x1 $y1 $x2 $y2 -outline $color -tags "device device-$name $tags"
         $cnvs create text $x2 $y2 -text $name -fill $color \
-            -anchor sw -font [list arial] -justify right -tags "text device device-$name refdes refdes-$name"
+            -anchor sw -font xAIFCanvasFont -justify right -tags "text device device-$name refdes refdes-$name"
 
         #puts [format "Part Outline extents:  X1:  %s  Y1:  %s  X2:  %s  Y2:  %s" $x1 $y1 $x2 $y2]
 
@@ -2869,17 +2870,17 @@ puts "${i}::${n}::${p}"
 
         $cnvs create polygon $points -outline $color -tags "$xAIF::bga(name) bga bgaoutline"
         $cnvs create text $x2 $y2 -text $xAIF::bga(name) -fill $color \
-            -anchor sw -font [list arial] -justify right -tags "$xAIF::bga(name) bga text refdes"
+            -anchor sw -font xAIFCanvasFont -justify right -tags "$xAIF::bga(name) bga text refdes"
 
         ##  Add some text to note the corner XY coordinates - visual reference only
         $cnvs create text $x1 $y1 -text [format "X: %.2f  Y: %.2f" $x1 $y1] -fill $color \
-            -anchor sw -font [list arial] -justify left -tags "guides dimension text"
+            -anchor sw -font xAIFCanvasFont -justify left -tags "guides dimension text"
         $cnvs create text $x1 $y2 -text [format "X: %.2f  Y: %.2f" $x1 $y2] -fill $color \
-            -anchor nw -font [list arial] -justify left -tags "guides dimension text"
+            -anchor nw -font xAIFCanvasFont -justify left -tags "guides dimension text"
         $cnvs create text $x2 $y1 -text [format "X: %.2f  Y: %.2f" $x2 $y1] -fill $color \
-            -anchor se -font [list arial] -justify left -tags "guides dimension text"
+            -anchor se -font xAIFCanvasFont -justify left -tags "guides dimension text"
         $cnvs create text $x2 $y2 -text [format "X: %.2f  Y: %.2f" $x2 $y2] -fill $color \
-            -anchor ne -font [list arial] -justify left -tags "guides dimension text"
+            -anchor ne -font xAIFCanvasFont -justify left -tags "guides dimension text"
 
         ##  Add cross hairs through the origin - visual reference only
         $cnvs create line [expr $x1 - $xAIF::bga(width) / 4] 0 [expr $x2 +$xAIF::bga(width) / 4] 0 \
