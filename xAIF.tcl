@@ -240,7 +240,7 @@ namespace eval xAIF {
     set Settings(operatingmode) $xAIF::Const::XAIF_MODE_DESIGN
     set Settings(connectionstatus) $xAIF::Const::XAIF_STATUS_DISCONNECTED
 
-    set Settings(ShowConsole) on
+    set Settings(ShowConsole) off
     set Settings(ConsoleEcho) off
     set Settings(debugmsgs) off
 
@@ -402,7 +402,7 @@ namespace eval xAIF {
             DIEREF "U1"
             BGAREF "A1"
             name "Xpedition AIF Utility (xAIF)"
-            version "2.0-beta-1"
+            version "2.0-beta-2"
             date "Thu Oct 05 14:23:05 EDT 2016"
             workdir [pwd]
             status "Ready"

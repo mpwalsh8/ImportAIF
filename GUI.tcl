@@ -1363,7 +1363,7 @@ namespace eval xAIF::GUI::Dashboard {
     ##  xAIF::GUI::Dashboard::SelectCentralLibrary
     ##
     proc SelectCentralLibrary { { f "" } } {
-puts "xAIF::GUI::Dashboard::SelectCentralLibrary"
+#puts "xAIF::GUI::Dashboard::SelectCentralLibrary"
         set db $xAIF::GUI::Widgets(dashboard)
 
         if { [string equal $f ""] } {
@@ -1515,7 +1515,7 @@ namespace eval xAIF::GUI::View {
         ##  Perform zoom operation
         ##--------------------------------------------------------
         xAIF::GUI::View::Zoom $c $factor $xcenter $ycenter $winxlength $winylength
-        puts "zoomArea:  $x $y"
+        #puts "zoomArea:  $x $y"
     }
 
 
@@ -1816,18 +1816,18 @@ namespace eval xAIF::GUI::File {
             set f [open $xAIF::Settings(filename)]
             $txt insert end [read $f]
             xAIF::GUI::Message -severity note -msg [format "Scanning AIF file \"%s\" for sections." $xAIF::Settings(filename)]
-puts "Q1"
+#puts "Q1"
             ctext::addHighlightClass $txt diesections blue $sections
-puts "Q2"
+#puts "Q2"
             ctext::addHighlightClassForRegexp $txt diesections blue $sectionRegExp
-puts "Q3"
+#puts "Q3"
             ctext::addHighlightClassForRegexp $txt ignoredsections red $ignoreRegExp
-puts "Q4"
-puts $sections
-puts $sectionRegExp
-puts $ignoreRegExp
+#puts "Q4"
+#puts $sections
+#puts $sectionRegExp
+#puts $ignoreRegExp
             $txt highlight 1.0 end
-puts "Q5"
+#puts "Q5"
             $txt configure -state disabled
             close $f
             xAIF::GUI::Message -severity note -msg [format "Loaded AIF file \"%s\"." $xAIF::Settings(filename)]
@@ -2323,7 +2323,7 @@ namespace eval xAIF::GUI::Draw {
             ##  Can the Finger pad be placed?
 
             if { $nlr(FINNAME) != "-" } {
-                puts "---------------------> Finger"
+                #puts "---------------------> Finger"
                 xAIF::GUI::Draw::AddPin $nlr(FIN_X) $nlr(FIN_Y) $nlr(FINNUM) $nlr(NETNAME) $nlr(FINNAME) $line_no "bondpad pad pad-$nlr(FINNAME)" "purple" "white" $nlr(ANGLE)
                 lappend xAIF::bondpads [list $nlr(NETNAME) $nlr(FINNAME) $nlr(FIN_X) $nlr(FIN_Y) $nlr(ANGLE)]
                 if { [lsearch [array names xAIF::padtypes] $nlr(FINNAME)] == -1 } {
@@ -2399,9 +2399,9 @@ namespace eval xAIF::GUI::Draw {
         ##  appear in the AIF file multiple times.  Need to eliminate any
         ##  duplicates prevent placing bond pads multiple times.
 
-        puts [format "++++++>  %d" [llength $xAIF::bondpads]]
+        #puts [format "++++++>  %d" [llength $xAIF::bondpads]]
         set xAIF::bondpads [lsort -unique $xAIF::bondpads]
-        puts [format "++++++>  %d" [llength $xAIF::bondpads]]
+        #puts [format "++++++>  %d" [llength $xAIF::bondpads]]
 
         ##  Generate KYN Netlist
         $kyn configure -state normal
@@ -2555,7 +2555,7 @@ namespace eval xAIF::GUI::Draw {
         $kyn insert end "%Prior=1\n\n"
         $kyn insert end "%page=0\n"
 
-        puts $xAIF::netlist
+        #puts $xAIF::netlist
         ##  Netlist content
         set p ""
         foreach n $xAIF::netlist {
@@ -2571,7 +2571,7 @@ namespace eval xAIF::GUI::Draw {
                     }
                 } else {
                     set p [split $i "."]
-puts "${i}::${n}::${p}"
+#puts "${i}::${n}::${p}"
                     if { [llength $p] > 1 } {
                         $kyn insert end [format " \\%s\\-\\%s\\" [lindex $p 0] [lindex $p 1]]
                     } else {
@@ -2733,7 +2733,7 @@ puts "${i}::${n}::${p}"
             "POLY" {
                 set polypts {}
                 set padxy [AIF::Pad::GetPoints $pad]
-                puts $padxy
+                #puts $padxy
                 foreach {px py} $padxy {
                     #puts $px
                     #puts $py
@@ -2849,7 +2849,7 @@ puts "${i}::${n}::${p}"
             #puts $poly
             if { [lindex $poly 1] == 1 } {
                 set points [lreplace $poly  0 3 ]
-                puts $points 
+                #puts $points 
             } else {
                 xAIF::GUI::Message -severity warning -msg "Only one polygon supported for BGA outline, reverting to derived outline."
                 set x1 [expr -($xAIF::bga(width) / 2)]
@@ -2947,8 +2947,8 @@ namespace eval xAIF::GUI::Draw {
     proc RotateXY { x y { angle 0 } } {
         #set radians [expr $angle*(3.14159265/180.0)]
         set radians [expr {$angle * atan(1) * 4 / 180.0}] ;# Radians
-        puts "R:  $radians"
-        puts "A:  $angle"
+        #puts "R:  $radians"
+        #puts "A:  $angle"
         set x2 [expr { $x * cos($radians) - $y * sin($radians) }]
         set y2 [expr { $x * sin($radians) + $y * cos($radians) }]
         #puts "====================================="
@@ -3046,7 +3046,7 @@ namespace eval xAIF::GUI::StatusBar {
         if { [string is true $V(-busy)] } {
             set xAIF::Settings(status) "Busy ..."
             incr xAIF::Settings(progress) 
-            puts "Progress:  $xAIF::Settings(progress)"
+            #puts "Progress:  $xAIF::Settings(progress)"
             $xAIF::GUI::Widgets(mainframe).status.prg configure -fg red
             #$slf configure -background red
             #$xAIF::GUI::Widgets(progressbar) start
