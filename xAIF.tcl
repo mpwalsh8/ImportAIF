@@ -269,6 +269,9 @@ namespace eval xAIF {
     set Settings(librarymanager) ""
     set Settings(librarymanageropts) ""
 
+    set Settings(appConnect) on
+    set Settings(appVisible) on
+
     ##  Supported units
     set xAIF::units [list um mm cm inch mil]
 

@@ -281,14 +281,17 @@ namespace eval xAIF::GUI {
                 {cascade "&Active Design"  {} {activedesignsmenu} 0 {}}
                 {command "&Scan for Designs"  {} "Scan for Active Designs" {} -command {xPCB::setOpenDocuments}}
                 {separator}
-                {command "Set &Package Outline"  {} "Set the Package Outline" {} -command {
-                        xAIF::GUI::Message -severity warning -msg "Command has not been implemented." }}
-                {command "Set &Route Border"  {} "Set the Route Border" {} -command {
-                        xAIF::GUI::Message -severity warning -msg "Command has not been implemented." }}
-                {command "Set &Manufacturing Outline"  {} "Set the Manufacturing Outline" {} -command {
-                        xAIF::GUI::Message -severity warning -msg "Command has not been implemented." }}
-                {command "Set &Test Fixture Outline"  {} "Set the Test Fixture Outline" {} -command {
-                        xAIF::GUI::Message -severity warning -msg "Command has not been implemented." }}
+                {command "Set &Package Outline"  {} "Set the Package Outline" {}
+                    -command { MGC::Design::SetPackageOutline }}
+                {command "Set &Route Border"  {} "Set the Route Border" {}
+                    -command { MGC::Design::SetRouteBorder }}
+                {command "Set &Manufacturing Outline"  {} "Set the Manufacturing Outline" {}
+                    -command { MGC::Design::SetManufacturingOutline }}
+                {command "Set &Test Fixture Outline"  {} "Set the Test Fixture Outline" {}
+                    -command { MGC::Design::SetTestFixtureOutline }}
+                {separator}
+                {command "Check &Database Units"  {} "Check Database Units" {}
+                    -command { MGC::Design::CheckDatabaseUnits }}
                 {separator}
                 {cascade "&Work Directory" {} {} 0 {
                     {command "&From Design" {} "Set Work Directory from Design" {} -command { xPCB::Setup::WorkDirectoryFromDesign }}
@@ -304,13 +307,10 @@ namespace eval xAIF::GUI {
             "&Wirebond" all wirebondmenu 0 {
                 {command "&Setup ..."  {} "Setup Wirebond Parameters" {} -command { $xAIF::GUI::Widgets(notebook) raise wbpf }}
                 {separator}
-                {command "&Apply Wirebond Properties"  {} "Apply Wirebond Properties" {} -command {
-                        xAIF::GUI::Message -severity warning -msg "Command has not been implemented." }}
+                {command "&Apply Wirebond Properties"  {} "Apply Wirebond Properties" {} -command { MGC::WireBond::ApplyProperies }}
                 {separator}
-                {command "Place Bond &Pads ..."  {} "Place Bond Pads" {} -command {
-                        xAIF::GUI::Message -severity warning -msg "Command has not been implemented." }}
-                {command "Place Bond &Wires ..."  {} "Place Bond Wires" {} -command {
-                        xAIF::GUI::Message -severity warning -msg "Command has not been implemented." }}
+                {command "Place Bond &Pads ..."  {} "Place Bond Pads" {} -command { MGC::WireBond::PlaceBondPads }}
+                {command "Place Bond &Wires ..."  {} "Place Bond Wires" {} -command { MGC::WireBond::PlaceBondWires }}
             }
             "&Tools" all toolsmenu 0 {
                 {command "&XpeditionPCB ..."         {xpeditionpcb}   "Launch XpeditionPCB"       {} -command {xPCB::OpenXpeditionPCB}}
@@ -1008,10 +1008,10 @@ namespace eval xAIF::GUI::Build {
         ##  Connection
         labelframe $dbf.connection -pady 2 -text "Application Connection" -padx 2
         foreach { i j } { on On off Off } {
-            radiobutton $dbf.connection.b$i -text "$j" -variable xAIF::Settings(connectMode) \
+            radiobutton $dbf.connection.b$i -text "$j" -variable xAIF::Settings(appConnect) \
 	                -relief flat -value $i -command {xAIF::GUI::Message -severity note -msg \
                 [format "Application Connect mode is now %s." \
-                $xAIF::Settings(connectMode) ] ; xAIF::GUI::StatusBar::UpdateStatus -busy off }
+                $xAIF::Settings(appConnect) ] ; xAIF::GUI::StatusBar::UpdateStatus -busy off }
             pack $dbf.connection.b$i  -side left -pady 2 -anchor w
         }
 
@@ -1237,7 +1237,7 @@ namespace eval xAIF::GUI::Menus {
 
         ##  If "Connect Mode" is on, go get the active library and populate the Dashboard
 
-        if { $xAIF::Settings(connectMode) } {
+        if { $xAIF::Settings(appConnect) } {
             ##  Invoke Xpedition on the design so the Cell Editor can be started
             ##  Catch any exceptions raised by opening the database
             set errorCode [catch { xLM::OpenLibraryManager } errorMessage]
@@ -1282,7 +1282,7 @@ namespace eval xAIF::GUI::Menus {
 
         ##  If "Connect Mode" is on, go get the active design and populate the Dashboard
 
-        if { $xAIF::Settings(connectMode) } {
+        if { $xAIF::Settings(appConnect) } {
             ##  Invoke Xpedition on the design so the Cell Editor can be started
             ##  Catch any exceptions raised by opening the database
             set errorCode [catch { MGC::OpenXpedition } errorMessage]
