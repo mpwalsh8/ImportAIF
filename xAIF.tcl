@@ -214,7 +214,7 @@ namespace eval xAIF {
 
     set bondpads {}
     set bondwires {}
-    set bondpadsubst {}
+    array set bondpadsubst {}
 
     set netlist {}
     set netnames {}
@@ -402,8 +402,8 @@ namespace eval xAIF {
             DIEREF "U1"
             BGAREF "A1"
             name "Xpedition AIF Utility (xAIF)"
-            version "2.0-beta-2"
-            date "Thu Oct 05 14:23:05 EDT 2016"
+            version "2.0-beta-3"
+            date "Mon Feb 06 20:25:21 EDT 2017"
             workdir [pwd]
             status "Ready"
             connection off

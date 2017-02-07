@@ -57,13 +57,13 @@ namespace eval MGC {
     proc OpenXpedition {} {
         #  Crank up Xpedition
 
-        if { [string is true $xAIF::Settings(connectMode)] } {
+        if { [string is true $xAIF::Settings(ConnectMode)] } {
             xAIF::GUI::Message -severity note -msg "Connecting to existing Xpedition session."
             #  Need to make sure Xpedition is actually running ...
             set errorCode [catch { set xPCB::Settings(pcbApp) [::tcom::ref getactiveobject "MGCPCB.ExpeditionPCBApplication"] } errorMessage]
             if {$errorCode != 0} {
                 xAIF::GUI::Message -severity error -msg "Unable to connect to Xpedition, is Xpedition running?"
-                set xAIF::Settings(connectMode) off
+                set xAIF::Settings(ConnectMode) off
                 return -code return 1
             }
 
@@ -77,7 +77,7 @@ namespace eval MGC {
             #  Make sure API returned an active database - no error code which is odd ...
             if { [string equal $xPCB::Settings(pcbDoc) ""] } {
                 xAIF::GUI::Message -severity error -msg "Unable to connect to Xpedition design, is Xpedition database open?"
-                set xAIF::Settings(connectMode) off
+                set xAIF::Settings(ConnectMode) off
                 return -code return 1
             }
         } else {
@@ -132,13 +132,13 @@ namespace eval MGC {
 puts "X0"
         #  Crank up Library Manager
 
-        if { [string is true $xAIF::Settings(connectMode)] } {
+        if { [string is true $xAIF::Settings(ConnectMode)] } {
             xAIF::GUI::Message -severity note -msg "Connecting to existing Library Manager session."
             #  Need to make sure Xpedition is actually running ...
             set errorCode [catch { set xAIF::Settings(libApp) [::tcom::ref getactiveobject "LibraryManager.Application"] } errorMessage]
             if {$errorCode != 0} {
                 xAIF::GUI::Message -severity error -msg "Unable to connect to Library Manager, is Library Manager running?"
-                set xAIF::Settings(connectMode) off
+                set xAIF::Settings(ConnectMode) off
                 return -code return 1
             }
 
@@ -273,7 +273,7 @@ puts "X4"
             #    ##  Close Xpedition
             #    $xPCB::Settings(pcbApp) Quit
             #}
-            if { [string is false $xAIF::Settings(connectMode)] } {
+            if { [string is false $xAIF::Settings(ConnectMode)] } {
                 ##  Close the Xpedition Database and terminate Xpedition
                 $xPCB::Settings(pcbDoc) Close
                 ##  Close Xpedition
@@ -384,7 +384,7 @@ puts "Z6"
             ##  Save the Xpedition Database
             $xPCB::Settings(pcbDoc) Save
 
-            if { [string is false $xAIF::Settings(connectMode)] } {
+            if { [string is false $xAIF::Settings(ConnectMode)] } {
                 ##  Close the Xpedition Database and terminate Xpedition
                 $xPCB::Settings(pcbDoc) Close
                 ##  Close Xpedition
@@ -495,7 +495,7 @@ puts "OpenPDBEdtr - 1"
             ##  Close Xpedition
             #$xPCB::Settings(pcbApp) Quit
 
-            if { [string is false $xAIF::Settings(connectMode)] } {
+            if { [string is false $xAIF::Settings(ConnectMode)] } {
                 ##  Close the Xpedition Database and terminate Xpedition
                 $xPCB::Settings(pcbDoc) Close
                 ##  Close Xpedition
@@ -624,7 +624,7 @@ puts "OpenPDBEdtr - 1"
 
             ##  Make sure a Target library or design has been defined
 
-            if { [string equal $xAIF::Settings(TargetPath) ""] && [ string is true $xAIF::Settings(connectMode)] } {
+            if { [string equal $xAIF::Settings(TargetPath) ""] && [ string is true $xAIF::Settings(ConnectMode)] } {
                 if { [string compare -nocase $xAIF::Settings(operatingmode) $xAIF::Const::XAIF_MODE_DESIGN] == 0 } {
                     xAIF::GUI::Message -severity error -msg "No Design (PCB) specified, build aborted."
                 } elseif { [string compare -nocase $xAIF::Settings(operatingmode) $xAIF::Const::XAIF_MODE_LIBRARY] == 0 } {
@@ -739,7 +739,7 @@ puts "OpenPDBEdtr - 1"
 
             ##  Make sure a Target library or design has been defined
 
-            if {$xAIF::Settings(TargetPath) == $xAIF::Const::XAIF_NOTHING && [string is false $xAIF::Settings(connectMode)] } {
+            if {$xAIF::Settings(TargetPath) == $xAIF::Const::XAIF_NOTHING && [string is false $xAIF::Settings(ConnectMode)] } {
                 if { [string compare -nocase $xAIF::Settings(operatingmode) $xAIF::Const::XAIF_MODE_DESIGN] == 0 } {
                     xAIF::GUI::Message -severity error -msg "No Design (PCB) specified, build aborted."
                 } elseif { [string compare -nocase $xAIF::Settings(operatingmode) $xAIF::Const::XAIF_MODE_LIBRARY] == 0 } {
@@ -910,7 +910,7 @@ puts "Y3"
             ##  Make sure a Target library or design has been defined
 puts "Y4"
 
-            if {$xAIF::Settings(TargetPath) == $xAIF::Const::XAIF_NOTHING && [string is false $xAIF::Settings(connectMode)] } {
+            if {$xAIF::Settings(TargetPath) == $xAIF::Const::XAIF_NOTHING && [string is false $xAIF::Settings(ConnectMode)] } {
                 if { [string compare -nocase $xAIF::Settings(operatingmode) $xAIF::Const::XAIF_MODE_DESIGN] == 0 } {
                     xAIF::GUI::Message -severity error -msg "No Design (PCB) specified, build aborted."
                 } elseif { [string compare -nocase $xAIF::Settings(operatingmode) $xAIF::Const::XAIF_MODE_LIBRARY] == 0 } {
@@ -1443,7 +1443,7 @@ puts [expr $::MGCPCB::EPcbSide(epcbSideOpposite)]
 
             ##  Make sure a Target library or design has been defined
 
-            if {$xAIF::Settings(TargetPath) == $xAIF::Const::XAIF_NOTHING && [string is false $xAIF::Settings(connectMode)] } {
+            if {$xAIF::Settings(TargetPath) == $xAIF::Const::XAIF_NOTHING && [string is false $xAIF::Settings(ConnectMode)] } {
                 if {$xAIF::Settings(operatingmode) == $xAIF::Const::XAIF_MODE_DESIGN} {
                     xAIF::GUI::Message -severity error -msg "No Design (PCB) specified, build aborted."
                 } elseif {$xAIF::Settings(operatingmode) == $xAIF::Const::XAIF_MODE_LIBRARY} {

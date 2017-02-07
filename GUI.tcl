@@ -2324,7 +2324,8 @@ namespace eval xAIF::GUI::Draw {
 
             if { $nlr(FINNAME) != "-" } {
                 #puts "---------------------> Finger"
-                xAIF::GUI::Draw::AddPin $nlr(FIN_X) $nlr(FIN_Y) $nlr(FINNUM) $nlr(NETNAME) $nlr(FINNAME) $line_no "bondpad pad pad-$nlr(FINNAME)" "purple" "white" $nlr(ANGLE)
+                xAIF::GUI::Draw::AddPin $nlr(FIN_X) $nlr(FIN_Y) $nlr(FINNUM) $nlr(NETNAME) \
+                    $nlr(FINNAME) $line_no "bondpad pad pad-$nlr(FINNAME)" "purple" "white" $nlr(ANGLE)
                 lappend xAIF::bondpads [list $nlr(NETNAME) $nlr(FINNAME) $nlr(FIN_X) $nlr(FIN_Y) $nlr(ANGLE)]
                 if { [lsearch [array names xAIF::padtypes] $nlr(FINNAME)] == -1 } {
                     set xAIF::padtypes($nlr(FINNAME)) "bondpad"
@@ -2345,7 +2346,8 @@ namespace eval xAIF::GUI::Draw {
                     }
                 }
             } else {
-                xAIF::GUI::Message -severity warning -msg [format "Skipping finger for net \"%s\" on line %d, no finger assignment." $netname, $line_no]
+                xAIF::GUI::Message -severity warning -msg \
+                    [format "Skipping finger for net \"%s\" on line %d, no finger assignment." $netname, $line_no]
             }
 
             ##  Need to detect connections - there are two types:
