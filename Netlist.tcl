@@ -230,9 +230,15 @@ namespace eval Netlist {
             if { [lsearch -exact $::AIF::sections MCM_DIE] == -1 } {
                 set ctr "0,0"
 
+                ##  2017-03-05:  I think this is wrong after reading the AIF spec again.  The
+                ##  CENTER directive in the DIE section applies to the die outline, not the pin
+                ##  placement within the die.
+    
+                if { 0 } {
                 ##  If the device has a section, extract the CENTER keyword
                 if { [lsearch [AIF::Sections] "DIE"] != -1 } {
                     set ctr [AIF::GetVar CENTER "DIE"]
+                }
                 }
 
                 ##  Split the CENTER keyword into an X and Y, handle space or comma

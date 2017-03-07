@@ -188,18 +188,21 @@ namespace eval AIF {
         #
         #  AIF::BGA::Section
         #
-        #  Scan the AIF source file for the "DIE" section
+        #  Scan the AIF source file for the "BGA" section
         #
         proc Section {} {
             ##  Make sure we have a BGA section!
             if { [lsearch -exact $::AIF::sections BGA] != -1 } {
-                ##  Load the DIE section
+                ##  Load the BGA section
                 set vars [AIF::Variables BGA]
 
                 foreach v $vars {
                     #puts [format "-->  %s" $v]
                     set xAIF::bga([string tolower $v]) [AIF::GetVar $v BGA]
                 }
+
+                ##  Default Package Cell to BGA
+                set xAIF::Settings(PackageCell) $xAIF::bga(name)
 
                 ##  Add the BGA to the list of devices
                 set xAIF::mcmdie($xAIF::Settings(BGAREF)) $xAIF::bga(name)
@@ -447,8 +450,11 @@ namespace eval AIF {
         proc Section {} {
 
             set rv 0
-            set m [$xAIF::GUI::Widgets(mainframe) getmenu padsmenu]
-            $m add separator
+            set vm [$xAIF::GUI::Widgets(mainframe) getmenu padsmenu]
+            set sm [$xAIF::GUI::Widgets(mainframe) getmenu padgenerationmenu]
+            $sm delete 0 end
+            
+            #$vm add separator
 
             ##  Make sure we have a PADS section!
             if { [lsearch -exact $::AIF::sections PADS] != -1 } {
@@ -471,9 +477,23 @@ namespace eval AIF {
                     set xAIF::GUI::pads($v) on
                     #$vm.pads add checkbutton -label "$v" -underline 0 \
                     #    -variable xAIF::GUI::pads($v) -onvalue on -offvalue off -command GUI::VisiblePad
-                    $m add checkbutton -label "$v" \
+                    $vm add checkbutton -label "$v" \
                         -variable xAIF::GUI::pads($v) -onvalue on -offvalue off \
                         -command  "xAIF::GUI::Draw::Visibility pad-$v -mode toggle"
+
+                    ##  Create the submenu for changing the pad type
+                    ##  Destroy the menu in case it already exists.
+                    destroy [string tolower $sm.$v]
+                    set pm [menu [string tolower $sm.$v] -tearoff 0]
+                    $sm add cascade -label "$v" -menu $pm -underline 0
+                    $pm add radiobutton -label "Ball Pad" -variable xAIF::padtypes($v) \
+                        -value $xAIF::Const::XAIF_PADTYPE_BALLPAD -underline 1
+                    $pm add radiobutton -label "Bond Pad" -variable xAIF::padtypes($v) \
+                        -value $xAIF::Const::XAIF_PADTYPE_BONDPAD -underline 1
+                    $pm add radiobutton -label "Die Pad" -variable xAIF::padtypes($v) \
+                        -value $xAIF::Const::XAIF_PADTYPE_DIEPAD -underline 0
+                    $pm add radiobutton -label "SMD Pad" -variable xAIF::padtypes($v) \
+                        -value $xAIF::Const::XAIF_PADTYPE_SMDPAD -underline 0
                 }
 
                 foreach i [array names xAIF::pads] {
