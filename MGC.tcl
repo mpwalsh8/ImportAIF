@@ -57,13 +57,13 @@ namespace eval MGC {
     proc OpenXpedition {} {
         #  Crank up Xpedition
 
-        if { [string is true $xAIF::Settings(ConnectMode)] } {
+        if { [string is true $xAIF::GUI::Dashboard::ConnectMode] } {
             xAIF::GUI::Message -severity note -msg "Connecting to existing Xpedition session."
             #  Need to make sure Xpedition is actually running ...
             set errorCode [catch { set xPCB::Settings(pcbApp) [::tcom::ref getactiveobject "MGCPCB.ExpeditionPCBApplication"] } errorMessage]
             if {$errorCode != 0} {
                 xAIF::GUI::Message -severity error -msg "Unable to connect to Xpedition, is Xpedition running?"
-                set xAIF::Settings(ConnectMode) off
+                set xAIF::GUI::Dashboard::ConnectMode off
                 return -code return 1
             }
 
@@ -77,7 +77,7 @@ namespace eval MGC {
             #  Make sure API returned an active database - no error code which is odd ...
             if { [string equal $xPCB::Settings(pcbDoc) ""] } {
                 xAIF::GUI::Message -severity error -msg "Unable to connect to Xpedition design, is Xpedition database open?"
-                set xAIF::Settings(ConnectMode) off
+                set xAIF::GUI::Dashboard::ConnectMode off
                 return -code return 1
             }
         } else {
@@ -118,7 +118,7 @@ namespace eval MGC {
         #  Suppress trivial dialog boxes
         #[$xPCB::Settings(pcbDoc) Gui] SuppressTrivialDialogs True
 
-        set xPCB::Settings(TargetPath) [$xPCB::Settings(pcbDoc) Path][$xPCB::Settings(pcbDoc) Name]
+        set xAIF::Settings(TargetPath) [$xPCB::Settings(pcbDoc) Path][$xPCB::Settings(pcbDoc) Name]
         set xPCB::Settings(DesignPath) [$xPCB::Settings(pcbDoc) Path][$xPCB::Settings(pcbDoc) Name]
         #puts [$xPCB::Settings(pcbDoc) Path][$xPCB::Settings(pcbDoc) Name]
         xAIF::GUI::Message -severity note -msg [format "Connected to design database:  %s%s" \
@@ -132,13 +132,13 @@ namespace eval MGC {
 puts "X0"
         #  Crank up Library Manager
 
-        if { [string is true $xAIF::Settings(ConnectMode)] } {
+        if { [string is true $xAIF::GUI::Dashboard::ConnectMode] } {
             xAIF::GUI::Message -severity note -msg "Connecting to existing Library Manager session."
             #  Need to make sure Xpedition is actually running ...
             set errorCode [catch { set xAIF::Settings(libApp) [::tcom::ref getactiveobject "LibraryManager.Application"] } errorMessage]
             if {$errorCode != 0} {
                 xAIF::GUI::Message -severity error -msg "Unable to connect to Library Manager, is Library Manager running?"
-                set xAIF::Settings(ConnectMode) off
+                set xAIF::GUI::Dashboard::ConnectMode off
                 return -code return 1
             }
 
@@ -220,11 +220,11 @@ puts "X4"
                 xAIF::GUI::Message -severity note -msg "Reusing previously opened instance of Xpedition."
             }
             set xPCB::Settings(pdstkEdtr) [$xPCB::Settings(pcbDoc) PadstackEditor]
-            set xAIF::Settings(pdstkEdtrDb) [$xAIF::Settings(pdstkEdtr) ActiveDatabase]
+            set xPCB::Settings(pdstkEdtrDb) [$xPCB::Settings(pdstkEdtr) ActiveDatabase]
         } elseif { [string compare -nocase $xAIF::Settings(operatingmode) $xAIF::Const::XAIF_MODE_LIBRARY] == 0 } {
-            set xAIF::Settings(pdstkEdtr) [::tcom::ref createobject "MGCPCBLibraries.PadstackEditorDlg"]
+            set xPCB::Settings(pdstkEdtr) [::tcom::ref createobject "MGCPCBLibraries.PadstackEditorDlg"]
             # Open the database
-            set errorCode [catch {set xAIF::Settings(pdstkEdtrDb) [$xAIF::Settings(pdstkEdtr) \
+            set errorCode [catch {set xPCB::Settings(pdstkEdtrDb) [$xPCB::Settings(pdstkEdtr) \
                 OpenDatabaseEx $xAIF::Settings(TargetPath) false] } errorMessage]
             if {$errorCode != 0} {
                 xAIF::GUI::Message -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
@@ -236,7 +236,7 @@ puts "X4"
         }
 
         # Lock the server
-        set errorCode [catch { $xAIF::Settings(pdstkEdtr) LockServer } errorMessage]
+        set errorCode [catch { $xPCB::Settings(pdstkEdtr) LockServer } errorMessage]
         if {$errorCode != 0} {
             xAIF::GUI::Message -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
             return -code return 1
@@ -244,7 +244,7 @@ puts "X4"
 
         # Display the dialog box?  Note this isn't necessary
         # but done for clarity and useful for debugging purposes.
-        $xAIF::Settings(pdstkEdtr) Visible $xAIF::Settings(appVisible)
+        $xPCB::Settings(pdstkEdtr) Visible $xAIF::Settings(appVisible)
     }
 
     #
@@ -255,15 +255,15 @@ puts "X4"
 
         if { [string compare -nocase $xAIF::Settings(operatingmode) $xAIF::Const::XAIF_MODE_DESIGN] == 0 } {
             xAIF::GUI::Message -severity note -msg "Closing database for Padstack Editor."
-            set errorCode [catch { $xAIF::Settings(pdstkEdtr) UnlockServer } errorMessage]
+            set errorCode [catch { $xPCB::Settings(pdstkEdtr) UnlockServer } errorMessage]
             if {$errorCode != 0} {
                 xAIF::GUI::Message -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
                 return -code return 1
             }
             xAIF::GUI::Message -severity note -msg "Closing Padstack Editor."
             ##  Close Padstack Editor
-            $xAIF::Settings(pdstkEdtr) SaveActiveDatabase
-            $xAIF::Settings(pdstkEdtr) Quit
+            $xPCB::Settings(pdstkEdtr) SaveActiveDatabase
+            $xPCB::Settings(pdstkEdtr) Quit
             ##  Close the Xpedition Database
 
             ##  May want to leave Xpedition and the database open ...
@@ -273,7 +273,7 @@ puts "X4"
             #    ##  Close Xpedition
             #    $xPCB::Settings(pcbApp) Quit
             #}
-            if { [string is false $xAIF::Settings(ConnectMode)] } {
+            if { [string is false $xAIF::GUI::Dashboard::ConnectMode] } {
                 ##  Close the Xpedition Database and terminate Xpedition
                 $xPCB::Settings(pcbDoc) Close
                 ##  Close Xpedition
@@ -281,14 +281,14 @@ puts "X4"
             }
         } elseif { [string compare -nocase $xAIF::Settings(operatingmode) $xAIF::Const::XAIF_MODE_LIBRARY] == 0 } {
             xAIF::GUI::Message -severity note -msg "Closing database for Padstack Editor."
-            set errorCode [catch { $xAIF::Settings(pdstkEdtr) UnlockServer } errorMessage]
+            set errorCode [catch { $xPCB::Settings(pdstkEdtr) UnlockServer } errorMessage]
             if {$errorCode != 0} {
                 xAIF::GUI::Message -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
                 return -code return 1
             }
-            $xAIF::Settings(pdstkEdtr) CloseActiveDatabase True
+            $xPCB::Settings(pdstkEdtr) CloseActiveDatabase True
             xAIF::GUI::Message -severity note -msg "Closing Padstack Editor."
-            $xAIF::Settings(pdstkEdtr) Quit
+            $xPCB::Settings(pdstkEdtr) Quit
         } else {
             xAIF::GUI::Message -severity error -msg "Mode not set, build aborted."
             return -code return 1
@@ -313,13 +313,13 @@ puts "X4"
             }
             set xPCB::Settings(cellEdtr) [$xPCB::Settings(pcbDoc) CellEditor]
             xAIF::GUI::Message -severity note -msg "Using design database for Cell Editor."
-            set xAIF::Settings(cellEdtrDb) [$xAIF::Settings(cellEdtr) ActiveDatabase]
+            set xPCB::Settings(cellEdtrDb) [$xPCB::Settings(cellEdtr) ActiveDatabase]
         } elseif { $xAIF::Settings(operatingmode) == $xAIF::Const::XAIF_MODE_LIBRARY } {
             set xAIF::Settings(TargetPath) $xAIF::Settings(LibraryPath)
 puts "Z1"
-            set xAIF::Settings(cellEdtr) [::tcom::ref createobject "CellEditorAddin.CellEditorDlg"]
+            set xPCB::Settings(cellEdtr) [::tcom::ref createobject "CellEditorAddin.CellEditorDlg"]
 puts "Z2"
-            set xAIF::Settings(pdstkEdtr) [::tcom::ref createobject "MGCPCBLibraries.PadstackEditorDlg"]
+            set xPCB::Settings(pdstkEdtr) [::tcom::ref createobject "MGCPCBLibraries.PadstackEditorDlg"]
 puts "Z3"
 flush stdout
             # Open the database
@@ -328,7 +328,7 @@ puts "Z4"
 flush stdout
 
 set sTime [clock format [clock seconds] -format "%m/%d/%Y %T"]
-            set errorCode [catch {set xAIF::Settings(cellEdtrDb) [$xAIF::Settings(cellEdtr) \
+            set errorCode [catch {set xPCB::Settings(cellEdtrDb) [$xPCB::Settings(cellEdtr) \
                 OpenDatabase $xAIF::Settings(TargetPath) false] } errorMessage]
 set cTime [clock format [clock seconds] -format "%m/%d/%Y %T"]
 xAIF::GUI::Message -severity note -msg [format "Start Time:  %s" $sTime]
@@ -346,8 +346,8 @@ flush stdout
         }
 puts "Z6"
 
-        #set xAIF::Settings(cellEdtrDb) [$xAIF::Settings(cellEdtr) OpenDatabase $xAIF::Settings(TargetPath) false]
-        set errorCode [catch { $xAIF::Settings(cellEdtr) LockServer } errorMessage]
+        #set xPCB::Settings(cellEdtrDb) [$xPCB::Settings(cellEdtr) OpenDatabase $xAIF::Settings(TargetPath) false]
+        set errorCode [catch { $xPCB::Settings(cellEdtr) LockServer } errorMessage]
         if {$errorCode != 0} {
             xAIF::GUI::Message -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
             return -code return 1
@@ -355,7 +355,7 @@ puts "Z6"
 
         # Display the dialog box?  Note this isn't necessary
         # but done for clarity and useful for debugging purposes.
-        $xAIF::Settings(cellEdtr) Visible $xAIF::Settings(appVisible)
+        $xPCB::Settings(cellEdtr) Visible $xAIF::Settings(appVisible)
     }
 
     #
@@ -366,25 +366,25 @@ puts "Z6"
 
         if { [string compare -nocase $xAIF::Settings(operatingmode) $xAIF::Const::XAIF_MODE_DESIGN] == 0 } {
             xAIF::GUI::Message -severity note -msg "Closing database for Cell Editor."
-            set errorCode [catch { $xAIF::Settings(cellEdtr) UnlockServer } errorMessage]
+            set errorCode [catch { $xPCB::Settings(cellEdtr) UnlockServer } errorMessage]
             if {$errorCode != 0} {
                 xAIF::GUI::Message -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
                 return -code return 1
             }
             xAIF::GUI::Message -severity note -msg "Closing Cell Editor."
             ##  Close Padstack Editor
-            set errorCode [catch { $xAIF::Settings(cellEdtr) SaveActiveDatabase } errorMessage]
+            set errorCode [catch { $xPCB::Settings(cellEdtr) SaveActiveDatabase } errorMessage]
             if {$errorCode != 0} {
                 xAIF::GUI::Message -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
                 return -code return 1
             }
-            #$xAIF::Settings(cellEdtr) SaveActiveDatabase
-            $xAIF::Settings(cellEdtr) Quit
+            #$xPCB::Settings(cellEdtr) SaveActiveDatabase
+            $xPCB::Settings(cellEdtr) Quit
 
             ##  Save the Xpedition Database
             $xPCB::Settings(pcbDoc) Save
 
-            if { [string is false $xAIF::Settings(ConnectMode)] } {
+            if { [string is false $xAIF::GUI::Dashboard::ConnectMode] } {
                 ##  Close the Xpedition Database and terminate Xpedition
                 $xPCB::Settings(pcbDoc) Close
                 ##  Close Xpedition
@@ -392,14 +392,14 @@ puts "Z6"
             }
         } elseif { [string compare -nocase $xAIF::Settings(operatingmode) $xAIF::Const::XAIF_MODE_LIBRARY] == 0 } {
             xAIF::GUI::Message -severity note -msg "Closing database for Cell Editor."
-            set errorCode [catch { $xAIF::Settings(cellEdtr) UnlockServer } errorMessage]
+            set errorCode [catch { $xPCB::Settings(cellEdtr) UnlockServer } errorMessage]
             if {$errorCode != 0} {
                 xAIF::GUI::Message -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
                 return -code return 1
             }
-            $xAIF::Settings(cellEdtr) CloseActiveDatabase True
+            $xPCB::Settings(cellEdtr) CloseActiveDatabase True
             xAIF::GUI::Message -severity note -msg "Closing Cell Editor."
-            $xAIF::Settings(cellEdtr) Quit
+            $xPCB::Settings(cellEdtr) Quit
         } else {
             xAIF::GUI::Message -severity error -msg "Mode not set, build aborted."
             return -code return 1
@@ -427,16 +427,16 @@ puts "P2"
 puts "P3"
             set xPCB::Settings(partEdtr) [$xPCB::Settings(pcbDoc) PartEditor]
             xAIF::GUI::Message -severity note -msg "Using design database for PDB Editor."
-            set xAIF::Settings(partEdtrDb) [$xAIF::Settings(partEdtr) ActiveDatabase]
+            set xPCB::Settings(partEdtrDb) [$xPCB::Settings(partEdtr) ActiveDatabase]
         } elseif { [string compare -nocase $xAIF::Settings(operatingmode) $xAIF::Const::XAIF_MODE_LIBRARY] == 0 } {
             set xAIF::Settings(TargetPath) $xAIF::Settings(LibraryPath)
 puts "P4"
-            set xAIF::Settings(partEdtr) [::tcom::ref createobject "MGCPCBLibraries.PartsEditorDlg"]
+            set xPCB::Settings(partEdtr) [::tcom::ref createobject "MGCPCBLibraries.PartsEditorDlg"]
             # Open the database
             xAIF::GUI::Message -severity note -msg "Opening library database for PDB Editor."
-puts $xAIF::Settings(partEdtr)
+puts $xPCB::Settings(partEdtr)
 puts $xAIF::Settings(TargetPath)
-            set errorCode [catch {set xAIF::Settings(partEdtrDb) [$xAIF::Settings(partEdtr) \
+            set errorCode [catch {set xPCB::Settings(partEdtrDb) [$xPCB::Settings(partEdtr) \
                 OpenDatabaseEx $xAIF::Settings(TargetPath) false] } errorMessage]
             if {$errorCode != 0} {
 puts "P5"
@@ -452,8 +452,8 @@ puts "P5"
 puts "P6"
 puts "OpenPDBEdtr - 1"
 
-        #set xAIF::Settings(partEdtrDb) [$xAIF::Settings(partEdtr) OpenDatabase $xAIF::Settings(TargetPath) false]
-        set errorCode [catch { $xAIF::Settings(partEdtr) LockServer } errorMessage]
+        #set xPCB::Settings(partEdtrDb) [$xPCB::Settings(partEdtr) OpenDatabase $xAIF::Settings(TargetPath) false]
+        set errorCode [catch { $xPCB::Settings(partEdtr) LockServer } errorMessage]
         if {$errorCode != 0} {
             xAIF::GUI::Message -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
             return -code return 1
@@ -463,7 +463,7 @@ puts "OpenPDBEdtr - 1"
 
         # Display the dialog box?  Note this isn't necessary
         # but done for clarity and useful for debugging purposes.
-        $xAIF::Settings(partEdtr) Visible $xAIF::Settings(appVisible)
+        $xPCB::Settings(partEdtr) Visible $xAIF::Settings(appVisible)
 
         #return -code return 0
     }
@@ -476,15 +476,15 @@ puts "OpenPDBEdtr - 1"
 
         if { [string compare -nocase $xAIF::Settings(operatingmode) $xAIF::Const::XAIF_MODE_DESIGN] == 0 } {
             xAIF::GUI::Message -severity note -msg "Closing database for PDB Editor."
-            set errorCode [catch { $xAIF::Settings(partEdtr) UnlockServer } errorMessage]
+            set errorCode [catch { $xPCB::Settings(partEdtr) UnlockServer } errorMessage]
             if {$errorCode != 0} {
                 xAIF::GUI::Message -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
                 return -code return 1
             }
             xAIF::GUI::Message -severity note -msg "Closing PDB Editor."
             ##  Close Padstack Editor
-            $xAIF::Settings(partEdtr) SaveActiveDatabase
-            $xAIF::Settings(partEdtr) Quit
+            $xPCB::Settings(partEdtr) SaveActiveDatabase
+            $xPCB::Settings(partEdtr) Quit
             ##  Close the Xpedition Database
             ##  Need to save?
             if { [$xPCB::Settings(pcbDoc) IsSaved] == "False" } {
@@ -495,7 +495,7 @@ puts "OpenPDBEdtr - 1"
             ##  Close Xpedition
             #$xPCB::Settings(pcbApp) Quit
 
-            if { [string is false $xAIF::Settings(ConnectMode)] } {
+            if { [string is false $xAIF::GUI::Dashboard::ConnectMode] } {
                 ##  Close the Xpedition Database and terminate Xpedition
                 $xPCB::Settings(pcbDoc) Close
                 ##  Close Xpedition
@@ -503,14 +503,14 @@ puts "OpenPDBEdtr - 1"
             }
         } elseif { [string compare -nocase $xAIF::Settings(operatingmode) $xAIF::Const::XAIF_MODE_LIBRARY] == 0 } {
             xAIF::GUI::Message -severity note -msg "Closing database for PDB Editor."
-            set errorCode [catch { $xAIF::Settings(partEdtr) UnlockServer } errorMessage]
+            set errorCode [catch { $xPCB::Settings(partEdtr) UnlockServer } errorMessage]
             if {$errorCode != 0} {
                 xAIF::GUI::Message -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
                 return -code return 1
             }
-            $xAIF::Settings(partEdtr) CloseActiveDatabase True
+            $xPCB::Settings(partEdtr) CloseActiveDatabase True
             xAIF::GUI::Message -severity note -msg "Closing PDB Editor."
-            $xAIF::Settings(partEdtr) Quit
+            $xPCB::Settings(partEdtr) Quit
         } else {
             xAIF::GUI::Message -severity error -msg "Mode not set, build aborted."
             return -code return 1
@@ -555,23 +555,23 @@ puts "OpenPDBEdtr - 1"
 
         ##  Need to prompt for Cell partition
 
-        #puts "cellEdtrDb:  ------>$xAIF::Settings(cellEdtrDb)<-----"
+        #puts "cellEdtrDb:  ------>$xPCB::Settings(cellEdtrDb)<-----"
         ##  Can't list partitions when application is visible so if it is,
         ##  hide it temporarily while the list of partitions is queried.
 
         set visbility $xAIF::Settings(appVisible)
 
-        $xAIF::Settings(cellEdtr) Visible False
-        set partitions [$xAIF::Settings(cellEdtrDb) Partitions]
-        $xAIF::Settings(cellEdtr) Visible $visbility
+        $xPCB::Settings(cellEdtr) Visible False
+        set partitions [$xPCB::Settings(cellEdtrDb) Partitions]
+        $xPCB::Settings(cellEdtr) Visible $visbility
 
         xAIF::GUI::Message -severity note -msg [format "Found %s cell %s." [$partitions Count] \
             [xAIF::Utility::Plural [$partitions Count] "partition"]]
 
-        set xAIF::Settings(cellEdtrPrtnNames) {}
+        set xPCB::Settings(cellEdtrPrtnNames) {}
         for {set i 1} {$i <= [$partitions Count]} {incr i} {
             set partition [$partitions Item $i]
-            lappend xAIF::Settings(cellEdtrPrtnNames) [$partition Name]
+            lappend xPCB::Settings(cellEdtrPrtnNames) [$partition Name]
             xAIF::GUI::Message -severity note -msg [format "Found cell partition \"%s.\"" [$partition Name]]
         }
 
@@ -589,15 +589,15 @@ puts "OpenPDBEdtr - 1"
 
         ##  Need to prompt for PDB partition
 
-        set partitions [$xAIF::Settings(partEdtrDb) Partitions]
+        set partitions [$xPCB::Settings(partEdtrDb) Partitions]
 
         xAIF::GUI::Message -severity note -msg [format "Found %s part %s." [$partitions Count] \
             [xAIF::Utility::Plural [$partitions Count] "partition"]]
 
-        set xAIF::Settings(partEdtrPrtnNames) {}
+        set xPCB::Settings(partEdtrPrtnNames) {}
         for {set i 1} {$i <= [$partitions Count]} {incr i} {
             set partition [$partitions Item $i]
-            lappend xAIF::Settings(partEdtrPrtnNames) [$partition Name]
+            lappend xPCB::Settings(partEdtrPrtnNames) [$partition Name]
             xAIF::GUI::Message -severity note -msg [format "Found part partition \"%s.\"" [$partition Name]]
         }
 
@@ -624,7 +624,7 @@ puts "OpenPDBEdtr - 1"
 
             ##  Make sure a Target library or design has been defined
 
-            if { [string equal $xAIF::Settings(TargetPath) ""] && [ string is true $xAIF::Settings(ConnectMode)] } {
+            if { [string equal $xAIF::Settings(TargetPath) ""] && [ string is true $xAIF::GUI::Dashboard::ConnectMode] } {
                 if { [string compare -nocase $xAIF::Settings(operatingmode) $xAIF::Const::XAIF_MODE_DESIGN] == 0 } {
                     xAIF::GUI::Message -severity error -msg "No Design (PCB) specified, build aborted."
                 } elseif { [string compare -nocase $xAIF::Settings(operatingmode) $xAIF::Const::XAIF_MODE_LIBRARY] == 0 } {
@@ -674,7 +674,7 @@ puts "OpenPDBEdtr - 1"
 
             #  Does the pad exist?
 
-            set oldPadName [$xAIF::Settings(pdstkEdtrDb) FindPad $padName]
+            set oldPadName [$xPCB::Settings(pdstkEdtrDb) FindPad $padName]
             #puts "Old Pad Name:  ----->$oldPadName<>$padName<-------"
 
             #  Echo some information about what will happen.
@@ -701,7 +701,7 @@ puts "OpenPDBEdtr - 1"
             }
 
             ##  Ready to build a new pad
-            set newPad [$xAIF::Settings(pdstkEdtrDb) NewPad]
+            set newPad [$xPCB::Settings(pdstkEdtrDb) NewPad]
 
             $newPad -set Name $padName
             #puts "------>$padName<----------"
@@ -739,7 +739,7 @@ puts "OpenPDBEdtr - 1"
 
             ##  Make sure a Target library or design has been defined
 
-            if {$xAIF::Settings(TargetPath) == $xAIF::Const::XAIF_NOTHING && [string is false $xAIF::Settings(ConnectMode)] } {
+            if {$xAIF::Settings(TargetPath) == $xAIF::Const::XAIF_NOTHING && [string is false $xAIF::GUI::Dashboard::ConnectMode] } {
                 if { [string compare -nocase $xAIF::Settings(operatingmode) $xAIF::Const::XAIF_MODE_DESIGN] == 0 } {
                     xAIF::GUI::Message -severity error -msg "No Design (PCB) specified, build aborted."
                 } elseif { [string compare -nocase $xAIF::Settings(operatingmode) $xAIF::Const::XAIF_MODE_LIBRARY] == 0 } {
@@ -778,7 +778,7 @@ puts "OpenPDBEdtr - 1"
             }
 
             #  Look for the pad that the AIF references
-            set pad [$xAIF::Settings(pdstkEdtrDb) FindPad $padName]
+            set pad [$xPCB::Settings(pdstkEdtrDb) FindPad $padName]
 
             if {$pad == $xAIF::Const::XAIF_NOTHING} {
                 xAIF::GUI::Message -severity error -msg [format "Pad \"%s\" is not defined, padstack \"%s\" build aborted." $padName $xAIF::padgeom(name)]
@@ -788,7 +788,7 @@ puts "OpenPDBEdtr - 1"
 
             #  Does the pad exist?
 
-            set oldPadstackName [$xAIF::Settings(pdstkEdtrDb) FindPadstack $xAIF::padgeom(name)]
+            set oldPadstackName [$xPCB::Settings(pdstkEdtrDb) FindPadstack $xAIF::padgeom(name)]
 
             #  Echo some information about what will happen.
 
@@ -813,18 +813,19 @@ puts "OpenPDBEdtr - 1"
             }
 
             ##  Ready to build the new padstack
-            set newPadstack [$xAIF::Settings(pdstkEdtrDb) NewPadstack]
+            set newPadstack [$xPCB::Settings(pdstkEdtrDb) NewPadstack]
 
             $newPadstack -set Name $xAIF::padgeom(name)
 
             ##  Need to handle various pad types which are inferred while processing
             ##  the netlist.  If for some reason the pad doesn't appear in the netlist
 
-            if { [lsearch [array names ::padtypes] $xAIF::padgeom(name)] == -1 } {
+            if { [lsearch [array names xAIF::padtypes] $xAIF::padgeom(name)] == -1 } {
+                puts "MGC.tcl::824 - defaulting to smdpad"
                 set xAIF::padtypes($xAIF::padgeom(name)) "smdpad"
             }
 
-            switch -exact $:xAIF:padtypes($xAIF::padgeom(name)) {
+            switch -exact $xAIF::padtypes($xAIF::padgeom(name)) {
                 "bondpad" {
                     $newPadstack -set Type $::PadstackEditorLib::EPsDBPadstackType(epsdbPadstackTypeBondPin)
                 }
@@ -877,7 +878,7 @@ puts "Y1"
             }
 puts "Y2"
 
-            set xAIF::Settings(cellEdtrPrtnName) $V(-partition)
+            set xPCB::Settings(cellEdtrPrtnName) $V(-partition)
 
             ##  Check mirror option, make sure it is valid
             if { [lsearch [list none x y xy] $V(-mirror)] == -1 } {
@@ -910,7 +911,7 @@ puts "Y3"
             ##  Make sure a Target library or design has been defined
 puts "Y4"
 
-            if {$xAIF::Settings(TargetPath) == $xAIF::Const::XAIF_NOTHING && [string is false $xAIF::Settings(ConnectMode)] } {
+            if {$xAIF::Settings(TargetPath) == $xAIF::Const::XAIF_NOTHING && [string is false $xAIF::GUI::Dashboard::ConnectMode] } {
                 if { [string compare -nocase $xAIF::Settings(operatingmode) $xAIF::Const::XAIF_MODE_DESIGN] == 0 } {
                     xAIF::GUI::Message -severity error -msg "No Design (PCB) specified, build aborted."
                 } elseif { [string compare -nocase $xAIF::Settings(operatingmode) $xAIF::Const::XAIF_MODE_LIBRARY] == 0 } {
@@ -946,19 +947,19 @@ puts "Y6"
                 #  Prompt for the Partition if not supplied with -partition
 
                 if { [string equal $V(-partition) ""] } {
-                    set xAIF::Settings(cellEdtrPrtnName) \
-                        [AIFForms::ListBox::SelectOneFromList "Select Target Cell Partition" $xAIF::Settings(cellEdtrPrtnNames)]
+                    set xPCB::Settings(cellEdtrPrtnName) \
+                        [AIFForms::ListBox::SelectOneFromList "Select Target Cell Partition" $xPCB::Settings(cellEdtrPrtnNames)]
 
-                    if { [string equal $xAIF::Settings(cellEdtrPrtnName) ""] } {
+                    if { [string equal $xPCB::Settings(cellEdtrPrtnName) ""] } {
                         xAIF::GUI::Message -severity error -msg "No Cell Partition selected, build aborted."
                         MGC::CloseCellEditor
                         xAIF::GUI::StatusBar::UpdateStatus -busy off
                         return
                     } else {
-                        set xAIF::Settings(cellEdtrPrtnName) [lindex $xAIF::Settings(cellEdtrPrtnName) 1]
+                        set xPCB::Settings(cellEdtrPrtnName) [lindex $xPCB::Settings(cellEdtrPrtnName) 1]
                     }
                 } else {
-                    set xAIF::Settings(cellEdtrPrtnName) $V(-partition)
+                    set xPCB::Settings(cellEdtrPrtnName) $V(-partition)
                 }
 
                 #  Does the cell exist?  Before we can check, we need a
@@ -971,9 +972,9 @@ puts "Y6"
                 set visibility $xAIF::Settings(appVisible)
 
 puts "Y7"
-                $xAIF::Settings(cellEdtr) Visible False
-                set partitions [$xAIF::Settings(cellEdtrDb) Partitions]
-                $xAIF::Settings(cellEdtr) Visible $visibility
+                $xPCB::Settings(cellEdtr) Visible False
+                set partitions [$xPCB::Settings(cellEdtrDb) Partitions]
+                $xPCB::Settings(cellEdtr) Visible $visibility
 
                 xAIF::GUI::Message -severity note -msg [format "Found %s cell %s." [$partitions Count] \
                     [xAIF::Utility::Plural [$partitions Count] "partition"]]
@@ -986,27 +987,29 @@ puts "Y7"
 
                 #  Does the partition exist?
 
-                if { [lsearch $pNames $xAIF::Settings(cellEdtrPrtnName)] == -1 } {
+                if { [lsearch $pNames $xPCB::Settings(cellEdtrPrtnName)] == -1 } {
                     xAIF::GUI::Message -severity note -msg [format "Creating partition \"%s\" for cell \"%s\"." \
                         $xAIF::die(partition) $target]
 
-                    set partition [$xAIF::Settings(cellEdtrDb) NewPartition $xAIF::Settings(cellEdtrPrtnName)]
+                    set partition [$xPCB::Settings(cellEdtrDb) NewPartition $xPCB::Settings(cellEdtrPrtnName)]
                 } else {
                     xAIF::GUI::Message -severity note -msg [format "Using existing partition \"%s\" for cell \"%s\"." \
-                        $xAIF::Settings(cellEdtrPrtnName) $target]
-                    set partition [$partitions Item [expr [lsearch $pNames $xAIF::Settings(cellEdtrPrtnName)] +1]]
+                        $xPCB::Settings(cellEdtrPrtnName) $target]
+                    set partition [$partitions Item [expr [lsearch $pNames $xPCB::Settings(cellEdtrPrtnName)] +1]]
                 }
 
                 #  Now that the partition work is doene, does the cell exist?
 
                 set cells [$partition Cells]
             } else {
+puts "Y61"
                 if { [expr { $V(-partition) ne "" }] } {
                     xAIF::GUI::Message -severity warning -msg "-partition switch is ignored in Design Mode."
                 }
-                set partition [$xAIF::Settings(cellEdtrDb) ActivePartition]
+                set partition [$xPCB::Settings(cellEdtrDb) ActivePartition]
                 set cells [$partition Cells]
             }
+puts "Y62"
 
             xAIF::GUI::Message -severity note -msg [format "Found %s %s." [$cells Count] \
                 [xAIF::Utility::Plural [$cells Count] "cell"]]
@@ -1018,6 +1021,7 @@ puts "Y7"
             }
 
             #  Does the cell exist?  Are we using Name suffixes?
+puts "Y63"
 
             if { [string equal $xAIF::GUI::Dashboard::CellSuffix numeric] } {
                 set suffixes [lsearch -all -inline -regexp  $cNames $target-\[0-9\]+]
@@ -1062,6 +1066,8 @@ puts "Y7"
             } else {
             }
 
+puts "Y64"
+
             ##  If cell already exists, try and delete it.
             ##  This can fail if the cell is being referenced by the design.
 
@@ -1081,8 +1087,9 @@ puts "Y7"
                     return
                 }
 
-                $xAIF::Settings(cellEdtr) SaveActiveDatabase
+                $xPCB::Settings(cellEdtr) SaveActiveDatabase
             }
+puts "Y65"
 
             ##  Build a new cell.  The first part of this is done in
             ##  in the Cell Editor which is part of the Library Manager.
@@ -1156,7 +1163,7 @@ puts "Y7"
             set pads [Netlist::GetPads]
 
             foreach pad $pads {
-                set padstack($pad) [$xAIF::Settings(pdstkEdtrDb) FindPadstack $pad]
+                set padstack($pad) [$xPCB::Settings(pdstkEdtrDb) FindPadstack $pad]
 
                 #  Echo some information about what will happen.
 
@@ -1202,32 +1209,32 @@ puts "K1"
             set ctr "0,0"
 
             if { $xAIF::Settings(MCMAIF) == 1 } {
-#puts "Q1"
+puts "Q1"
                 ##  Device might be the BGA ... need to account
                 ##  for that possibility before trying to extract the
                 ##  Center X and Center Y from a non-existant section
 
                 foreach d [array names xAIF::mcmdie] {
                     if { [string equal $xAIF::mcmdie($d) $device] } {
-#puts "Q2"
+puts "Q2"
                         set section [format "MCM_%s_%s" $xAIF::mcmdie($d) $d]
                         puts "-->  Section:  $section"
                     }
                 }
 
                 if { [lsearch [AIF::Sections] $section] != -1 } {
-#puts "Q3"
+puts "Q3"
                     set ctr [AIF::GetVar CENTER $section]
                 }
             } 
 
             ##  Split the CENTER keyword into an X and Y, handle space or comma
             if { [string first , $ctr] != -1 } {
-#puts "Q4"
+puts "Q4"
                 set diePadFields(centerx) [string trim [lindex [split $ctr ,] 0]]
                 set diePadFields(centery) [string trim [lindex [split $ctr ,] 1]]
             } else {
-#puts "Q5"
+puts "Q5"
                 set diePadFields(centerx) [string trim [lindex [split $ctr] 0]]
                 set diePadFields(centery) [string trim [lindex [split $ctr] 1]]
             }
@@ -1305,9 +1312,16 @@ puts [$pin Side]
                     }
 #puts [format "X: %s, O: %s  / Y: %s, O: %s" $diePadFields(padx), $diePadFields(centerx) $diePadFields(pady), $diePadFields(centery)]
 
+                    ##  2017-03-05:  I think this is wrong after reading the AIF spec again.  The
+                    ##  CENTER directive in the DIE section applies to the die outline, not the pin
+                    ##  placement within the die.
+                    #set errorCode [catch { $pin Place \
+                    #    [expr $diePadFields(padx) - $diePadFields(centerx)] \
+                    #    [expr $diePadFields(pady) - $diePadFields(centery)] [expr 0] } errorMessage]
+
                     set errorCode [catch { $pin Place \
-                        [expr $diePadFields(padx) - $diePadFields(centerx)] \
-                        [expr $diePadFields(pady) - $diePadFields(centery)] [expr 0] } errorMessage]
+                        [expr $diePadFields(padx)] [expr $diePadFields(pady)] [expr 0] } errorMessage]
+
                     if {$errorCode != 0} {
                         xAIF::GUI::Message -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
                         puts [format "Error:  %s  Pin:  %d  Handle:  %s" $errorMessage $i $pin]
@@ -1333,9 +1347,14 @@ puts [expr $::MGCPCB::EPcbSide(epcbSideOpposite)]
                 incr i
             }
 
-            ## Define the placement outline
+
+            ##  Define the placement outline.   Need to adjust X
+            ##  and Y locations based CENTER directive (if it exists)
+puts "P1"
+            set ctr "0,0"
 
             if { $xAIF::Settings(MCMAIF) == 1 } {
+puts "P2"
                 ##  Device might be the BGA ... need to account
                 ##  for that possibility before trying to extract
                 ##  the height and width from a non-existant section
@@ -1355,17 +1374,37 @@ puts [expr $::MGCPCB::EPcbSide(epcbSideOpposite)]
                     set height [AIF::GetVar HEIGHT $section]
                 }
             } elseif { $device == "BGA" } {
+puts "P3"
                 set width [AIF::GetVar WIDTH BGA]
                 set height [AIF::GetVar HEIGHT BGA]
             } else {
+puts "P4"
                 set width [AIF::GetVar WIDTH DIE]
                 set height [AIF::GetVar HEIGHT DIE]
+
+                ##  Account for the CENTER if defined
+                if { [lsearch [AIF::Variables DIE] CENTER] != -1 } {
+                    set ctr [AIF::GetVar CENTER DIE]
+                }
             }
 
-            set x2 [expr $width / 2]
-            set x1 [expr -1 * $x2]
-            set y2 [expr $height / 2]
-            set y1 [expr -1 * $y2]
+            ##  Split the CENTER keyword into an X and Y, handle space or comma
+            if { [string first , $ctr] != -1 } {
+                set centerx [string trim [lindex [split $ctr ,] 0]]
+                set centery [string trim [lindex [split $ctr ,] 1]]
+            } else {
+                set centerx [string trim [lindex [split $ctr] 0]]
+                set centery [string trim [lindex [split $ctr] 1]]
+            }
+
+            ##  Compute extents accounting for CENTER
+            set x2 [expr ($width / 2) - $centerx]
+            set x1 [expr (-1 * $x2) - $centerx]
+            set y2 [expr ($height / 2) - $centery]
+            set y1 [expr (-1 * $y2) - $centery]
+puts "P5"
+
+            puts "X1:  $x1  Y1:  $y1  X2:  $x2  Y2:  $y2"
 
             ##  PutPlacementOutline expects a Points Array which isn't easily
             ##  passed via Tcl.  Use the Utility object to create a Points Array
@@ -1436,14 +1475,14 @@ puts [expr $::MGCPCB::EPcbSide(epcbSideOpposite)]
                 set V($a) $value
             }
 
-            set xAIF::Settings(partEdtrPrtnName) $V(-partition)
+            set xPCB::Settings(partEdtrPrtnName) $V(-partition)
 
             xAIF::GUI::StatusBar::UpdateStatus -busy on
             set xAIF::Settings(sTime) [clock format [clock seconds] -format "%m/%d/%Y %T"]
 
             ##  Make sure a Target library or design has been defined
 
-            if {$xAIF::Settings(TargetPath) == $xAIF::Const::XAIF_NOTHING && [string is false $xAIF::Settings(ConnectMode)] } {
+            if {$xAIF::Settings(TargetPath) == $xAIF::Const::XAIF_NOTHING && [string is false $xAIF::GUI::Dashboard::ConnectMode] } {
                 if {$xAIF::Settings(operatingmode) == $xAIF::Const::XAIF_MODE_DESIGN} {
                     xAIF::GUI::Message -severity error -msg "No Design (PCB) specified, build aborted."
                 } elseif {$xAIF::Settings(operatingmode) == $xAIF::Const::XAIF_MODE_LIBRARY} {
@@ -1479,23 +1518,23 @@ puts [expr $::MGCPCB::EPcbSide(epcbSideOpposite)]
                 #  Prompt for the Partition if not supplied with -partition
 
                 if { [string equal $V(-partition) ""] } {
-                    set xAIF::Settings(partEdtrPrtnName) \
-                        [AIFForms::ListBox::SelectOneFromList "Select Target Part Partition" $xAIF::Settings(partEdtrPrtnNames)]
+                    set xPCB::Settings(partEdtrPrtnName) \
+                        [AIFForms::ListBox::SelectOneFromList "Select Target Part Partition" $xPCB::Settings(partEdtrPrtnNames)]
 
-                    if { [string equal $xAIF::Settings(partEdtrPrtnName) ""] } {
+                    if { [string equal $xPCB::Settings(partEdtrPrtnName) ""] } {
                         xAIF::GUI::Message -severity error -msg "No Part Partition selected, build aborted."
                         MGC::CloseCellEditor
                         xAIF::GUI::StatusBar::UpdateStatus -busy off
                         return
                     } else {
-                        set xAIF::Settings(partEdtrPrtnName) [lindex $xAIF::Settings(partEdtrPrtnName) 1]
+                        set xPCB::Settings(partEdtrPrtnName) [lindex $xPCB::Settings(partEdtrPrtnName) 1]
                     }
                 } else {
-                    set xAIF::Settings(partEdtrPrtnName) $V(-partition)
+                    set xPCB::Settings(partEdtrPrtnName) $V(-partition)
                 }
 
 
-                set partitions [$xAIF::Settings(partEdtrDb) Partitions]
+                set partitions [$xPCB::Settings(partEdtrDb) Partitions]
 
                 xAIF::GUI::Message -severity note -msg [format "Found %s part %s." [$partitions Count] \
                     [xAIF::Utility::Plural [$partitions Count] "partition"]]
@@ -1508,15 +1547,15 @@ puts [expr $::MGCPCB::EPcbSide(epcbSideOpposite)]
 
                 #  Does the partition exist?
 
-                if { [lsearch $pNames $xAIF::Settings(partEdtrPrtnName)] == -1 } {
+                if { [lsearch $pNames $xPCB::Settings(partEdtrPrtnName)] == -1 } {
                     xAIF::GUI::Message -severity note -msg [format "Creating partition \"%s\" for part \"%s\"." \
-                        $xAIF::Settings(partEdtrPrtnName) $device]
+                        $xPCB::Settings(partEdtrPrtnName) $device]
 
-                    set partition [$xAIF::Settings(partEdtrDb) NewPartition $xAIF::Settings(partEdtrPrtnName)]
+                    set partition [$xPCB::Settings(partEdtrDb) NewPartition $xPCB::Settings(partEdtrPrtnName)]
                 } else {
                     xAIF::GUI::Message -severity note -msg [format "Using existing partition \"%s\" for part \"%s\"." \
-                        $xAIF::Settings(partEdtrPrtnName) $device]
-                    set partition [$partitions Item [expr [lsearch $pNames $xAIF::Settings(partEdtrPrtnName)] +1]]
+                        $xPCB::Settings(partEdtrPrtnName) $device]
+                    set partition [$partitions Item [expr [lsearch $pNames $xPCB::Settings(partEdtrPrtnName)] +1]]
                 }
 
                 #  Now that the partition work is doene, does the part exist?
@@ -1526,7 +1565,7 @@ puts [expr $::MGCPCB::EPcbSide(epcbSideOpposite)]
                 if { [expr { $V(-partition) ne "" }] } {
                     xAIF::GUI::Message -severity warning -msg "-partition switch is ignored in Design Mode."
                 }
-                set partition [$xAIF::Settings(partEdtrDb) ActivePartition]
+                set partition [$xPCB::Settings(partEdtrDb) ActivePartition]
                 set parts [$partition Parts]
             }
 
@@ -1562,7 +1601,7 @@ puts [expr $::MGCPCB::EPcbSide(epcbSideOpposite)]
                 }
             }
 
-            $xAIF::Settings(partEdtr) SaveActiveDatabase
+            $xPCB::Settings(partEdtr) SaveActiveDatabase
 
             ##  Generate a new part.  The first part of this is done in
             ##  in the PDB Editor which is part of the Library Manager.
@@ -1683,6 +1722,7 @@ puts [expr $::MGCPCB::EPcbSide(epcbSideOpposite)]
         #
 
         proc Pads { } {
+parray xAIF::padtypes
             foreach i [AIFForms::ListBox::SelectFromList "Select Pad(s)" [lsort -dictionary [AIF::Pad::GetAllPads]]] {
                 set p [lindex $i 1]
                 set xAIF::padgeom(name) $p
@@ -1783,7 +1823,8 @@ puts [expr $::MGCPCB::EPcbSide(epcbSideOpposite)]
                     set w $xAIF::padgeom(width)
                     set h $xAIF::padgeom(height)
                     set xAIF::padgeom(name) [format "%s_h" $n]
-                    set xAIF::bondpadswaps($n) $xAIF::padgeom(name)
+                    set xAIF::bondpadsubst($n) $xAIF::padgeom(name)
+                    set xAIF::padtypes($xAIF::padgeom(name)) "bondpad"
 
                     ##  Need to swap?
                     if { $h > $w } {
@@ -1797,6 +1838,7 @@ puts [expr $::MGCPCB::EPcbSide(epcbSideOpposite)]
                     ##  Generate a vertical version of the bond pad
 
                     set xAIF::padgeom(name) [format "%s_v" $n]
+                    set xAIF::padtypes($xAIF::padgeom(name)) "bondpad"
                     ##  Swap the height and width
                     foreach w $h h $w break
 
@@ -1818,7 +1860,7 @@ puts [expr $::MGCPCB::EPcbSide(epcbSideOpposite)]
         proc Cells { } {
             foreach i [AIFForms::ListBox::SelectFromList "Select Cell(s)" [lsort -dictionary [array names xAIF::devices]]] {
                 foreach j [array names xAIF::GUI::Dashboard::CellGeneration] {
-                    if { [string is true $xAIF::GUI::Dashboard::CellGeneration($j)] } {
+                    if { [string is true $xAIF::Settings($j)] } {
                         MGC::Generate::Cell [lindex $i 1] -mirror [string tolower [string trimleft $j Mirror]]
                     }
                 }
@@ -1902,6 +1944,7 @@ puts [expr $::MGCPCB::EPcbSide(epcbSideOpposite)]
             puts "4"
                 set xAIF::Settings(PackageCell) [lindex $pkgcell 1]
                 xAIF::GUI::Message -severity note -msg [format "Package Cell set to:  %s" $xAIF::Settings(PackageCell)]
+            puts "5"
             }
         }
 
@@ -1945,11 +1988,11 @@ puts [expr $::MGCPCB::EPcbSide(epcbSideOpposite)]
                     return
                 }
 
-                #set width [AIF::GetVar WIDTH BGA]
-                #set height [AIF::GetVar HEIGHT BGA]
+                set width [AIF::GetVar WIDTH BGA]
+                set height [AIF::GetVar HEIGHT BGA]
 
-                set width [AIF::GetVar WIDTH [format "MCM_%s_U13" $xAIF::Settings(PackageCell)]]
-                set height [AIF::GetVar HEIGHT [format "MCM_%s_U13" $xAIF::Settings(PackageCell)]]
+                #set width [AIF::GetVar WIDTH [format "MCM_%s_U13" $xAIF::Settings(PackageCell)]]
+                #set height [AIF::GetVar HEIGHT [format "MCM_%s_U13" $xAIF::Settings(PackageCell)]]
 
                 set x2 [expr $width / 2]
                 set x1 [expr -1 * $x2]
@@ -2110,10 +2153,18 @@ puts [expr $::MGCPCB::EPcbSide(epcbSideOpposite)]
             WBMax 10000
         }
 
+##        array set WBRule {
+##            Name DefaultWireModel
+##            BWW 25
+##            Template {[Name=[DefaultWireModel]][IsMod=[No]][Cs=[[[X=[0]][Y=[0]][Z=[(BWH)]][R=[0]][CT=[Ball]]][[X=[0]][Y=[0]][Z=[(BWH)+100um]][R=[50um]][CT=[Round]]][[X=[(BWD)/3*2]][Y=[0]][Z=[(BWH)+100um]][R=[200um]][CT=[Round]]][[X=[(BWD)]][Y=[0]][Z=[(IH)]][R=[0]][CT=[Wedge]]]]][Vs=[[BD=[BWW+15um]][BH=[15um]][BWD=[10000um]][BWH=[300um]][BWW=[25um]][IH=[30um]][WL=[30um]]]]}
+##            Value ""
+##        }
+
+        ##  New wire model from Frank Bader 2017-03-07
         array set WBRule {
             Name DefaultWireModel
-            BWW 25
-            Template {[Name=[DefaultWireModel]][IsMod=[No]][Cs=[[[X=[0]][Y=[0]][Z=[(BWH)]][R=[0]][CT=[Ball]]][[X=[0]][Y=[0]][Z=[(BWH)+100um]][R=[50um]][CT=[Round]]][[X=[(BWD)/3*2]][Y=[0]][Z=[(BWH)+100um]][R=[200um]][CT=[Round]]][[X=[(BWD)]][Y=[0]][Z=[(IH)]][R=[0]][CT=[Wedge]]]]][Vs=[[BD=[BWW+15um]][BH=[15um]][BWD=[10000um]][BWH=[300um]][BWW=[25um]][IH=[30um]][WL=[30um]]]]}
+            BWW 7
+            Template {[Name=[DefaultWireModel]][IsMod=[No]][Cs=[[[X=[0]][Y=[0]][Z=[(BWH)]][R=[0]][CT=[Ball]]][[X=[0]][Y=[0]][Z=[(BWH)+(BWD)/4]][R=[50um]][CT=[Round]]][[X=[(BWD)/3*2]][Y=[0]][Z=[(BWH)+(BWD)/4]][R=[200um]][CT=[Round]]][[X=[(BWD)]][Y=[0]][Z=[(IH)]][R=[0]][CT=[Wedge]]]]][Vs=[[BD=[BWW*2]][BH=[15um]][BWD=[1000um]][BWH=[300um]][BWW=[7um]][IH=[0um]][WL=[15um]]]]}
             Value ""
         }
 
@@ -2188,10 +2239,10 @@ puts [expr $::MGCPCB::EPcbSide(epcbSideOpposite)]
         }
 
         ##
-        ##  MGC::Wirebond::ApplyProperies
+        ##  MGC::Wirebond::ApplyProperties
         ##
-        proc ApplyProperies {} {
-            puts "MGC::Wirebond::ApplyProperies"
+        proc ApplyProperties {} {
+            puts "MGC::Wirebond::ApplyProperties"
             ##  Which mode?  Design or Library?
             if { $xAIF::Settings(operatingmode) == $xAIF::Const::XAIF_MODE_DESIGN } {
                 ##  Invoke Xpedition on the design so the Cell Editor can be started
@@ -2241,7 +2292,8 @@ puts [expr $::MGCPCB::EPcbSide(epcbSideOpposite)]
             puts "MGC::Wirebond::PlaceBondPads"
 
             ##  Which mode?  Design or Library?
-            if { $xAIF::Settings(operatingmode) == $xAIF::Const::XAIF_MODE_DESIGN } {
+            if { [string compare -nocase $xAIF::Settings(operatingmode) $xAIF::Const::XAIF_MODE_DESIGN] == 0 } {
+            
                 ##  Invoke Xpedition on the design so the Cell Editor can be started
                 ##  Catch any exceptions raised by opening the database
                 set errorCode [catch { MGC::OpenXpedition } errorMessage]
@@ -2259,8 +2311,9 @@ puts [expr $::MGCPCB::EPcbSide(epcbSideOpposite)]
             ##  Start a transaction with DRC to get Bond Pads placed ...
             $xPCB::Settings(pcbDoc) TransactionStart [expr $::MGCPCB::EPcbDRCMode(epcbDRCModeNone)]
 
+puts "X5A"
             foreach i $xAIF::bondpads {
-
+puts "X5B - $i"
                 set bondpad(NETNAME) [lindex $i 0]
                 set bondpad(FINNAME) [lindex $i 1]
                 set bondpad(FIN_X) [lindex $i 2]
@@ -2317,6 +2370,7 @@ puts [expr $::MGCPCB::EPcbSide(epcbSideOpposite)]
                 puts [format "---------->  %s" [$bpo Name]]
                 puts [format "Orientation:  %s" [$bpo -get Orientation]]
             }
+puts "X5C"
 
             $xPCB::Settings(pcbDoc) TransactionEnd True
             xAIF::GUI::StatusBar::UpdateStatus -busy off
@@ -2352,8 +2406,9 @@ puts [expr $::MGCPCB::EPcbSide(epcbSideOpposite)]
             array set bwplc [list pass 0 fail 0]
 
             ##  Place each bond wire based on From XY and To XY
-            #set c 0
+            set c 0
             foreach i $xAIF::bondwires {
+                #if { [incr c] > 5 } { break }
                 set bondwire(NETNAME) [lindex $i 0]
                 set bondwire(FROM_X) [lindex $i 1]
                 set bondwire(FROM_Y) [lindex $i 2]
@@ -2362,12 +2417,13 @@ puts [expr $::MGCPCB::EPcbSide(epcbSideOpposite)]
 
                 ##  Try and "pick" the "FROM" Die Pin at the XY location.
                 $xPCB::Settings(pcbDoc) UnSelectAll
-                #puts "Picking FROM at X:  $bondwire(FROM_X)  Y:  $bondwire(FROM_Y)"
+                puts "Wire #$c:  Picking FROM at X:  $bondwire(FROM_X)  Y:  $bondwire(FROM_Y)"
                 set objs [$xPCB::Settings(pcbDoc) Pick \
                     [expr double($bondwire(FROM_X))] [expr double($bondwire(FROM_Y))] \
                     [expr double($bondwire(FROM_X))] [expr double($bondwire(FROM_Y))] \
                     [expr $::MGCPCB::EPcbObjectClassType(epcbObjectClassPadstackObject)] \
                     [$xPCB::Settings(pcbDoc) LayerStack]]
+puts $objs
 
                 ##  Making sure exactly "one" object was picked isn't possible - too many
                 ##  things can be stacked on top of one another on different layers.  Need
@@ -2379,6 +2435,7 @@ puts [expr $::MGCPCB::EPcbSide(epcbSideOpposite)]
                 if { [$objs Count] > 0 } {
                     ::tcom::foreach obj $objs {
                         set diepin [$obj CurrentPadstack]
+puts [$diepin PinClass]
                         if { [$diepin PinClass] == [expr $::MGCPCB::EPcbPinClassType(epcbPinClassDie)] } {
                             set dpFound True
                             set DiePin [[$diepin Pins] Item 1]
@@ -2502,8 +2559,6 @@ puts [expr $::MGCPCB::EPcbSide(epcbSideOpposite)]
                         }
                     }
                 }
-
-                #if { [incr c] > 5 } { break }
             }
 
             xAIF::GUI::Message -severity note -msg [format "Bond Wire Placement Results - Placed:  %s  Failed:  %s" $bwplc(pass) $bwplc(fail)]
@@ -2555,6 +2610,21 @@ namespace eval xPCB {
 
     set Settings(pcbOpenDocuments) {}
     set Settings(pcbOpenDocumentIds) {}
+
+    set Settings(pdstkEdtr) ""
+    set Settings(pdstkEdtrDb) ""
+
+    set Settings(cellEdtr) ""
+    set Settings(cellEdtrDb) ""
+    set Settings(cellEdtrPrtn) "xAIF-Work"
+    set Settings(cellEdtrPrtnName) ""
+    set Settings(cellEdtrPrtnNames) {}
+
+    set Settings(partEdtr) ""
+    set Settings(partEdtrDb) ""
+    set Settings(partEdtrPrtn) "xAIF-Work"
+    set Settings(partEdtrPrtnName) ""
+    set Settings(partEdtrPrtnNames) {}
 
     set Settings(LayerNames) {}
     set Settings(LayerNumbers) {}
@@ -2668,7 +2738,7 @@ namespace eval xPCB {
                 ##  Default the work directory from the design
                 Setup::WorkDirectoryFromDesign
                 set xPCB::Settings(DesignPath) [lindex $Settings(pcbOpenDocumentPaths) $Settings(pcbAppId)]
-                set xPCB::Settings(TargetPath) [lindex $Settings(pcbOpenDocumentPaths) $Settings(pcbAppId)]
+                set xAIF::Settings(TargetPath) [lindex $Settings(pcbOpenDocumentPaths) $Settings(pcbAppId)]
 
                 ##  Update connection status
                 set xAIF::Settings(connectionstatus) $xAIF::Const::XAIF_STATUS_CONNECTED
@@ -2952,14 +3022,7 @@ if { 0 } {
         ##  Build up the configuration state to save ...
         set cfgText ""
 
-        foreach L $Settings(LayerNames) {
-            set l [string tolower $L]
-            set cfgText [format "%s\n%s=%s" $cfgText ${l}hw $Settings(${l}hw)]
-            set cfgText [format "%s\n%s=%s" $cfgText layer${l} $Settings(layer${l})]
-        }
-
-        foreach s { defaulthw operatingmode overunderopt overundersize type1pathopt verbosemsgs \
-            debugmsgs csvmappingfile annotategdslvstext writeverilognetlist writecce usetimestamps} {
+        foreach s { verbosemsgs debugmsgs } {
             if { [lsearch [array names Settings] ${s}] == -1 } {
                 set Settings(${s}) off
             }
@@ -2984,10 +3047,17 @@ if { 0 } {
     ##
     proc SaveDesignConfigAs { } {
         variable Settings
+        parray Settings
+
+        if { [string equal xAIF::Settings(connectionstatus) $xAIF::Const::XAIF_STATUS_CONNECTED] } {
+            set initialdir [file join [$Settings(pcbDoc) Path] Config]
+        } else {
+            set initialdir [pwd]
+        }
 
         set f [tk_getSaveFile -title "Save Design Configuration" -parent . \
             -filetypes {{{Config Files} .cfg} {{Text Files} .txt} {{All Files} *}} \
-            -initialdir [file join [$Settings(pcbDoc) Path] Config] -initialfile $xAIF::Const::XAIF_DEFAULT_CFG_FILE]
+            -initialdir initialdir -initialfile $xAIF::Const::XAIF_DEFAULT_CFG_FILE]
         if { $f == "" } {
             return; # they clicked cancel
         }
@@ -3023,17 +3093,10 @@ if { 0 } {
             #tk_messageBox -parent . -icon info -message "Design Configuration loaded from \"$f\"."
             xAIF::GUI::Message -severity note -msg "Design Configuration loaded from \"$f\"."
         }
-##  @TODO
-return
+
         set cfgVars {}
 
-        foreach L $Settings(LayerNames) {
-            set l [string tolower $L]
-            lappend cfgVars ${l}hw layer${l}
-        }
-
-        foreach l { defaulthw operatingmode overunderopt overundersize type1pathopt verbosemsgs \
-            debugmsgs csvmappingfile annotategdslvstext writeverilognetlist writecce usetimestamps} {
+        foreach l { verbosemsgs debugmsgs } {
             lappend cfgVars $l
         }
 
