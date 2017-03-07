@@ -151,6 +151,7 @@ namespace eval xAIF::GUI {
                 {cascade "&Operating Mode" {} {operatingmodemenu} 0 {
                 }}
                 {separator}
+                {cascade "&Pad Generation"  {} {padgenerationmenu} 0 {}}
                 {cascade "Cell &Generation" {} {cellgenerationmenu} 0 {
                     {checkbutton "&Default" cellgendefault "Enable/Disable Cell Generation Default View" {} \
                         -variable xAIF::Settings(MirrorNone) -onvalue on -offvalue off \
@@ -172,6 +173,7 @@ namespace eval xAIF::GUI {
                 {cascade "Cell &Name Suffix" {} {cellnamesuffixmenu} 0 { }}
                 {cascade "&BGA Cell Generation" {} {bgacellgenerationmenu} 0 { }}
                 {cascade "&Default Cell Height" {} {defaultcellheightmenu} 0 { }}
+                {command "Default &Package Cell ..."  {} "Default Package Cell" {} -command MGC::Design::SetPackageCell}
                 {separator}
                 {checkbutton "&Verbose Messages" verbosemsgs "Enable/Disable Verbose Messages" {} \
                     -variable xAIF::Settings(verbosemsgs) -onvalue on -offvalue off \
@@ -307,10 +309,10 @@ namespace eval xAIF::GUI {
             "&Wirebond" all wirebondmenu 0 {
                 {command "&Setup ..."  {} "Setup Wirebond Parameters" {} -command { $xAIF::GUI::Widgets(notebook) raise wbpf }}
                 {separator}
-                {command "&Apply Wirebond Properties"  {} "Apply Wirebond Properties" {} -command { MGC::WireBond::ApplyProperies }}
+                {command "&Apply Wirebond Properties"  {} "Apply Wirebond Properties" {} -command { MGC::Wirebond::ApplyProperties }}
                 {separator}
-                {command "Place Bond &Pads ..."  {} "Place Bond Pads" {} -command { MGC::WireBond::PlaceBondPads }}
-                {command "Place Bond &Wires ..."  {} "Place Bond Wires" {} -command { MGC::WireBond::PlaceBondWires }}
+                {command "Place Bond &Pads ..."  {} "Place Bond Pads" {} -command { MGC::Wirebond::PlaceBondPads }}
+                {command "Place Bond &Wires ..."  {} "Place Bond Wires" {} -command { MGC::Wirebond::PlaceBondWires }}
             }
             "&Tools" all toolsmenu 0 {
                 {command "&XpeditionPCB ..."         {xpeditionpcb}   "Launch XpeditionPCB"       {} -command {xPCB::OpenXpeditionPCB}}
@@ -988,7 +990,7 @@ namespace eval xAIF::GUI::Build {
             pack $dbf.bgageneration.b$k  -side top -pady 2 -anchor w
         }
         ##  Until VX.2, a bug in the API prevents generating MSO cells so disable the radio button.
-        $dbf.bgageneration.bmso configure -state disabled
+        #$dbf.bgageneration.bmso configure -state disabled
 
         ##  Default Cell Height
         labelframe $dbf.defaultcellheight -pady 5 -text "Default Cell Height (um)" -padx 5
@@ -1387,7 +1389,7 @@ namespace eval xAIF::GUI::Dashboard {
     ##
     proc SelectCellPartition {} {
         set xAIF::GUI::Dashboard::CellPartition \
-            [AIFForms::ListBox::SelectOneFromList "Select Target Cell Partition" $xAIF::Settings(cellEdtrPrtnNames)]
+            [AIFForms::ListBox::SelectOneFromList "Select Target Cell Partition" $xPCB::Settings(cellEdtrPrtnNames)]
 
         if { [string equal $xAIF::GUI::Dashboard::CellPartition ""] } {
             xAIF::GUI::Message -severity error -msg "No Cell Partition selected."
@@ -1401,7 +1403,7 @@ namespace eval xAIF::GUI::Dashboard {
     ##
     proc SelectPartPartition {} {
         set xAIF::GUI::Dashboard::PartPartition \
-            [AIFForms::ListBox::SelectOneFromList "Select Target Part Partition" $xAIF::Settings(partEdtrPrtnNames)]
+            [AIFForms::ListBox::SelectOneFromList "Select Target Part Partition" $xPCB::Settings(partEdtrPrtnNames)]
 
         if { [string equal $xAIF::GUI::Dashboard::PartPartition ""] } {
             xAIF::GUI::Message -severity error -msg "No Part Partition selected."
@@ -1951,6 +1953,8 @@ namespace eval xAIF::GUI::File {
         $m delete 3 end
         set m [$xAIF::GUI::Widgets(mainframe) getmenu padsmenu]
         $m delete 3 end
+        set m [$xAIF::GUI::Widgets(mainframe) getmenu padgenerationmenu]
+        $m delete 0 end
     }
 
 
@@ -2290,9 +2294,9 @@ namespace eval xAIF::GUI::Draw {
                 ###    dict lappend xAIF::padtypes $nlr(PADNAME) "smdpad"
                 ###}
                 if { [lsearch [array names xAIF::padtypes] $nlr(PADNAME)] == -1 } {
-                    set xAIF::padtypes($nlr(PADNAME)) "smdpad"
+                    set xAIF::padtypes($nlr(PADNAME)) "diepad"
                 }
-                set xAIF::padtypes($nlr(PADNAME)) "smdpad"
+                #set xAIF::padtypes($nlr(PADNAME)) "smdpad"
             } else {
                 xAIF::GUI::Message -severity warning -msg [format "Skipping die pad for net \"%s\" on line %d, no pad assignment." $netname, $line_no]
             }

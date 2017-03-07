@@ -165,11 +165,13 @@ namespace eval xAIF {
         set XAIF_WINDOWSIZEX                  800
         set XAIF_WINDOWSIZEY                  600
         set XAIF_SCALEFACTOR                  1
+        set XAIF_PADTYPE_BALLPAD              "ballpad"
+        set XAIF_PADTYPE_BONDPAD              "bondpad"
+        set XAIF_PADTYPE_DIEPAD               "diepad"
+        set XAIF_PADTYPE_SMDPAD               "smdpad"
 
         set PKG_TYPE_GBL                  OperatingMode
         set USE_TIME_STAMP                UseTimeStamp
-        set PKG_TYPE_INFO_S               info_s
-        set PKG_TYPE_INFO_POP             info_pop
         set XAIF_DEFAULT_CFG_FILE         xAIF.cfg
         set XAIF_DEFAULT_TXT_FILE         xAIF.txt
     }
@@ -192,8 +194,8 @@ namespace eval xAIF {
 
     ##  Define Settings and default values
     set Settings(name) "Xpedition AIF Utility (xAIF)"
-    set Settings(version) "2.0-beta-1"
-    set Settings(date) "Thu Nov 03 14:00:05 EDT 2016"
+    set Settings(version) "2.0-beta-2"
+    set Settings(date) "Fri Mar 03 09:16:26 EDT 2017"
     set Settings(workdir) [pwd]
     set Settings(status) "Ready"
     set Settings(progress) 0
@@ -233,6 +235,7 @@ namespace eval xAIF {
     set Settings(MirrorY) off
     set Settings(MirrorXY) off
 
+    set Settings(PackageCell) {}
     set Settings(DefaultCellHeight) 50
     set Settings(CellNameSuffix) $xAIF::Const::CELL_GEN_SUFFIX_NONE_KEY
     set Settings(BGACellGeneration) $xAIF::Const::CELL_GEN_BGA_NORMAL_KEY
@@ -245,21 +248,6 @@ namespace eval xAIF {
     set Settings(debugmsgs) off
 
     set Settings(verbosemsgs) on
-
-    set Settings(pdstkEdtr) ""
-    set Settings(pdstkEdtrDb) ""
-
-    set Settings(cellEdtr) ""
-    set Settings(cellEdtrDb) ""
-    set Settings(cellEdtrPrtn) "xAIF-Work"
-    set Settings(cellEdtrPrtnName) ""
-    set Settings(cellEdtrPrtnNames) {}
-
-    set Settings(partEdtr) ""
-    set Settings(partEdtrDb) ""
-    set Settings(partEdtrPrtn) "xAIF-Work"
-    set Settings(partEdtrPrtnName) ""
-    set Settings(partEdtrPrtnNames) {}
 
     ##  Tool command lines
 
@@ -402,8 +390,8 @@ namespace eval xAIF {
             DIEREF "U1"
             BGAREF "A1"
             name "Xpedition AIF Utility (xAIF)"
-            version "2.0-beta-3"
-            date "Mon Feb 06 20:25:21 EDT 2017"
+            version "2.0-beta-4"
+            date "Tue Feb 07 17:18:21 EDT 2017"
             workdir [pwd]
             status "Ready"
             connection off
