@@ -278,7 +278,13 @@ namespace eval AIF {
                 ##  Populate the mcmdie array
 
                 foreach v $vars {
-                    set refs [split [AIF::GetVar $v MCM_DIE] ","]
+                    ##  Need to handle reference designators separated
+                    ##  by white space or comma, examples have shown both
+                    if { [string match [AIF::GetVar $v MCM_DIE] ","] == 1 } {
+                        set refs [split [AIF::GetVar $v MCM_DIE] ","]
+                    } else {
+                        set refs [split [AIF::GetVar $v MCM_DIE] " "]
+                    }
 
                     foreach ref $refs {
                         xAIF::GUI::Message -severity note -msg [format "Device:  %s  Ref:  %s" $v [string  trim $ref]]
