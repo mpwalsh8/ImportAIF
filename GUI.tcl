@@ -2108,6 +2108,9 @@ namespace eval xAIF::GUI::Draw {
                         }
                     }
 
+                    ##  Need to handle multiple cell parts 
+                    set part(NAME) [format "%s_%s" $part(NAME) $i]
+
                     ##  Need the REF designator for later
 
                     set part(REF) $i

@@ -1,1 +1,1 @@
-%SDD_HOME%\common\%SDD_PLATFORM%\tclwtcom\bin\wish84.exe xAIF.tcl
+%SDD_HOME%\common\%SDD_PLATFORM%\tclwtcom\bin\tclsh84.exe xAIF.tcl

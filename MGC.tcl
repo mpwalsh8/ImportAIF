@@ -439,7 +439,7 @@ puts $xAIF::Settings(TargetPath)
             set errorCode [catch {set xPCB::Settings(partEdtrDb) [$xPCB::Settings(partEdtr) \
                 OpenDatabaseEx $xAIF::Settings(TargetPath) false] } errorMessage]
             if {$errorCode != 0} {
-puts "P5"
+puts "P5: $errorCode / $errorMessage"
                 xAIF::GUI::Message -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
                 return -code return 1
             }
@@ -456,6 +456,11 @@ puts "OpenPDBEdtr - 1"
         set errorCode [catch { $xPCB::Settings(partEdtr) LockServer } errorMessage]
         if {$errorCode != 0} {
             xAIF::GUI::Message -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
+            set errorCode [catch { $xPCB::Settings(partEdtr) UnlockServer } errorMessage]
+            if {$errorCode != 0} {
+                xAIF::GUI::Message -severity error -msg [format "API error \"%s\", build aborted." $errorMessage]
+                return -code return 1
+            }
             return -code return 1
         }
             puts "44->  $errorCode"
@@ -1239,7 +1244,7 @@ puts "Q5"
                 set diePadFields(centery) [string trim [lindex [split $ctr] 1]]
             }
 
-            ##  Start Transations for performance reasons
+            ##  Start Transactions for performance reasons
             $cellEditor TransactionStart [expr $::MGCPCB::EPcbDRCMode(epcbDRCModeDRC)]
 
             ##  Loop over the collection of pins
@@ -1643,6 +1648,10 @@ puts "P5"
                 $::MGCPCBPartsEditor::EPDBCellReferenceType(epdbCellRefTop) $device]
 
             set devicePinCount [llength $xAIF::devices($device)]
+            puts "----------------------"
+            puts $xAIF::devices($device)
+            puts $devicePinCount
+            puts "----------------------"
 
             ##  Define the gate - what to do about swap code?
             set gate [$mapping PutGate "gate_1" $devicePinCount \

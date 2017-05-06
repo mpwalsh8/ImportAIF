@@ -288,7 +288,7 @@ namespace eval AIF {
 
                     foreach ref $refs {
                         xAIF::GUI::Message -severity note -msg [format "Device:  %s  Ref:  %s" $v [string  trim $ref]]
-                        set xAIF::mcmdie([string trim $ref]) $v
+                        set xAIF::mcmdie([string trim $ref]) [format "%s_%s" $v [string trim $ref]]
                     }
                 }
 
