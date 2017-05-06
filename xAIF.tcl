@@ -354,7 +354,7 @@ namespace eval xAIF {
             netlistview ""
             #sparsepinsview ""
             xAIF "Xpedition xAIF - AIF Import Utility"
-            xAIFVersion "1.0-beta-3"
+            xAIFVersion "1.0-beta-4"
             MsgNote 0
             MsgWarning 1
             MsgError 2
