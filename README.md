@@ -20,13 +20,26 @@ Unfortunately there are not many example AIF files to use as a reference.  In fa
 
 Requirements
 -
-Mentor Graphics only supports Tcl 8.4.x with Xpedition xPCB and Library Manager.  Xpedition xAIF is developed on Windows using [ActiveTcl](http://www.activestate.com/activetcl/downloads) 8.4.20.0.  The ActiveTcl distribution includes many optional Tcl/Tk modules so no additional installation and/or configuration work is required.
+Mentor Graphics only supports Tcl 8.4.x with Xpedition family of applications.  As part of the Xpedition or XPI flow installation, Mentor Graphics includes a bundled version Tcl/Tk 8.4 compiled for the proper application version and platform.  Mentor's version of Tcl/Tk includes tcom, the COM interface for Tcl which allows Tcl to be used with the Xpedition API.  Xpedition xAIF is developed using Mentor's bundled version of Tcl.  The bundled version of Tcl does not include many libraries, so xAIF includes several Tcl based libraries required for the application to run ([BWidget](https://core.tcl.tk/bwidget/home "BWidget"), [Tcllib](https://www.tcl.tk/software/tcllib/ "Tcllib"), [Tklib](https://www.tcl.tk/software/tklib/ "Tklib")).
 
 Installation and Operation
 -
-Xpedition xAIF is currently a work-in-progress.  Download (or clone) Xpedition xAIF from GitHub.  Invoke the application using Wish to open xAIF.tcl (the main entry point). 
+Xpedition xAIF is currently a work-in-progress.  Download (or clone) Xpedition xAIF from GitHub.  Invoking the xAIF application differs from Windows and Linux.
 
-The full AIF specification has not been implemented.  Unsupported keywords in the AIF file are noted in red text when viewing the source.
+### Windows ###
+Open a MGC PCB CMD window from the Start Menu.  The MGC PCB CMD utility is a standard Windows CMD window with the Mentor environment preconfigured.  Environment variables are set correctly so applications which use the API work without additional setup or configuration.
+
+![Start Menu](./doc/images/StartMenu.png)
+
+Selecting MGC PCB CMD VX.2.1 (or the desired version) from the Start menu will open the window.  To launch xAIF, type **tclsh84.exe <path_to>\xAIF\xAIF.tcl** as shown in the image below.
+
+![MGC PCB CMD Window](./doc/images/MGCPCBCmd.png)
+
+As xAIF starts running it will trascript some messages as it loads the various APIs and initializes.  When finished, the xAIF GUI is presented to the user. 
+
+![](./doc/images/xAIF_GUI.png)
+
+The full AIF specification has not been implemented.  Unsupported keywords in the AIF file are noted in red text when viewing the source within the xAIF GUI on the ***AIF Source File*** tab.
 
 Usage
 -
